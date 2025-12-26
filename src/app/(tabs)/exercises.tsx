@@ -17,6 +17,7 @@ import { useExerciseStore } from '../../store/exerciseStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useThemeStore } from '@/store/useThemeStore';
 
 type ExerciseType = 'workout' | 'warmup' | 'cooldown';
 
@@ -208,7 +209,7 @@ export default function ExercisesScreen() {
       </View>
     </TouchableOpacity>
   );
-
+    const { vars, mode } = useThemeStore();
   const renderFilterModal = () => (
     <Modal
       visible={showFilters}
@@ -216,12 +217,12 @@ export default function ExercisesScreen() {
       transparent={true}
       onRequestClose={() => setShowFilters(false)}
     >
-      <View className="flex-1 bg-black/50 justify-end">
+      <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
         <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-text text-2xl font-bold">Filters</Text>
             <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <AntDesign name="close" size={24} color="white" />
+              <AntDesign name="close" size={24} color="var(--text)" />
             </TouchableOpacity>
           </View>
 

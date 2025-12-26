@@ -16,11 +16,12 @@ import { supabase } from '../../lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+
   const [activePlan, setActivePlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
@@ -74,7 +75,7 @@ export default function WorkoutsScreen() {
                 .eq('id', activePlan.id);
 
               if (error) throw error;
-              
+
               setActivePlan(null);
               Alert.alert('Success', 'Workout plan deleted successfully');
             } catch (error) {
@@ -94,23 +95,20 @@ export default function WorkoutsScreen() {
 
   const renderWorkoutDay = (day, index) => {
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
+
     return (
       <TouchableOpacity
         key={day.id}
-        className={`mb-4 mx-4 rounded-xl p-4 ${
-          day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
-        }`}
+        className={`mb-4 mx-4 rounded-xl p-4 ${day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
+          }`}
         onPress={() => editWorkoutDay(day)}
       >
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
-            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${
-              day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
-            }`}>
-              <Text className={`font-bold text-lg ${
-                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
               }`}>
+              <Text className={`font-bold text-lg ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+                }`}>
                 {index + 1}
               </Text>
             </View>
@@ -118,14 +116,13 @@ export default function WorkoutsScreen() {
               <Text className="text-text font-bold text-lg">
                 {daysOfWeek[day.day_of_week]}
               </Text>
-              <Text className={`text-sm ${
-                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
-              }`}>
+              <Text className={`text-sm ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+                }`}>
                 {day.is_rest_day ? 'Rest Day' : day.name || 'Workout Day'}
               </Text>
             </View>
           </View>
-          
+
           {!day.is_rest_day && (
             <TouchableOpacity
               className="bg-blue-600 px-4 py-2 rounded-lg"
@@ -194,14 +191,14 @@ export default function WorkoutsScreen() {
               <Text className="text-text-light text-center mb-8">
                 Create a workout plan to start tracking your progress and achieving your fitness goals.
               </Text>
-              
+
               <TouchableOpacity
                 className="bg-blue-600 py-4 rounded-xl w-full items-center"
                 onPress={() => router.push('/create-plan')}
               >
                 <Text className="text-text font-bold text-lg">Create Workout Plan</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 className="mt-4 py-4 rounded-xl w-full items-center border border-gray-700"
                 onPress={() => router.push('/browse-templates')}
@@ -213,7 +210,7 @@ export default function WorkoutsScreen() {
             {/* Quick Stats */}
             <View className="mt-8 w-full">
               <Text className="text-text text-lg font-bold mb-4">Why Create a Plan?</Text>
-              
+
               <View className="flex-row justify-between">
                 <View className="bg-surface p-4 rounded-xl flex-1 mr-2">
                   <Feather name="target" size={24} color="#10B981" />
@@ -222,7 +219,7 @@ export default function WorkoutsScreen() {
                     Follow a structured routine
                   </Text>
                 </View>
-                
+
                 <View className="bg-surface p-4 rounded-xl flex-1 mx-2">
                   <Feather name="trending-up" size={24} color="#3B82F6" />
                   <Text className="text-text font-bold mt-2">Track Progress</Text>
@@ -230,7 +227,7 @@ export default function WorkoutsScreen() {
                     Monitor improvements over time
                   </Text>
                 </View>
-                
+
                 <View className="bg-surface p-4 rounded-xl flex-1 ml-2">
                   <Feather name="award" size={24} color="#F59E0B" />
                   <Text className="text-text font-bold mt-2">Achieve Goals</Text>
@@ -256,7 +253,7 @@ export default function WorkoutsScreen() {
               <Text className="text-text text-3xl font-bold">Workout Plan</Text>
               <Text className="text-text-light">{activePlan.name}</Text>
             </View>
-            
+
             <TouchableOpacity
               className="bg-surface p-2 rounded-lg"
               onPress={() => router.push('/create-plan')}
@@ -274,14 +271,14 @@ export default function WorkoutsScreen() {
                   {new Date(activePlan.start_date).toLocaleDateString()}
                 </Text>
               </View>
-              
+
               <View>
                 <Text className="text-text-light text-sm">End Date</Text>
                 <Text className="text-text font-bold">
                   {new Date(activePlan.end_date).toLocaleDateString()}
                 </Text>
               </View>
-              
+
               <View>
                 <Text className="text-text-light text-sm">Days</Text>
                 <Text className="text-text font-bold">
@@ -289,7 +286,7 @@ export default function WorkoutsScreen() {
                 </Text>
               </View>
             </View>
-            
+
             <View className="flex-row justify-between">
               <TouchableOpacity
                 className="bg-blue-600 flex-1 mr-2 py-3 rounded-lg items-center"
@@ -297,7 +294,7 @@ export default function WorkoutsScreen() {
               >
                 <Text className="text-text font-bold">Edit Plan</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 className="bg-red-500/20 flex-1 ml-2 py-3 rounded-lg items-center border border-red-500/30"
                 onPress={deletePlan}
@@ -311,7 +308,7 @@ export default function WorkoutsScreen() {
         {/* Weekly Schedule */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Weekly Schedule</Text>
-          
+
           {activePlan.workout_days && activePlan.workout_days.length > 0 ? (
             activePlan.workout_days
               .sort((a, b) => a.day_of_week - b.day_of_week)
@@ -338,7 +335,7 @@ export default function WorkoutsScreen() {
         {/* Stats */}
         <View className="px-4 mb-8">
           <Text className="text-text text-xl font-bold mb-4">Plan Stats</Text>
-          
+
           <View className="flex-row flex-wrap justify-between">
             <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
               <Feather name="check-circle" size={24} color="#10B981" />
@@ -347,7 +344,7 @@ export default function WorkoutsScreen() {
               </Text>
               <Text className="text-text-light">Workout Days</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
               <Feather name="moon" size={24} color="#8B5CF6" />
               <Text className="text-text text-2xl font-bold mt-2">
@@ -355,22 +352,22 @@ export default function WorkoutsScreen() {
               </Text>
               <Text className="text-text-light">Rest Days</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4">
               <Feather name="activity" size={24} color="#3B82F6" />
               <Text className="text-text text-2xl font-bold mt-2">
-                {activePlan.workout_days?.reduce((total, day) => 
+                {activePlan.workout_days?.reduce((total, day) =>
                   total + (day.planned_exercises?.length || 0), 0) || 0
                 }
               </Text>
               <Text className="text-text-light">Total Exercises</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4">
               <Feather name="clock" size={24} color="#F59E0B" />
               <Text className="text-text text-2xl font-bold mt-2">
                 {Math.ceil(
-                  (new Date(activePlan.end_date) - new Date(activePlan.start_date)) / 
+                  (new Date(activePlan.end_date) - new Date(activePlan.start_date)) /
                   (1000 * 60 * 60 * 24)
                 )}
               </Text>
@@ -387,7 +384,7 @@ export default function WorkoutsScreen() {
         transparent={true}
         onRequestClose={() => setShowDayModal(false)}
       >
-        {selectedDay && <WorkoutDayModal 
+        {selectedDay && <WorkoutDayModal
           day={selectedDay}
           onClose={() => setShowDayModal(false)}
           onStartWorkout={() => {
@@ -399,20 +396,20 @@ export default function WorkoutsScreen() {
     </SafeAreaView>
   );
 }
-
+const { vars, mode } = useThemeStore();
 // Workout Day Modal Component
 function WorkoutDayModal({ day, onClose, onStartWorkout }) {
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  
+
   return (
-    <View className="flex-1 bg-black/50 justify-end">
+    <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
       <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">
             {daysOfWeek[day.day_of_week]}
           </Text>
           <TouchableOpacity onPress={onClose}>
-            <AntDesign name="close" size={24} color="white" />
+            <AntDesign name="close" size={24} color="var(--text)" />
           </TouchableOpacity>
         </View>
 
@@ -433,7 +430,7 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                 <Text className="text-text text-lg font-bold mb-4">
                   {day.name || 'Workout Day'}
                 </Text>
-                
+
                 {day.planned_exercises && day.planned_exercises.length > 0 ? (
                   <>
                     <Text className="text-text-light mb-3">Exercises:</Text>
@@ -449,13 +446,13 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                             </Text>
                           </View>
                         </View>
-                        
+
                         {exercise.target_weight && (
                           <Text className="text-text-light mb-2">
                             Weight: {exercise.target_weight}kg
                           </Text>
                         )}
-                        
+
                         {exercise.notes && (
                           <Text className="text-text-light text-sm">
                             Notes: {exercise.notes}

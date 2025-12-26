@@ -16,6 +16,7 @@ import { exerciseService } from '../services/exerciseService';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function CreatePlanScreen() {
   const router = useRouter();
@@ -378,13 +379,14 @@ export default function CreatePlanScreen() {
     </View>
   );
 
+  const { vars, mode } = useThemeStore();
   const renderAddExerciseModal = () => (
-    <View className="absolute inset-0 bg-black/50 justify-end">
+    <View style={vars} key={mode} className="absolute inset-0 bg-black/50 justify-end">
       <View className="bg-bg rounded-t-3xl p-6 h-3/4">
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">Add Exercise</Text>
           <TouchableOpacity onPress={() => setShowAddExercise(false)}>
-            <AntDesign name="close" size={24} color="white" />
+            <AntDesign name="close" size={24} color="var(--text)" />
           </TouchableOpacity>
         </View>
         

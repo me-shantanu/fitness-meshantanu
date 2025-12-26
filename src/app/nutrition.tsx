@@ -18,11 +18,12 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function NutritionScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+  const { vars, mode } = useThemeStore();
   const [nutrition, setNutrition] = useState(null);
   const [dailyLog, setDailyLog] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,7 +80,7 @@ export default function NutritionScreen() {
 
     try {
       const dateString = selectedDate.toISOString().split('T')[0];
-      
+
       // Check if daily log exists
       const { data: existingLog } = await supabase
         .from('daily_nutrition')
@@ -160,7 +161,7 @@ export default function NutritionScreen() {
   const addWater = async (amount) => {
     try {
       const dateString = selectedDate.toISOString().split('T')[0];
-      
+
       const { data: existingLog } = await supabase
         .from('daily_nutrition')
         .select('*')
@@ -210,11 +211,10 @@ export default function NutritionScreen() {
     const percentage = (consumed / target) * 100;
     return percentage > 100 ? 100 : percentage;
   };
-
   const renderMacroCard = (title, consumed, target, unit, color) => {
     const remaining = calculateRemaining(consumed, target);
     const percentage = calculatePercentage(consumed, target);
-    
+
     return (
       <View className="bg-surface rounded-xl p-4 mb-3">
         <View className="flex-row justify-between items-center mb-2">
@@ -228,15 +228,15 @@ export default function NutritionScreen() {
             </Text>
           </View>
         </View>
-        
+
         {/* Progress Bar */}
         <View className="h-2 bg-gray-700 rounded-full overflow-hidden">
-          <View 
+          <View
             className={`h-full ${color} rounded-full`}
             style={{ width: `${percentage}%` }}
           />
         </View>
-        
+
         <View className="flex-row justify-between mt-1">
           <Text className="text-text-light text-xs">0 {unit}</Text>
           <Text className="text-text-light text-xs">{target} {unit}</Text>
@@ -269,7 +269,7 @@ export default function NutritionScreen() {
               <Feather name="calendar" size={20} color="white" />
             </TouchableOpacity>
           </View>
-          
+
           <View className="bg-surface rounded-xl p-4 mb-4">
             <Text className="text-text font-bold text-lg mb-2">
               Daily Goals
@@ -306,7 +306,7 @@ export default function NutritionScreen() {
         {/* Calories */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Calories</Text>
-          
+
           <View className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6">
             <View className="flex-row justify-between items-center mb-4">
               <View>
@@ -315,14 +315,14 @@ export default function NutritionScreen() {
                   {dailyLog?.calories_consumed || 0} / {nutrition?.calories || 0} kcal
                 </Text>
               </View>
-              
+
               <View className="bg-white/20 px-4 py-2 rounded-full">
                 <Text className="text-text font-bold">
                   {calculateRemaining(dailyLog?.calories_consumed || 0, nutrition?.calories || 0)} kcal left
                 </Text>
               </View>
             </View>
-            
+
             {/* Progress Circle */}
             <View className="items-center my-4">
               <View className="relative items-center justify-center">
@@ -334,7 +334,7 @@ export default function NutritionScreen() {
                 </View>
               </View>
             </View>
-            
+
             <TouchableOpacity
               className="bg-white py-3 rounded-lg mt-4"
               onPress={() => setShowAddFood(true)}
@@ -349,7 +349,7 @@ export default function NutritionScreen() {
         {/* Macros */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Macronutrients</Text>
-          
+
           {renderMacroCard(
             'Protein',
             dailyLog?.protein_consumed || 0,
@@ -357,7 +357,7 @@ export default function NutritionScreen() {
             'g',
             'bg-blue-500'
           )}
-          
+
           {renderMacroCard(
             'Carbohydrates',
             dailyLog?.carbs_consumed || 0,
@@ -365,7 +365,7 @@ export default function NutritionScreen() {
             'g',
             'bg-green-500'
           )}
-          
+
           {renderMacroCard(
             'Fats',
             dailyLog?.fats_consumed || 0,
@@ -378,7 +378,7 @@ export default function NutritionScreen() {
         {/* Water Tracking */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Water Intake</Text>
-          
+
           <View className="bg-surface rounded-xl p-6">
             <View className="flex-row justify-between items-center mb-6">
               <View>
@@ -387,14 +387,14 @@ export default function NutritionScreen() {
                   {(dailyLog?.water_intake_ml || 0) / 1000}L / 2.5L
                 </Text>
               </View>
-              
+
               <View className="bg-blue-500/20 px-4 py-2 rounded-full">
                 <Text className="text-blue-400 font-bold">
                   {((dailyLog?.water_intake_ml || 0) / 2500 * 100).toFixed(0)}%
                 </Text>
               </View>
             </View>
-            
+
             <View className="flex-row justify-between mb-4">
               {[250, 500, 1000].map((amount) => (
                 <TouchableOpacity
@@ -408,7 +408,7 @@ export default function NutritionScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            
+
             <View className="flex-row items-center">
               <FontAwesome name="tint" size={24} color="#3B82F6" />
               <View className="flex-1 ml-3">
@@ -419,7 +419,7 @@ export default function NutritionScreen() {
                   </Text>
                 </View>
                 <View className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <View 
+                  <View
                     className="h-full bg-blue-500 rounded-full"
                     style={{ width: `${((dailyLog?.water_intake_ml || 0) / 2500) * 100}%` }}
                   />
@@ -432,7 +432,7 @@ export default function NutritionScreen() {
         {/* Quick Add */}
         <View className="px-4 mb-8">
           <Text className="text-text text-xl font-bold mb-4">Quick Add</Text>
-          
+
           <View className="flex-row justify-between">
             <TouchableOpacity
               className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center"
@@ -452,7 +452,7 @@ export default function NutritionScreen() {
               <MaterialIcons name="fastfood" size={24} color="#10B981" />
               <Text className="text-text mt-2 text-center text-sm">Chicken Breast</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center"
               onPress={() => {
@@ -471,7 +471,7 @@ export default function NutritionScreen() {
               <FontAwesome name="spoon" size={24} color="#F59E0B" />
               <Text className="text-text mt-2 text-center text-sm">Brown Rice</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center"
               onPress={() => {
@@ -500,15 +500,15 @@ export default function NutritionScreen() {
         animationType="slide"
         transparent={true}
       >
-        <View className="flex-1 bg-black/50 justify-end">
+        <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
           <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
             <View className="flex-row justify-between items-center mb-6">
               <Text className="text-text text-2xl font-bold">Add Food</Text>
               <TouchableOpacity onPress={() => setShowAddFood(false)}>
-                <AntDesign name="close" size={24} color="white" />
+                <AntDesign name="close" size={24} color="var(--text)" />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView>
               <View className="space-y-4">
                 <View>
@@ -518,10 +518,10 @@ export default function NutritionScreen() {
                     placeholder="e.g., Chicken Breast"
                     placeholderTextColor="#6B7280"
                     value={foodForm.name}
-                    onChangeText={(text) => setFoodForm({...foodForm, name: text})}
+                    onChangeText={(text) => setFoodForm({ ...foodForm, name: text })}
                   />
                 </View>
-                
+
                 <View>
                   <Text className="text-text-light mb-2">Calories</Text>
                   <TextInput
@@ -529,11 +529,11 @@ export default function NutritionScreen() {
                     placeholder="e.g., 165"
                     placeholderTextColor="#6B7280"
                     value={foodForm.calories}
-                    onChangeText={(text) => setFoodForm({...foodForm, calories: text})}
+                    onChangeText={(text) => setFoodForm({ ...foodForm, calories: text })}
                     keyboardType="numeric"
                   />
                 </View>
-                
+
                 <View className="flex-row justify-between">
                   <View className="flex-1 mr-2">
                     <Text className="text-text-light mb-2">Protein (g)</Text>
@@ -542,11 +542,11 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.protein}
-                      onChangeText={(text) => setFoodForm({...foodForm, protein: text})}
+                      onChangeText={(text) => setFoodForm({ ...foodForm, protein: text })}
                       keyboardType="numeric"
                     />
                   </View>
-                  
+
                   <View className="flex-1 mx-2">
                     <Text className="text-text-light mb-2">Carbs (g)</Text>
                     <TextInput
@@ -554,11 +554,11 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.carbs}
-                      onChangeText={(text) => setFoodForm({...foodForm, carbs: text})}
+                      onChangeText={(text) => setFoodForm({ ...foodForm, carbs: text })}
                       keyboardType="numeric"
                     />
                   </View>
-                  
+
                   <View className="flex-1 ml-2">
                     <Text className="text-text-light mb-2">Fats (g)</Text>
                     <TextInput
@@ -566,12 +566,12 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.fats}
-                      onChangeText={(text) => setFoodForm({...foodForm, fats: text})}
+                      onChangeText={(text) => setFoodForm({ ...foodForm, fats: text })}
                       keyboardType="numeric"
                     />
                   </View>
                 </View>
-                
+
                 <View>
                   <Text className="text-text-light mb-2">Serving Size</Text>
                   <TextInput
@@ -579,12 +579,12 @@ export default function NutritionScreen() {
                     placeholder="e.g., 100g, 1 cup"
                     placeholderTextColor="#6B7280"
                     value={foodForm.servingSize}
-                    onChangeText={(text) => setFoodForm({...foodForm, servingSize: text})}
+                    onChangeText={(text) => setFoodForm({ ...foodForm, servingSize: text })}
                   />
                 </View>
               </View>
             </ScrollView>
-            
+
             <TouchableOpacity
               className="bg-blue-600 py-4 rounded-xl mt-6"
               onPress={addFood}
