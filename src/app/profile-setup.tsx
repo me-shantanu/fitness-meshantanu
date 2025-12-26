@@ -50,15 +50,15 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-900">
+    <ScrollView className="flex-1 bg-bg">
       <View className="px-6 pt-16 pb-8">
-        <Text className="text-4xl font-bold text-white mb-2">Complete Your Profile</Text>
-        <Text className="text-gray-400 mb-8">Help us personalize your experience</Text>
+        <Text className="text-4xl font-bold text-text mb-2">Complete Your Profile</Text>
+        <Text className="text-text-light mb-8">Help us personalize your experience</Text>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Height (cm)</Text>
+          <Text className="text-text mb-2 font-medium">Height (cm)</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="175"
             placeholderTextColor="#6B7280"
             value={formData.height}
@@ -68,9 +68,9 @@ export default function ProfileSetupScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Weight (kg)</Text>
+          <Text className="text-text mb-2 font-medium">Weight (kg)</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="70"
             placeholderTextColor="#6B7280"
             value={formData.weight}
@@ -80,9 +80,9 @@ export default function ProfileSetupScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Age</Text>
+          <Text className="text-text mb-2 font-medium">Age</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="25"
             placeholderTextColor="#6B7280"
             value={formData.age}
@@ -92,46 +92,46 @@ export default function ProfileSetupScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Gender</Text>
+          <Text className="text-text mb-2 font-medium">Gender</Text>
           <View className="flex-row gap-3">
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'male' ? 'bg-blue-600' : 'bg-gray-800'}`}
+              className={`flex-1 py-3 rounded-lg ${formData.gender === 'male' ? 'bg-blue-600' : 'bg-surface'}`}
               onPress={() => setFormData({ ...formData, gender: 'male' })}
             >
-              <Text className="text-white text-center font-bold">Male</Text>
+              <Text className="text-text text-center font-bold">Male</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'female' ? 'bg-blue-600' : 'bg-gray-800'}`}
+              className={`flex-1 py-3 rounded-lg ${formData.gender === 'female' ? 'bg-blue-600' : 'bg-surface'}`}
               onPress={() => setFormData({ ...formData, gender: 'female' })}
             >
-              <Text className="text-white text-center font-bold">Female</Text>
+              <Text className="text-text text-center font-bold">Female</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">BMR (Basal Metabolic Rate)</Text>
+          <Text className="text-text mb-2 font-medium">BMR (Basal Metabolic Rate)</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="1800"
             placeholderTextColor="#6B7280"
             value={formData.bmr}
             onChangeText={(text) => setFormData({ ...formData, bmr: text })}
             keyboardType="numeric"
           />
-          <Text className="text-gray-400 text-sm mt-1">Enter your known BMR or calculate it online</Text>
+          <Text className="text-text-light text-sm mt-1">Enter your known BMR or calculate it online</Text>
         </View>
 
         <View className="mb-6">
-          <Text className="text-white mb-2 font-medium">Fitness Goal</Text>
+          <Text className="text-text mb-2 font-medium">Fitness Goal</Text>
           <View className="gap-3">
             {goals.map((goal) => (
               <TouchableOpacity
                 key={goal.value}
-                className={`py-3 rounded-lg ${formData.goal === goal.value ? 'bg-blue-600' : 'bg-gray-800'}`}
+                className={`py-3 rounded-lg ${formData.goal === goal.value ? 'bg-blue-600' : 'bg-surface'}`}
                 onPress={() => setFormData({ ...formData, goal: goal.value })}
               >
-                <Text className="text-white text-center font-bold">{goal.label}</Text>
+                <Text className="text-text text-center font-bold">{goal.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -145,7 +145,7 @@ export default function ProfileSetupScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white text-center font-bold text-lg">Complete Setup</Text>
+            <Text className="text-text text-center font-bold text-lg">Complete Setup</Text>
           )}
         </TouchableOpacity>
       </View>

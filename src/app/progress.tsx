@@ -212,12 +212,12 @@ export default function ProgressScreen() {
   const renderProgressBars = () => {
     if (progressData.length === 0) {
       return (
-        <View className="bg-gray-800 rounded-xl p-8 items-center">
+        <View className="bg-surface rounded-xl p-8 items-center">
           <Feather name="trending-up" size={48} color="#6B7280" />
-          <Text className="text-white text-lg font-bold mt-4 mb-2">
+          <Text className="text-text text-lg font-bold mt-4 mb-2">
             No Data Available
           </Text>
-          <Text className="text-gray-400 text-center">
+          <Text className="text-text-light text-center">
             Complete workouts to see your progress
           </Text>
         </View>
@@ -228,15 +228,15 @@ export default function ProgressScreen() {
     const maxValue = Math.max(...progressData.map(item => item[selectedMetric]));
     
     return (
-      <View className="bg-gray-800 rounded-xl p-4">
+      <View className="bg-surface rounded-xl p-4">
         <View className="flex-row justify-between mb-2">
-          <Text className="text-white font-bold">
+          <Text className="text-text font-bold">
             {selectedMetric === 'volume' && 'Training Volume (kg)'}
             {selectedMetric === 'workouts' && 'Workouts per Week'}
             {selectedMetric === 'calories' && 'Calories Burned'}
             {selectedMetric === 'sets' && 'Sets per Week'}
           </Text>
-          <Text className="text-gray-400">
+          <Text className="text-text-light">
             {progressData.length} weeks
           </Text>
         </View>
@@ -261,8 +261,8 @@ export default function ProgressScreen() {
                     minHeight: 4
                   }}
                 />
-                <Text className="text-gray-400 text-xs mt-2">{week.shortLabel}</Text>
-                <Text className="text-white text-xs font-bold mt-1">
+                <Text className="text-text-light text-xs mt-2">{week.shortLabel}</Text>
+                <Text className="text-text text-xs font-bold mt-1">
                   {selectedMetric === 'volume' ? Math.round(value) : Math.round(value)}
                 </Text>
               </View>
@@ -280,27 +280,27 @@ export default function ProgressScreen() {
           <View className="bg-blue-600/20 rounded-xl p-4 mr-3 w-40">
             <View className="flex-row items-center mb-2">
               <Feather name="activity" size={20} color="#3B82F6" />
-              <Text className="text-white font-bold ml-2">Workout Streak</Text>
+              <Text className="text-text font-bold ml-2">Workout Streak</Text>
             </View>
-            <Text className="text-white text-2xl font-bold">{stats.currentStreak} days</Text>
+            <Text className="text-text text-2xl font-bold">{stats.currentStreak} days</Text>
             <Text className="text-blue-300 text-sm">Best: {stats.bestStreak} days</Text>
           </View>
           
           <View className="bg-green-600/20 rounded-xl p-4 mr-3 w-40">
             <View className="flex-row items-center mb-2">
               <Feather name="calendar" size={20} color="#10B981" />
-              <Text className="text-white font-bold ml-2">This Month</Text>
+              <Text className="text-text font-bold ml-2">This Month</Text>
             </View>
-            <Text className="text-white text-2xl font-bold">{stats.workoutDaysThisMonth} days</Text>
+            <Text className="text-text text-2xl font-bold">{stats.workoutDaysThisMonth} days</Text>
             <Text className="text-green-300 text-sm">Workout days</Text>
           </View>
           
           <View className="bg-purple-600/20 rounded-xl p-4 w-40">
             <View className="flex-row items-center mb-2">
               <Feather name="award" size={20} color="#8B5CF6" />
-              <Text className="text-white font-bold ml-2">Personal Records</Text>
+              <Text className="text-text font-bold ml-2">Personal Records</Text>
             </View>
-            <Text className="text-white text-2xl font-bold">{personalRecords.length}</Text>
+            <Text className="text-text text-2xl font-bold">{personalRecords.length}</Text>
             <Text className="text-purple-300 text-sm">Achievements</Text>
           </View>
         </View>
@@ -310,20 +310,20 @@ export default function ProgressScreen() {
 
   const renderPersonalRecords = () => (
     <View className="px-4 mb-8">
-      <Text className="text-white text-xl font-bold mb-4">Personal Records</Text>
+      <Text className="text-text text-xl font-bold mb-4">Personal Records</Text>
       
       {personalRecords.length > 0 ? (
         personalRecords.slice(0, 5).map((pr, index) => (
           <TouchableOpacity
             key={pr.id}
-            className="bg-gray-800 rounded-xl p-4 mb-3"
+            className="bg-surface rounded-xl p-4 mb-3"
             onPress={() => router.push({
               pathname: '/workout-details',
               params: { sessionId: pr.session_id }
             })}
           >
             <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-white font-bold text-lg">{pr.exercise_name}</Text>
+              <Text className="text-text font-bold text-lg">{pr.exercise_name}</Text>
               <View className="bg-yellow-500/20 px-3 py-1 rounded-full">
                 <Text className="text-yellow-400 font-bold">PR 🏆</Text>
               </View>
@@ -331,18 +331,18 @@ export default function ProgressScreen() {
             
             <View className="flex-row justify-between">
               <View>
-                <Text className="text-gray-400 text-sm">Max Weight</Text>
-                <Text className="text-white font-bold text-xl">{pr.max_weight}kg</Text>
+                <Text className="text-text-light text-sm">Max Weight</Text>
+                <Text className="text-text font-bold text-xl">{pr.max_weight}kg</Text>
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm">Max Reps</Text>
-                <Text className="text-white font-bold text-xl">{pr.max_reps}</Text>
+                <Text className="text-text-light text-sm">Max Reps</Text>
+                <Text className="text-text font-bold text-xl">{pr.max_reps}</Text>
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm">Date</Text>
-                <Text className="text-white">
+                <Text className="text-text-light text-sm">Date</Text>
+                <Text className="text-text">
                   {new Date(pr.achieved_at).toLocaleDateString('en-US', { 
                     month: 'short', 
                     day: 'numeric' 
@@ -353,12 +353,12 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         ))
       ) : (
-        <View className="bg-gray-800 rounded-xl p-6 items-center">
+        <View className="bg-surface rounded-xl p-6 items-center">
           <Feather name="award" size={48} color="#6B7280" />
-          <Text className="text-white text-lg font-bold mt-4 mb-2">
+          <Text className="text-text text-lg font-bold mt-4 mb-2">
             No Personal Records Yet
           </Text>
-          <Text className="text-gray-400 text-center mb-4">
+          <Text className="text-text-light text-center mb-4">
             Set new personal records in your workouts!
           </Text>
         </View>
@@ -366,7 +366,7 @@ export default function ProgressScreen() {
       
       {personalRecords.length > 5 && (
         <TouchableOpacity
-          className="bg-gray-800 rounded-xl p-4 items-center mt-3"
+          className="bg-surface rounded-xl p-4 items-center mt-3"
           onPress={() => {
             // You can create a PR list screen later
             Alert.alert('Coming Soon', 'Full PR list view coming soon!');
@@ -382,7 +382,7 @@ export default function ProgressScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>
@@ -391,11 +391,11 @@ export default function ProgressScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4 pb-2">
-          <Text className="text-white text-3xl font-bold mb-4">Progress</Text>
+          <Text className="text-text text-3xl font-bold mb-4">Progress</Text>
           
           {/* Metric Selector */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
@@ -408,12 +408,12 @@ export default function ProgressScreen() {
               <TouchableOpacity
                 key={metric.id}
                 className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${
-                  selectedMetric === metric.id ? 'bg-blue-600' : 'bg-gray-800'
+                  selectedMetric === metric.id ? 'bg-blue-600' : 'bg-surface'
                 }`}
                 onPress={() => setSelectedMetric(metric.id)}
               >
                 <Feather name={metric.icon} size={16} color="white" />
-                <Text className="text-white font-medium ml-2">{metric.label}</Text>
+                <Text className="text-text font-medium ml-2">{metric.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -429,11 +429,11 @@ export default function ProgressScreen() {
               <TouchableOpacity
                 key={period.id}
                 className={`px-4 py-2 rounded-full mr-2 ${
-                  selectedPeriod === period.id ? 'bg-green-600' : 'bg-gray-800'
+                  selectedPeriod === period.id ? 'bg-green-600' : 'bg-surface'
                 }`}
                 onPress={() => setSelectedPeriod(period.id)}
               >
-                <Text className="text-white font-medium">{period.label}</Text>
+                <Text className="text-text font-medium">{period.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -444,7 +444,7 @@ export default function ProgressScreen() {
 
         {/* Progress Visualization */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">
+          <Text className="text-text text-xl font-bold mb-4">
             {selectedMetric === 'volume' && 'Training Volume Progress'}
             {selectedMetric === 'workouts' && 'Workout Frequency'}
             {selectedMetric === 'calories' && 'Calories Burned'}
@@ -456,43 +456,43 @@ export default function ProgressScreen() {
 
         {/* Stats Summary */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Statistics</Text>
+          <Text className="text-text text-xl font-bold mb-4">Statistics</Text>
           
-          <View className="bg-gray-800 rounded-xl p-4">
+          <View className="bg-surface rounded-xl p-4">
             <View className="flex-row justify-between mb-4">
               <View className="items-center flex-1">
-                <Text className="text-white text-2xl font-bold">{stats.totalWorkouts}</Text>
-                <Text className="text-gray-400">Total Workouts</Text>
+                <Text className="text-text text-2xl font-bold">{stats.totalWorkouts}</Text>
+                <Text className="text-text-light">Total Workouts</Text>
               </View>
               
               <View className="items-center flex-1">
-                <Text className="text-white text-2xl font-bold">{stats.totalCalories}</Text>
-                <Text className="text-gray-400">Calories Burned</Text>
+                <Text className="text-text text-2xl font-bold">{stats.totalCalories}</Text>
+                <Text className="text-text-light">Calories Burned</Text>
               </View>
               
               <View className="items-center flex-1">
-                <Text className="text-white text-2xl font-bold">{Math.round(stats.totalVolume)}</Text>
-                <Text className="text-gray-400">Total Volume (kg)</Text>
+                <Text className="text-text text-2xl font-bold">{Math.round(stats.totalVolume)}</Text>
+                <Text className="text-text-light">Total Volume (kg)</Text>
               </View>
             </View>
             
             <View className="flex-row justify-between">
               <View className="items-center flex-1">
                 <Feather name="trending-up" size={20} color="#10B981" />
-                <Text className="text-white font-bold mt-1">{stats.currentStreak}</Text>
-                <Text className="text-gray-400 text-xs">Current Streak</Text>
+                <Text className="text-text font-bold mt-1">{stats.currentStreak}</Text>
+                <Text className="text-text-light text-xs">Current Streak</Text>
               </View>
               
               <View className="items-center flex-1">
                 <Feather name="target" size={20} color="#3B82F6" />
-                <Text className="text-white font-bold mt-1">{stats.bestStreak}</Text>
-                <Text className="text-gray-400 text-xs">Best Streak</Text>
+                <Text className="text-text font-bold mt-1">{stats.bestStreak}</Text>
+                <Text className="text-text-light text-xs">Best Streak</Text>
               </View>
               
               <View className="items-center flex-1">
                 <Feather name="calendar" size={20} color="#8B5CF6" />
-                <Text className="text-white font-bold mt-1">{stats.workoutDaysThisMonth}</Text>
-                <Text className="text-gray-400 text-xs">Days This Month</Text>
+                <Text className="text-text font-bold mt-1">{stats.workoutDaysThisMonth}</Text>
+                <Text className="text-text-light text-xs">Days This Month</Text>
               </View>
             </View>
           </View>

@@ -99,7 +99,7 @@ export default function WorkoutsScreen() {
       <TouchableOpacity
         key={day.id}
         className={`mb-4 mx-4 rounded-xl p-4 ${
-          day.is_rest_day ? 'bg-gray-800' : 'bg-gray-800 border border-blue-500/30'
+          day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
         }`}
         onPress={() => editWorkoutDay(day)}
       >
@@ -109,17 +109,17 @@ export default function WorkoutsScreen() {
               day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
             }`}>
               <Text className={`font-bold text-lg ${
-                day.is_rest_day ? 'text-gray-400' : 'text-blue-400'
+                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
               }`}>
                 {index + 1}
               </Text>
             </View>
             <View>
-              <Text className="text-white font-bold text-lg">
+              <Text className="text-text font-bold text-lg">
                 {daysOfWeek[day.day_of_week]}
               </Text>
               <Text className={`text-sm ${
-                day.is_rest_day ? 'text-gray-400' : 'text-blue-400'
+                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
               }`}>
                 {day.is_rest_day ? 'Rest Day' : day.name || 'Workout Day'}
               </Text>
@@ -134,14 +134,14 @@ export default function WorkoutsScreen() {
                 startWorkout(day);
               }}
             >
-              <Text className="text-white font-bold">Start</Text>
+              <Text className="text-text font-bold">Start</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {!day.is_rest_day && day.planned_exercises && day.planned_exercises.length > 0 && (
           <View className="mt-3">
-            <Text className="text-gray-400 text-sm mb-2">Exercises:</Text>
+            <Text className="text-text-light text-sm mb-2">Exercises:</Text>
             {day.planned_exercises.slice(0, 3).map((exercise, exIndex) => (
               <View key={exIndex} className="flex-row items-center mb-1">
                 <View className="w-2 h-2 rounded-full bg-blue-400 mr-2" />
@@ -167,7 +167,7 @@ export default function WorkoutsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>
@@ -177,21 +177,21 @@ export default function WorkoutsScreen() {
 
   if (!activePlan) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1 bg-bg">
         <ScrollView className="flex-1">
           <View className="px-4 pt-4">
-            <Text className="text-white text-3xl font-bold mb-2">Workout Plans</Text>
-            <Text className="text-gray-400 mb-8">Create and manage your workout routines</Text>
+            <Text className="text-text text-3xl font-bold mb-2">Workout Plans</Text>
+            <Text className="text-text-light mb-8">Create and manage your workout routines</Text>
           </View>
 
           {/* Empty State */}
           <View className="flex-1 justify-center items-center px-4 mt-20">
-            <View className="bg-gray-800 rounded-2xl p-8 items-center">
+            <View className="bg-surface rounded-2xl p-8 items-center">
               <MaterialIcons name="fitness-center" size={64} color="#6B7280" />
-              <Text className="text-white text-xl font-bold mt-6 mb-3">
+              <Text className="text-text text-xl font-bold mt-6 mb-3">
                 No Active Workout Plan
               </Text>
-              <Text className="text-gray-400 text-center mb-8">
+              <Text className="text-text-light text-center mb-8">
                 Create a workout plan to start tracking your progress and achieving your fitness goals.
               </Text>
               
@@ -199,7 +199,7 @@ export default function WorkoutsScreen() {
                 className="bg-blue-600 py-4 rounded-xl w-full items-center"
                 onPress={() => router.push('/create-plan')}
               >
-                <Text className="text-white font-bold text-lg">Create Workout Plan</Text>
+                <Text className="text-text font-bold text-lg">Create Workout Plan</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -212,29 +212,29 @@ export default function WorkoutsScreen() {
 
             {/* Quick Stats */}
             <View className="mt-8 w-full">
-              <Text className="text-white text-lg font-bold mb-4">Why Create a Plan?</Text>
+              <Text className="text-text text-lg font-bold mb-4">Why Create a Plan?</Text>
               
               <View className="flex-row justify-between">
-                <View className="bg-gray-800 p-4 rounded-xl flex-1 mr-2">
+                <View className="bg-surface p-4 rounded-xl flex-1 mr-2">
                   <Feather name="target" size={24} color="#10B981" />
-                  <Text className="text-white font-bold mt-2">Stay Consistent</Text>
-                  <Text className="text-gray-400 text-xs mt-1">
+                  <Text className="text-text font-bold mt-2">Stay Consistent</Text>
+                  <Text className="text-text-light text-xs mt-1">
                     Follow a structured routine
                   </Text>
                 </View>
                 
-                <View className="bg-gray-800 p-4 rounded-xl flex-1 mx-2">
+                <View className="bg-surface p-4 rounded-xl flex-1 mx-2">
                   <Feather name="trending-up" size={24} color="#3B82F6" />
-                  <Text className="text-white font-bold mt-2">Track Progress</Text>
-                  <Text className="text-gray-400 text-xs mt-1">
+                  <Text className="text-text font-bold mt-2">Track Progress</Text>
+                  <Text className="text-text-light text-xs mt-1">
                     Monitor improvements over time
                   </Text>
                 </View>
                 
-                <View className="bg-gray-800 p-4 rounded-xl flex-1 ml-2">
+                <View className="bg-surface p-4 rounded-xl flex-1 ml-2">
                   <Feather name="award" size={24} color="#F59E0B" />
-                  <Text className="text-white font-bold mt-2">Achieve Goals</Text>
-                  <Text className="text-gray-400 text-xs mt-1">
+                  <Text className="text-text font-bold mt-2">Achieve Goals</Text>
+                  <Text className="text-text-light text-xs mt-1">
                     Reach your fitness targets
                   </Text>
                 </View>
@@ -247,18 +247,18 @@ export default function WorkoutsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4">
           <View className="flex-row justify-between items-center mb-4">
             <View>
-              <Text className="text-white text-3xl font-bold">Workout Plan</Text>
-              <Text className="text-gray-400">{activePlan.name}</Text>
+              <Text className="text-text text-3xl font-bold">Workout Plan</Text>
+              <Text className="text-text-light">{activePlan.name}</Text>
             </View>
             
             <TouchableOpacity
-              className="bg-gray-800 p-2 rounded-lg"
+              className="bg-surface p-2 rounded-lg"
               onPress={() => router.push('/create-plan')}
             >
               <AntDesign name="edit" size={20} color="white" />
@@ -266,25 +266,25 @@ export default function WorkoutsScreen() {
           </View>
 
           {/* Plan Details */}
-          <View className="bg-gray-800 rounded-xl p-4 mb-6">
+          <View className="bg-surface rounded-xl p-4 mb-6">
             <View className="flex-row justify-between mb-4">
               <View>
-                <Text className="text-gray-400 text-sm">Start Date</Text>
-                <Text className="text-white font-bold">
+                <Text className="text-text-light text-sm">Start Date</Text>
+                <Text className="text-text font-bold">
                   {new Date(activePlan.start_date).toLocaleDateString()}
                 </Text>
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm">End Date</Text>
-                <Text className="text-white font-bold">
+                <Text className="text-text-light text-sm">End Date</Text>
+                <Text className="text-text font-bold">
                   {new Date(activePlan.end_date).toLocaleDateString()}
                 </Text>
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm">Days</Text>
-                <Text className="text-white font-bold">
+                <Text className="text-text-light text-sm">Days</Text>
+                <Text className="text-text font-bold">
                   {activePlan.workout_days?.filter(d => !d.is_rest_day).length || 0}
                 </Text>
               </View>
@@ -295,7 +295,7 @@ export default function WorkoutsScreen() {
                 className="bg-blue-600 flex-1 mr-2 py-3 rounded-lg items-center"
                 onPress={() => router.push('/edit-plan')}
               >
-                <Text className="text-white font-bold">Edit Plan</Text>
+                <Text className="text-text font-bold">Edit Plan</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -310,26 +310,26 @@ export default function WorkoutsScreen() {
 
         {/* Weekly Schedule */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Weekly Schedule</Text>
+          <Text className="text-text text-xl font-bold mb-4">Weekly Schedule</Text>
           
           {activePlan.workout_days && activePlan.workout_days.length > 0 ? (
             activePlan.workout_days
               .sort((a, b) => a.day_of_week - b.day_of_week)
               .map((day, index) => renderWorkoutDay(day, index))
           ) : (
-            <View className="bg-gray-800 rounded-xl p-6 items-center">
+            <View className="bg-surface rounded-xl p-6 items-center">
               <MaterialIcons name="schedule" size={48} color="#6B7280" />
-              <Text className="text-white text-lg font-bold mt-4 mb-2">
+              <Text className="text-text text-lg font-bold mt-4 mb-2">
                 No Workout Days
               </Text>
-              <Text className="text-gray-400 text-center mb-4">
+              <Text className="text-text-light text-center mb-4">
                 Add workout days to your plan to get started
               </Text>
               <TouchableOpacity
                 className="bg-blue-600 px-6 py-3 rounded-lg"
                 onPress={() => router.push('/edit-plan')}
               >
-                <Text className="text-white font-bold">Add Workout Days</Text>
+                <Text className="text-text font-bold">Add Workout Days</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -337,44 +337,44 @@ export default function WorkoutsScreen() {
 
         {/* Stats */}
         <View className="px-4 mb-8">
-          <Text className="text-white text-xl font-bold mb-4">Plan Stats</Text>
+          <Text className="text-text text-xl font-bold mb-4">Plan Stats</Text>
           
           <View className="flex-row flex-wrap justify-between">
-            <View className="bg-gray-800 w-[48%] rounded-xl p-4 mb-4">
+            <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
               <Feather name="check-circle" size={24} color="#10B981" />
-              <Text className="text-white text-2xl font-bold mt-2">
+              <Text className="text-text text-2xl font-bold mt-2">
                 {activePlan.workout_days?.filter(d => !d.is_rest_day).length || 0}
               </Text>
-              <Text className="text-gray-400">Workout Days</Text>
+              <Text className="text-text-light">Workout Days</Text>
             </View>
             
-            <View className="bg-gray-800 w-[48%] rounded-xl p-4 mb-4">
+            <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
               <Feather name="moon" size={24} color="#8B5CF6" />
-              <Text className="text-white text-2xl font-bold mt-2">
+              <Text className="text-text text-2xl font-bold mt-2">
                 {activePlan.workout_days?.filter(d => d.is_rest_day).length || 0}
               </Text>
-              <Text className="text-gray-400">Rest Days</Text>
+              <Text className="text-text-light">Rest Days</Text>
             </View>
             
-            <View className="bg-gray-800 w-[48%] rounded-xl p-4">
+            <View className="bg-surface w-[48%] rounded-xl p-4">
               <Feather name="activity" size={24} color="#3B82F6" />
-              <Text className="text-white text-2xl font-bold mt-2">
+              <Text className="text-text text-2xl font-bold mt-2">
                 {activePlan.workout_days?.reduce((total, day) => 
                   total + (day.planned_exercises?.length || 0), 0) || 0
                 }
               </Text>
-              <Text className="text-gray-400">Total Exercises</Text>
+              <Text className="text-text-light">Total Exercises</Text>
             </View>
             
-            <View className="bg-gray-800 w-[48%] rounded-xl p-4">
+            <View className="bg-surface w-[48%] rounded-xl p-4">
               <Feather name="clock" size={24} color="#F59E0B" />
-              <Text className="text-white text-2xl font-bold mt-2">
+              <Text className="text-text text-2xl font-bold mt-2">
                 {Math.ceil(
                   (new Date(activePlan.end_date) - new Date(activePlan.start_date)) / 
                   (1000 * 60 * 60 * 24)
                 )}
               </Text>
-              <Text className="text-gray-400">Plan Days</Text>
+              <Text className="text-text-light">Plan Days</Text>
             </View>
           </View>
         </View>
@@ -406,9 +406,9 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
   
   return (
     <View className="flex-1 bg-black/50 justify-end">
-      <View className="bg-gray-900 rounded-t-3xl p-6 max-h-3/4">
+      <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
         <View className="flex-row justify-between items-center mb-6">
-          <Text className="text-white text-2xl font-bold">
+          <Text className="text-text text-2xl font-bold">
             {daysOfWeek[day.day_of_week]}
           </Text>
           <TouchableOpacity onPress={onClose}>
@@ -420,27 +420,27 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
           {day.is_rest_day ? (
             <View className="items-center py-8">
               <Feather name="moon" size={64} color="#8B5CF6" />
-              <Text className="text-white text-xl font-bold mt-6 mb-3">
+              <Text className="text-text text-xl font-bold mt-6 mb-3">
                 Rest Day
               </Text>
-              <Text className="text-gray-400 text-center">
+              <Text className="text-text-light text-center">
                 Take this day to recover and let your muscles repair. Rest is just as important as training!
               </Text>
             </View>
           ) : (
             <>
               <View className="mb-6">
-                <Text className="text-white text-lg font-bold mb-4">
+                <Text className="text-text text-lg font-bold mb-4">
                   {day.name || 'Workout Day'}
                 </Text>
                 
                 {day.planned_exercises && day.planned_exercises.length > 0 ? (
                   <>
-                    <Text className="text-gray-400 mb-3">Exercises:</Text>
+                    <Text className="text-text-light mb-3">Exercises:</Text>
                     {day.planned_exercises.map((exercise, index) => (
-                      <View key={index} className="bg-gray-800 rounded-xl p-4 mb-3">
+                      <View key={index} className="bg-surface rounded-xl p-4 mb-3">
                         <View className="flex-row justify-between items-start mb-2">
-                          <Text className="text-white font-bold text-lg flex-1">
+                          <Text className="text-text font-bold text-lg flex-1">
                             {exercise.exercise_name}
                           </Text>
                           <View className="bg-blue-500/20 px-3 py-1 rounded">
@@ -451,13 +451,13 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                         </View>
                         
                         {exercise.target_weight && (
-                          <Text className="text-gray-400 mb-2">
+                          <Text className="text-text-light mb-2">
                             Weight: {exercise.target_weight}kg
                           </Text>
                         )}
                         
                         {exercise.notes && (
-                          <Text className="text-gray-400 text-sm">
+                          <Text className="text-text-light text-sm">
                             Notes: {exercise.notes}
                           </Text>
                         )}
@@ -465,12 +465,12 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                     ))}
                   </>
                 ) : (
-                  <View className="bg-gray-800 rounded-xl p-6 items-center">
+                  <View className="bg-surface rounded-xl p-6 items-center">
                     <MaterialIcons name="fitness-center" size={48} color="#6B7280" />
-                    <Text className="text-white text-lg font-bold mt-4 mb-2">
+                    <Text className="text-text text-lg font-bold mt-4 mb-2">
                       No Exercises
                     </Text>
-                    <Text className="text-gray-400 text-center">
+                    <Text className="text-text-light text-center">
                       Add exercises to this workout day
                     </Text>
                   </View>
@@ -481,7 +481,7 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                 className="bg-blue-600 py-4 rounded-xl mb-3"
                 onPress={onStartWorkout}
               >
-                <Text className="text-white text-center font-bold text-lg">
+                <Text className="text-text text-center font-bold text-lg">
                   Start Workout
                 </Text>
               </TouchableOpacity>

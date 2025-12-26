@@ -1,11 +1,17 @@
-// app/(auth)/_layout.tsx
+import { useThemeStore } from "@/store/useThemeStore";
 import { Stack } from "expo-router";
+import { View } from "react-native";
 
 export default function AuthLayout() {
+  const { vars, mode } = useThemeStore();
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signup" />
-    </Stack>
+    <View
+      key={mode}          // 🔥 forces NativeWind refresh
+      style={vars}
+      className="flex-1 bg-bg"
+    >
+      <Stack screenOptions={{ headerShown: false }} />
+    </View>
   );
 }

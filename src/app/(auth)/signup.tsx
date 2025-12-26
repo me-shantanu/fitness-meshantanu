@@ -45,15 +45,15 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-900">
+    <ScrollView className="flex-1 bg-bg">
       <View className="px-6 pt-16 pb-8">
-        <Text className="text-4xl font-bold text-white mb-2">Create Account</Text>
-        <Text className="text-gray-400 mb-8">Start your fitness transformation</Text>
+        <Text className="text-4xl font-bold text-text mb-2">Create Account</Text>
+        <Text className="text-text-light mb-8">Start your fitness transformation</Text>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Full Name</Text>
+          <Text className="text-text mb-2 font-medium">Full Name</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="John Doe"
             placeholderTextColor="#6B7280"
             value={fullName}
@@ -62,9 +62,9 @@ export default function SignUpScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Email</Text>
+          <Text className="text-text mb-2 font-medium">Email</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="your@email.com"
             placeholderTextColor="#6B7280"
             value={email}
@@ -75,9 +75,9 @@ export default function SignUpScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-white mb-2 font-medium">Password</Text>
+          <Text className="text-text mb-2 font-medium">Password</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="••••••••"
             placeholderTextColor="#6B7280"
             value={password}
@@ -87,9 +87,9 @@ export default function SignUpScreen() {
         </View>
 
         <View className="mb-6">
-          <Text className="text-white mb-2 font-medium">Confirm Password</Text>
+          <Text className="text-text mb-2 font-medium">Confirm Password</Text>
           <TextInput
-            className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-surface text-text px-4 py-3 rounded-lg"
             placeholder="••••••••"
             placeholderTextColor="#6B7280"
             value={confirmPassword}
@@ -99,21 +99,21 @@ export default function SignUpScreen() {
         </View>
 
         <TouchableOpacity
-          className="bg-blue-600 py-4 rounded-lg mb-4"
+          className="bg-text py-4 rounded-lg mb-4"
           onPress={handleSignUp}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="var(--text-bg)" />
           ) : (
-            <Text className="text-white text-center font-bold text-lg">Create Account</Text>
+            <Text className="text-bg text-center font-bold text-lg">Create Account</Text>
           )}
         </TouchableOpacity>
 
         <View className="flex-row justify-center">
-          <Text className="text-gray-400">Already have an account? </Text>
+          <Text className="text-text-light">Already have an account? </Text>
           <Link href="/(auth)/login">
-            <Text className="text-blue-500 font-bold">Sign In</Text>
+            <Text className="text-text font-bold">Sign In</Text>
           </Link>
         </View>
       </View>

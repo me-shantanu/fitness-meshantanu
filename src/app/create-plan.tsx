@@ -175,13 +175,13 @@ export default function CreatePlanScreen() {
 
   const renderStep1 = () => (
     <View>
-      <Text className="text-white text-2xl font-bold mb-6">Plan Details</Text>
+      <Text className="text-text text-2xl font-bold mb-6">Plan Details</Text>
       
       <View className="space-y-4">
         <View>
-          <Text className="text-gray-400 mb-2">Plan Name</Text>
+          <Text className="text-text-light mb-2">Plan Name</Text>
           <TextInput
-            className="bg-gray-800 text-white rounded-xl p-4"
+            className="bg-surface text-text rounded-xl p-4"
             placeholder="e.g., Beginner Strength Program"
             placeholderTextColor="#6B7280"
             value={planName}
@@ -191,9 +191,9 @@ export default function CreatePlanScreen() {
         
         <View className="flex-row justify-between">
           <View className="flex-1 mr-2">
-            <Text className="text-gray-400 mb-2">Start Date</Text>
+            <Text className="text-text-light mb-2">Start Date</Text>
             <TextInput
-              className="bg-gray-800 text-white rounded-xl p-4"
+              className="bg-surface text-text rounded-xl p-4"
               value={startDate}
               onChangeText={setStartDate}
               placeholder="YYYY-MM-DD"
@@ -201,9 +201,9 @@ export default function CreatePlanScreen() {
           </View>
           
           <View className="flex-1 ml-2">
-            <Text className="text-gray-400 mb-2">End Date</Text>
+            <Text className="text-text-light mb-2">End Date</Text>
             <TextInput
-              className="bg-gray-800 text-white rounded-xl p-4"
+              className="bg-surface text-text rounded-xl p-4"
               value={endDate}
               onChangeText={setEndDate}
               placeholder="YYYY-MM-DD"
@@ -212,18 +212,18 @@ export default function CreatePlanScreen() {
         </View>
         
         <View>
-          <Text className="text-gray-400 mb-2">Days Per Week</Text>
+          <Text className="text-text-light mb-2">Days Per Week</Text>
           <View className="flex-row">
             {[2, 3, 4, 5, 6].map((days) => (
               <TouchableOpacity
                 key={days}
                 className={`flex-1 mx-1 py-3 rounded-lg ${
-                  daysPerWeek === days ? 'bg-blue-600' : 'bg-gray-800'
+                  daysPerWeek === days ? 'bg-blue-600' : 'bg-surface'
                 }`}
                 onPress={() => setDaysPerWeek(days)}
               >
                 <Text className={`text-center font-bold ${
-                  daysPerWeek === days ? 'text-white' : 'text-gray-400'
+                  daysPerWeek === days ? 'text-text' : 'text-text-light'
                 }`}>
                   {days} days
                 </Text>
@@ -238,7 +238,7 @@ export default function CreatePlanScreen() {
         onPress={() => setStep(2)}
         disabled={!planName.trim()}
       >
-        <Text className="text-white text-center font-bold text-lg">
+        <Text className="text-text text-center font-bold text-lg">
           Next: Add Workout Days
         </Text>
       </TouchableOpacity>
@@ -247,13 +247,13 @@ export default function CreatePlanScreen() {
 
   const renderStep2 = () => (
     <View>
-      <Text className="text-white text-2xl font-bold mb-6">Weekly Schedule</Text>
+      <Text className="text-text text-2xl font-bold mb-6">Weekly Schedule</Text>
       
       <ScrollView className="max-h-96">
         {workoutDays.map((day, index) => (
-          <View key={index} className="mb-4 bg-gray-800 rounded-xl p-4">
+          <View key={index} className="mb-4 bg-surface rounded-xl p-4">
             <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-white font-bold text-lg">
+              <Text className="text-text font-bold text-lg">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day.dayOfWeek]}
               </Text>
               
@@ -263,7 +263,7 @@ export default function CreatePlanScreen() {
                 }`}
                 onPress={() => toggleRestDay(index)}
               >
-                <Text className="text-white font-bold">
+                <Text className="text-text font-bold">
                   {day.isRestDay ? 'Rest Day' : 'Workout Day'}
                 </Text>
               </TouchableOpacity>
@@ -272,7 +272,7 @@ export default function CreatePlanScreen() {
             {!day.isRestDay && (
               <>
                 <TextInput
-                  className="bg-gray-700 text-white rounded-lg p-3 mb-4"
+                  className="bg-gray-700 text-text rounded-lg p-3 mb-4"
                   placeholder="Workout name (e.g., Chest Day)"
                   placeholderTextColor="#6B7280"
                   value={day.name}
@@ -296,11 +296,11 @@ export default function CreatePlanScreen() {
                 
                 {day.exercises.length > 0 && (
                   <View>
-                    <Text className="text-gray-400 mb-2">Exercises:</Text>
+                    <Text className="text-text-light mb-2">Exercises:</Text>
                     {day.exercises.map((exercise, exIndex) => (
                       <View key={exIndex} className="bg-gray-700 rounded-lg p-3 mb-2">
                         <View className="flex-row justify-between items-center mb-2">
-                          <Text className="text-white font-bold flex-1">
+                          <Text className="text-text font-bold flex-1">
                             {exercise.name}
                           </Text>
                           <TouchableOpacity
@@ -312,9 +312,9 @@ export default function CreatePlanScreen() {
                         
                         <View className="flex-row justify-between">
                           <View className="flex-1 mr-2">
-                            <Text className="text-gray-400 text-xs mb-1">Sets</Text>
+                            <Text className="text-text-light text-xs mb-1">Sets</Text>
                             <TextInput
-                              className="bg-gray-800 text-white rounded p-2 text-center"
+                              className="bg-surface text-text rounded p-2 text-center"
                               value={exercise.sets.toString()}
                               onChangeText={(text) => updateExercise(index, exIndex, 'sets', parseInt(text) || 0)}
                               keyboardType="numeric"
@@ -322,9 +322,9 @@ export default function CreatePlanScreen() {
                           </View>
                           
                           <View className="flex-1 mx-2">
-                            <Text className="text-gray-400 text-xs mb-1">Reps</Text>
+                            <Text className="text-text-light text-xs mb-1">Reps</Text>
                             <TextInput
-                              className="bg-gray-800 text-white rounded p-2 text-center"
+                              className="bg-surface text-text rounded p-2 text-center"
                               value={exercise.reps.toString()}
                               onChangeText={(text) => updateExercise(index, exIndex, 'reps', parseInt(text) || 0)}
                               keyboardType="numeric"
@@ -332,9 +332,9 @@ export default function CreatePlanScreen() {
                           </View>
                           
                           <View className="flex-1 ml-2">
-                            <Text className="text-gray-400 text-xs mb-1">Weight (kg)</Text>
+                            <Text className="text-text-light text-xs mb-1">Weight (kg)</Text>
                             <TextInput
-                              className="bg-gray-800 text-white rounded p-2 text-center"
+                              className="bg-surface text-text rounded p-2 text-center"
                               placeholder="Optional"
                               placeholderTextColor="#6B7280"
                               value={exercise.weight ? exercise.weight.toString() : ''}
@@ -355,10 +355,10 @@ export default function CreatePlanScreen() {
       
       <View className="flex-row justify-between mt-8">
         <TouchableOpacity
-          className="bg-gray-800 flex-1 mr-2 py-4 rounded-xl"
+          className="bg-surface flex-1 mr-2 py-4 rounded-xl"
           onPress={() => setStep(1)}
         >
-          <Text className="text-white text-center font-bold">Back</Text>
+          <Text className="text-text text-center font-bold">Back</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -369,7 +369,7 @@ export default function CreatePlanScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white text-center font-bold text-lg">
+            <Text className="text-text text-center font-bold text-lg">
               Create Plan
             </Text>
           )}
@@ -380,16 +380,16 @@ export default function CreatePlanScreen() {
 
   const renderAddExerciseModal = () => (
     <View className="absolute inset-0 bg-black/50 justify-end">
-      <View className="bg-gray-900 rounded-t-3xl p-6 h-3/4">
+      <View className="bg-bg rounded-t-3xl p-6 h-3/4">
         <View className="flex-row justify-between items-center mb-6">
-          <Text className="text-white text-2xl font-bold">Add Exercise</Text>
+          <Text className="text-text text-2xl font-bold">Add Exercise</Text>
           <TouchableOpacity onPress={() => setShowAddExercise(false)}>
             <AntDesign name="close" size={24} color="white" />
           </TouchableOpacity>
         </View>
         
         <TextInput
-          className="bg-gray-800 text-white rounded-xl p-4 mb-4"
+          className="bg-surface text-text rounded-xl p-4 mb-4"
           placeholder="Search exercises..."
           placeholderTextColor="#6B7280"
           value={searchQuery}
@@ -404,14 +404,14 @@ export default function CreatePlanScreen() {
             {searchResults.map((exercise, index) => (
               <TouchableOpacity
                 key={index}
-                className="bg-gray-800 rounded-xl p-4 mb-3"
+                className="bg-surface rounded-xl p-4 mb-3"
                 onPress={() => addExerciseToDay(exercise)}
               >
-                <Text className="text-white font-bold text-lg mb-1">
+                <Text className="text-text font-bold text-lg mb-1">
                   {exercise.name}
                 </Text>
                 {exercise.category && (
-                  <Text className="text-gray-400 text-sm">{exercise.category}</Text>
+                  <Text className="text-text-light text-sm">{exercise.category}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -419,7 +419,7 @@ export default function CreatePlanScreen() {
             {searchQuery && searchResults.length === 0 && !searching && (
               <View className="items-center py-8">
                 <Feather name="search" size={48} color="#6B7280" />
-                <Text className="text-gray-400 mt-4">
+                <Text className="text-text-light mt-4">
                   No exercises found for "{searchQuery}"
                 </Text>
               </View>
@@ -431,13 +431,13 @@ export default function CreatePlanScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1 p-4">
         <View className="flex-row items-center mb-6">
           <TouchableOpacity onPress={() => router.back()}>
             <AntDesign name="arrowleft" size={24} color="white" />
           </TouchableOpacity>
-          <Text className="text-white text-2xl font-bold ml-4">Create Workout Plan</Text>
+          <Text className="text-text text-2xl font-bold ml-4">Create Workout Plan</Text>
         </View>
         
         {/* Progress Steps */}
@@ -445,10 +445,10 @@ export default function CreatePlanScreen() {
           {[1, 2].map((stepNum) => (
             <View key={stepNum} className="flex-1 items-center">
               <View className={`w-8 h-8 rounded-full justify-center items-center mb-2 ${
-                step >= stepNum ? 'bg-blue-600' : 'bg-gray-800'
+                step >= stepNum ? 'bg-blue-600' : 'bg-surface'
               }`}>
                 <Text className={`font-bold ${
-                  step >= stepNum ? 'text-white' : 'text-gray-400'
+                  step >= stepNum ? 'text-text' : 'text-text-light'
                 }`}>
                   {stepNum}
                 </Text>

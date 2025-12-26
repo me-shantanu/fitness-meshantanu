@@ -216,11 +216,11 @@ export default function NutritionScreen() {
     const percentage = calculatePercentage(consumed, target);
     
     return (
-      <View className="bg-gray-800 rounded-xl p-4 mb-3">
+      <View className="bg-surface rounded-xl p-4 mb-3">
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-white font-bold">{title}</Text>
+          <Text className="text-text font-bold">{title}</Text>
           <View className="flex-row items-center">
-            <Text className="text-gray-400 mr-2">
+            <Text className="text-text-light mr-2">
               {consumed.toFixed(0)}/{target} {unit}
             </Text>
             <Text className={`font-bold ${remaining > 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -238,8 +238,8 @@ export default function NutritionScreen() {
         </View>
         
         <View className="flex-row justify-between mt-1">
-          <Text className="text-gray-400 text-xs">0 {unit}</Text>
-          <Text className="text-gray-400 text-xs">{target} {unit}</Text>
+          <Text className="text-text-light text-xs">0 {unit}</Text>
+          <Text className="text-text-light text-xs">{target} {unit}</Text>
         </View>
       </View>
     );
@@ -247,7 +247,7 @@ export default function NutritionScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>
@@ -256,48 +256,48 @@ export default function NutritionScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4 pb-2">
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-white text-3xl font-bold">Nutrition</Text>
+            <Text className="text-text text-3xl font-bold">Nutrition</Text>
             <TouchableOpacity
-              className="bg-gray-800 p-2 rounded-lg"
+              className="bg-surface p-2 rounded-lg"
               onPress={() => setShowDatePicker(true)}
             >
               <Feather name="calendar" size={20} color="white" />
             </TouchableOpacity>
           </View>
           
-          <View className="bg-gray-800 rounded-xl p-4 mb-4">
-            <Text className="text-white font-bold text-lg mb-2">
+          <View className="bg-surface rounded-xl p-4 mb-4">
+            <Text className="text-text font-bold text-lg mb-2">
               Daily Goals
             </Text>
             <View className="flex-row justify-between">
               <View className="items-center">
-                <Text className="text-white text-2xl font-bold">
+                <Text className="text-text text-2xl font-bold">
                   {nutrition?.calories || 0}
                 </Text>
-                <Text className="text-gray-400 text-sm">Calories</Text>
+                <Text className="text-text-light text-sm">Calories</Text>
               </View>
               <View className="items-center">
-                <Text className="text-white text-2xl font-bold">
+                <Text className="text-text text-2xl font-bold">
                   {nutrition?.protein || 0}g
                 </Text>
-                <Text className="text-gray-400 text-sm">Protein</Text>
+                <Text className="text-text-light text-sm">Protein</Text>
               </View>
               <View className="items-center">
-                <Text className="text-white text-2xl font-bold">
+                <Text className="text-text text-2xl font-bold">
                   {nutrition?.carbs || 0}g
                 </Text>
-                <Text className="text-gray-400 text-sm">Carbs</Text>
+                <Text className="text-text-light text-sm">Carbs</Text>
               </View>
               <View className="items-center">
-                <Text className="text-white text-2xl font-bold">
+                <Text className="text-text text-2xl font-bold">
                   {nutrition?.fats || 0}g
                 </Text>
-                <Text className="text-gray-400 text-sm">Fats</Text>
+                <Text className="text-text-light text-sm">Fats</Text>
               </View>
             </View>
           </View>
@@ -305,19 +305,19 @@ export default function NutritionScreen() {
 
         {/* Calories */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Calories</Text>
+          <Text className="text-text text-xl font-bold mb-4">Calories</Text>
           
           <View className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6">
             <View className="flex-row justify-between items-center mb-4">
               <View>
-                <Text className="text-white font-bold text-lg">Daily Intake</Text>
-                <Text className="text-white/80">
+                <Text className="text-text font-bold text-lg">Daily Intake</Text>
+                <Text className="text-text/80">
                   {dailyLog?.calories_consumed || 0} / {nutrition?.calories || 0} kcal
                 </Text>
               </View>
               
               <View className="bg-white/20 px-4 py-2 rounded-full">
-                <Text className="text-white font-bold">
+                <Text className="text-text font-bold">
                   {calculateRemaining(dailyLog?.calories_consumed || 0, nutrition?.calories || 0)} kcal left
                 </Text>
               </View>
@@ -327,7 +327,7 @@ export default function NutritionScreen() {
             <View className="items-center my-4">
               <View className="relative items-center justify-center">
                 <View className="w-40 h-40 rounded-full border-8 border-gray-300/20 items-center justify-center">
-                  <Text className="text-white text-3xl font-bold">
+                  <Text className="text-text text-3xl font-bold">
                     {calculatePercentage(dailyLog?.calories_consumed || 0, nutrition?.calories || 0).toFixed(0)}%
                   </Text>
                   <Text className="text-gray-300">of goal</Text>
@@ -348,7 +348,7 @@ export default function NutritionScreen() {
 
         {/* Macros */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Macronutrients</Text>
+          <Text className="text-text text-xl font-bold mb-4">Macronutrients</Text>
           
           {renderMacroCard(
             'Protein',
@@ -377,13 +377,13 @@ export default function NutritionScreen() {
 
         {/* Water Tracking */}
         <View className="px-4 mb-6">
-          <Text className="text-white text-xl font-bold mb-4">Water Intake</Text>
+          <Text className="text-text text-xl font-bold mb-4">Water Intake</Text>
           
-          <View className="bg-gray-800 rounded-xl p-6">
+          <View className="bg-surface rounded-xl p-6">
             <View className="flex-row justify-between items-center mb-6">
               <View>
-                <Text className="text-white font-bold text-lg">Daily Goal: 2.5L</Text>
-                <Text className="text-gray-400">
+                <Text className="text-text font-bold text-lg">Daily Goal: 2.5L</Text>
+                <Text className="text-text-light">
                   {(dailyLog?.water_intake_ml || 0) / 1000}L / 2.5L
                 </Text>
               </View>
@@ -414,7 +414,7 @@ export default function NutritionScreen() {
               <View className="flex-1 ml-3">
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-gray-300">Water Intake</Text>
-                  <Text className="text-white font-bold">
+                  <Text className="text-text font-bold">
                     {dailyLog?.water_intake_ml || 0}ml
                   </Text>
                 </View>
@@ -431,11 +431,11 @@ export default function NutritionScreen() {
 
         {/* Quick Add */}
         <View className="px-4 mb-8">
-          <Text className="text-white text-xl font-bold mb-4">Quick Add</Text>
+          <Text className="text-text text-xl font-bold mb-4">Quick Add</Text>
           
           <View className="flex-row justify-between">
             <TouchableOpacity
-              className="bg-gray-800 flex-1 mr-2 rounded-xl p-4 items-center"
+              className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center"
               onPress={() => {
                 setFoodForm({
                   ...foodForm,
@@ -450,11 +450,11 @@ export default function NutritionScreen() {
               }}
             >
               <MaterialIcons name="fastfood" size={24} color="#10B981" />
-              <Text className="text-white mt-2 text-center text-sm">Chicken Breast</Text>
+              <Text className="text-text mt-2 text-center text-sm">Chicken Breast</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="bg-gray-800 flex-1 mx-2 rounded-xl p-4 items-center"
+              className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center"
               onPress={() => {
                 setFoodForm({
                   ...foodForm,
@@ -469,11 +469,11 @@ export default function NutritionScreen() {
               }}
             >
               <FontAwesome name="spoon" size={24} color="#F59E0B" />
-              <Text className="text-white mt-2 text-center text-sm">Brown Rice</Text>
+              <Text className="text-text mt-2 text-center text-sm">Brown Rice</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="bg-gray-800 flex-1 ml-2 rounded-xl p-4 items-center"
+              className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center"
               onPress={() => {
                 setFoodForm({
                   ...foodForm,
@@ -488,7 +488,7 @@ export default function NutritionScreen() {
               }}
             >
               <MaterialIcons name="local-cafe" size={24} color="#EF4444" />
-              <Text className="text-white mt-2 text-center text-sm">Protein Shake</Text>
+              <Text className="text-text mt-2 text-center text-sm">Protein Shake</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -501,9 +501,9 @@ export default function NutritionScreen() {
         transparent={true}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-gray-900 rounded-t-3xl p-6 max-h-3/4">
+          <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white text-2xl font-bold">Add Food</Text>
+              <Text className="text-text text-2xl font-bold">Add Food</Text>
               <TouchableOpacity onPress={() => setShowAddFood(false)}>
                 <AntDesign name="close" size={24} color="white" />
               </TouchableOpacity>
@@ -512,9 +512,9 @@ export default function NutritionScreen() {
             <ScrollView>
               <View className="space-y-4">
                 <View>
-                  <Text className="text-gray-400 mb-2">Food Name</Text>
+                  <Text className="text-text-light mb-2">Food Name</Text>
                   <TextInput
-                    className="bg-gray-800 text-white rounded-xl p-4"
+                    className="bg-surface text-text rounded-xl p-4"
                     placeholder="e.g., Chicken Breast"
                     placeholderTextColor="#6B7280"
                     value={foodForm.name}
@@ -523,9 +523,9 @@ export default function NutritionScreen() {
                 </View>
                 
                 <View>
-                  <Text className="text-gray-400 mb-2">Calories</Text>
+                  <Text className="text-text-light mb-2">Calories</Text>
                   <TextInput
-                    className="bg-gray-800 text-white rounded-xl p-4"
+                    className="bg-surface text-text rounded-xl p-4"
                     placeholder="e.g., 165"
                     placeholderTextColor="#6B7280"
                     value={foodForm.calories}
@@ -536,9 +536,9 @@ export default function NutritionScreen() {
                 
                 <View className="flex-row justify-between">
                   <View className="flex-1 mr-2">
-                    <Text className="text-gray-400 mb-2">Protein (g)</Text>
+                    <Text className="text-text-light mb-2">Protein (g)</Text>
                     <TextInput
-                      className="bg-gray-800 text-white rounded-xl p-4"
+                      className="bg-surface text-text rounded-xl p-4"
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.protein}
@@ -548,9 +548,9 @@ export default function NutritionScreen() {
                   </View>
                   
                   <View className="flex-1 mx-2">
-                    <Text className="text-gray-400 mb-2">Carbs (g)</Text>
+                    <Text className="text-text-light mb-2">Carbs (g)</Text>
                     <TextInput
-                      className="bg-gray-800 text-white rounded-xl p-4"
+                      className="bg-surface text-text rounded-xl p-4"
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.carbs}
@@ -560,9 +560,9 @@ export default function NutritionScreen() {
                   </View>
                   
                   <View className="flex-1 ml-2">
-                    <Text className="text-gray-400 mb-2">Fats (g)</Text>
+                    <Text className="text-text-light mb-2">Fats (g)</Text>
                     <TextInput
-                      className="bg-gray-800 text-white rounded-xl p-4"
+                      className="bg-surface text-text rounded-xl p-4"
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.fats}
@@ -573,9 +573,9 @@ export default function NutritionScreen() {
                 </View>
                 
                 <View>
-                  <Text className="text-gray-400 mb-2">Serving Size</Text>
+                  <Text className="text-text-light mb-2">Serving Size</Text>
                   <TextInput
-                    className="bg-gray-800 text-white rounded-xl p-4"
+                    className="bg-surface text-text rounded-xl p-4"
                     placeholder="e.g., 100g, 1 cup"
                     placeholderTextColor="#6B7280"
                     value={foodForm.servingSize}
@@ -589,7 +589,7 @@ export default function NutritionScreen() {
               className="bg-blue-600 py-4 rounded-xl mt-6"
               onPress={addFood}
             >
-              <Text className="text-white text-center font-bold text-lg">
+              <Text className="text-text text-center font-bold text-lg">
                 Add to Daily Log
               </Text>
             </TouchableOpacity>

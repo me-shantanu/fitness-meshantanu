@@ -4,9 +4,11 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/authStore";
 import { View, ActivityIndicator, Platform } from "react-native";
+import { useThemeStore } from "@/store/useThemeStore";
 
 export default function RootLayout() {
   const { user, profile, loading, initialize } = useAuthStore();
+  const { vars, mode } = useThemeStore();
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
@@ -14,7 +16,7 @@ export default function RootLayout() {
   useEffect(() => {
     // Skip initialization on server-side
     if (typeof window === 'undefined') return;
-    
+
     initialize().then(() => setIsReady(true));
   }, []);
 
@@ -41,10 +43,10 @@ export default function RootLayout() {
     if (Platform.OS === 'web' && typeof window === 'undefined') {
       return null; // Don't render anything during SSR
     }
-    
+
     return (
-      <View className="flex-1 bg-gray-900 justify-center items-center">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View key={mode} style={vars} className="flex-1 bg-bg justify-center items-center">
+        <ActivityIndicator size="large" color="var(--text)" />
       </View>
     );
   }

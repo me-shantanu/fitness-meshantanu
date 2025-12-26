@@ -1,18 +1,22 @@
 import { Tabs } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useThemeStore } from "@/store/useThemeStore";
 
 export default function TabsLayout() {
+  const { vars, mode } = useThemeStore();
+
   return (
     <Tabs
+      key={mode}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#111827',
-          borderTopColor: '#1F2937',
+          backgroundColor: vars["--surface"],
+          borderTopColor: vars["--hover"],
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: vars["--text"],
+        tabBarInactiveTintColor: vars["--text-light"],
       }}
     >
       <Tabs.Screen
@@ -24,6 +28,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="exercises"
         options={{
@@ -33,6 +38,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="workout"
         options={{
@@ -42,6 +48,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{

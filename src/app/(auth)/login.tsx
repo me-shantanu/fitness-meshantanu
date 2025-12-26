@@ -1,8 +1,8 @@
-// app/(auth)/login.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Pressable } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -25,16 +25,24 @@ export default function LoginScreen() {
       Alert.alert('Login Failed', error.message);
     }
   };
+  // const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   return (
-    <View className="flex-1 bg-gray-900 px-6 justify-center">
-      <Text className="text-4xl font-bold text-white mb-2">Welcome Back</Text>
-      <Text className="text-gray-400 mb-8">Sign in to continue your fitness journey</Text>
-
+    <View className="flex-1 bg-bg px-6 justify-center">
+      <Text className="text-4xl font-bold text-text mb-2">Welcome Back</Text>
+      <Text className="text-text-light mb-8">Sign in to continue your fitness journey</Text>
+      {/* <Pressable
+          onPress={toggleTheme}
+          className="mt-4 rounded-xl bg-surface p-4 active:bg-surface"
+        >
+          <Text className="text-text text-center">
+            Toggle Theme
+          </Text>
+        </Pressable> */}
       <View className="mb-4">
-        <Text className="text-white mb-2 font-medium">Email</Text>
+        <Text className="text-text mb-2 font-medium">Email</Text>
         <TextInput
-          className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+          className="bg-surface  text-text px-4 py-3 rounded-lg"
           placeholder="your@email.com"
           placeholderTextColor="#6B7280"
           value={email}
@@ -45,9 +53,9 @@ export default function LoginScreen() {
       </View>
 
       <View className="mb-6">
-        <Text className="text-white mb-2 font-medium">Password</Text>
+        <Text className="text-text mb-2 font-medium">Password</Text>
         <TextInput
-          className="bg-gray-800 text-white px-4 py-3 rounded-lg"
+          className="bg-surface text-text px-4 py-3 rounded-lg"
           placeholder="••••••••"
           placeholderTextColor="#6B7280"
           value={password}
@@ -57,21 +65,21 @@ export default function LoginScreen() {
       </View>
 
       <TouchableOpacity
-        className="bg-blue-600 py-4 rounded-lg mb-4"
+        className="bg-text text-bg py-4 rounded-lg mb-4"
         onPress={handleLogin}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="white" />
+          <ActivityIndicator color="var(--text-bg)" />
         ) : (
-          <Text className="text-white text-center font-bold text-lg">Sign In</Text>
+          <Text className="text-bg text-center font-bold text-lg">Sign In</Text>
         )}
       </TouchableOpacity>
 
       <View className="flex-row justify-center">
-        <Text className="text-gray-400">Don't have an account? </Text>
+        <Text className="text-text-light">Don't have an account? </Text>
         <Link href="/(auth)/signup">
-          <Text className="text-blue-500 font-bold">Sign Up</Text>
+          <Text className="text-text font-bold">Sign Up</Text>
         </Link>
       </View>
     </View>
