@@ -162,9 +162,9 @@ export default function ExercisesScreen() {
               <View className={`px-2 py-1 rounded mr-2 ${
                 item.category === 'Warmup' ? 'bg-orange-500' :
                 item.category === 'Cooldown' ? 'bg-blue-500' :
-                'bg-gray-700'
+                'bg-text'
               }`}>
-                <Text className="text-text text-xs">{item.category}</Text>
+                <Text className="text-bg text-xs">{item.category}</Text>
               </View>
               
               {item.duration && (
@@ -185,8 +185,8 @@ export default function ExercisesScreen() {
           {item.muscles && item.muscles.length > 0 && (
             <View className="flex-row flex-wrap mt-2">
               {item.muscles.slice(0, 2).map((muscle, index) => (
-                <View key={index} className="bg-gray-700 px-2 py-1 rounded mr-1 mb-1">
-                  <Text className="text-gray-300 text-xs">{muscle}</Text>
+                <View key={index} className="bg-text px-2 py-1 rounded mr-1 mb-1">
+                  <Text className="text-bg text-xs">{muscle}</Text>
                 </View>
               ))}
             </View>
