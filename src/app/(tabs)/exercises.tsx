@@ -23,6 +23,8 @@ import { useThemeStore } from '@/store/useThemeStore';
 
 type ExerciseType = 'workout' | 'warmup' | 'cooldown';
 
+const EXERCISES_PER_PAGE = 15;
+
 export default function ExercisesScreen() {
   const router = useRouter();
   const { favorites, loadFavorites, addFavorite, removeFavorite, isFavorite } = useExerciseStore();
@@ -31,10 +33,13 @@ export default function ExercisesScreen() {
   const [activeTab, setActiveTab] = useState<ExerciseType>('workout');
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [displayedExercises, setDisplayedExercises] = useState<Exercise[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Filter states
   const [categories, setCategories] = useState<any[]>([]);
@@ -44,6 +49,10 @@ export default function ExercisesScreen() {
   const [selectedMuscle, setSelectedMuscle] = useState<number | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(filteredExercises.length / EXERCISES_PER_PAGE);
+  const hasMorePages = currentPage < totalPages;
 
   useEffect(() => {
     loadInitialData();
@@ -68,6 +77,18 @@ export default function ExercisesScreen() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
+  // Update displayed exercises when filtered exercises or page changes
+  useEffect(() => {
+    updateDisplayedExercises();
+  }, [filteredExercises, currentPage]);
+
+  const updateDisplayedExercises = () => {
+    const startIndex = 0;
+    const endIndex = currentPage * EXERCISES_PER_PAGE;
+    const paginated = filteredExercises.slice(startIndex, endIndex);
+    setDisplayedExercises(paginated);
+  };
+
   const loadInitialData = async () => {
     setLoading(true);
     try {
@@ -88,6 +109,7 @@ export default function ExercisesScreen() {
 
   const loadExercisesByTab = async () => {
     setLoading(true);
+    setCurrentPage(1); // Reset to first page
     try {
       let exercisesData: Exercise[] = [];
 
@@ -125,6 +147,7 @@ export default function ExercisesScreen() {
     }
 
     setSearchLoading(true);
+    setCurrentPage(1); // Reset to first page
     try {
       let exercisesData: Exercise[] = [];
 
@@ -160,8 +183,19 @@ export default function ExercisesScreen() {
     setSearchLoading(false);
   };
 
+  const loadMoreExercises = () => {
+    if (!loadingMore && hasMorePages) {
+      setLoadingMore(true);
+      setTimeout(() => {
+        setCurrentPage(prev => prev + 1);
+        setLoadingMore(false);
+      }, 300);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
+    setCurrentPage(1);
     exerciseService.clearCache();
     await loadExercisesByTab();
     setRefreshing(false);
@@ -180,6 +214,7 @@ export default function ExercisesScreen() {
     setSelectedMuscle(null);
     setSelectedEquipment(null);
     setSearchQuery('');
+    setCurrentPage(1);
     loadExercisesByTab();
   };
 
@@ -502,6 +537,47 @@ export default function ExercisesScreen() {
     );
   };
 
+  const renderFooter = () => {
+    if (!hasMorePages && displayedExercises.length > 0) {
+      return (
+        <View className="py-6 px-4">
+          <View className="bg-surface p-4 rounded-xl items-center">
+            <Text className="text-text-light text-sm text-center">
+              🎉 You've reached the end! {filteredExercises.length} exercises shown.
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (loadingMore) {
+      return (
+        <View className="py-6">
+          <ActivityIndicator size="small" color={vars['--primary'] as string} />
+        </View>
+      );
+    }
+
+    if (hasMorePages) {
+      return (
+        <View className="py-4 px-4">
+          <TouchableOpacity
+            onPress={loadMoreExercises}
+            className="bg-primary py-4 rounded-xl items-center"
+            activeOpacity={0.7}
+          >
+            <Text className="text-white font-bold">Load More Exercises</Text>
+            <Text className="text-white text-xs mt-1">
+              Showing {displayedExercises.length} of {filteredExercises.length}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
   if (loading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
@@ -566,7 +642,7 @@ export default function ExercisesScreen() {
 
       {/* Exercise List */}
       <FlatList
-        data={filteredExercises}
+        data={displayedExercises}
         renderItem={renderExercise}
         keyExtractor={(item) => `${activeTab}_${item.id}`}
         refreshControl={
@@ -580,11 +656,13 @@ export default function ExercisesScreen() {
         ListHeaderComponent={
           <View className="px-4 pb-2">
             <Text className="text-text-light text-sm">
-              {filteredExercises.length} {activeTab} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+              Showing {displayedExercises.length} of {filteredExercises.length} {activeTab} exercise{filteredExercises.length !== 1 ? 's' : ''}
               {searchQuery && ` for "${searchQuery}"`}
+              {hasMorePages && ` • Page ${currentPage} of ${totalPages}`}
             </Text>
           </View>
         }
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center py-20 px-4">
             <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
