@@ -18,6 +18,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  console.log('User in HomeScreen:', user);
   const [activePlan, setActivePlan] = useState(null);
   const [todayWorkout, setTodayWorkout] = useState(null);
   const [nutrition, setNutrition] = useState(null);
@@ -104,7 +105,7 @@ export default function HomeScreen() {
       <ScrollView className="flex-1">
         {/* Welcome Header */}
         <View className="px-4 pt-4 pb-2">
-          <Text className="text-text text-2xl font-bold">Welcome back!</Text>
+          <Text className="text-text text-2xl font-bold">Welcome back {user?.name || 'User'}!</Text>
           <Text className="text-text-light">Ready for your workout today?</Text>
         </View>
 

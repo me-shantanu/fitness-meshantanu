@@ -3,6 +3,7 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useThemeStore } from "@/store/useThemeStore";
 import { View } from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 export default function TabsLayout() {
   const { vars, mode } = useThemeStore();
@@ -39,7 +40,7 @@ export default function TabsLayout() {
           options={{
             title: "Exercises",
             tabBarIcon: ({ color, size }) => (
-              <AntDesign name="barschart" color={color} size={size} />
+              <FontAwesome name="list-alt" size={size} color={color} />
             ),
           }}
         />

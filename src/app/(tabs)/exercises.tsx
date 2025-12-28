@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,15 @@ import {
   RefreshControl,
   ScrollView,
   Modal,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { exerciseService } from '../../services/exerciseService';
+import { exerciseService, Exercise, ExerciseFilters } from '../../services/exerciseService';
 import { useExerciseStore } from '../../store/exerciseStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
 
 type ExerciseType = 'workout' | 'warmup' | 'cooldown';
@@ -24,21 +26,23 @@ type ExerciseType = 'workout' | 'warmup' | 'cooldown';
 export default function ExercisesScreen() {
   const router = useRouter();
   const { favorites, loadFavorites, addFavorite, removeFavorite, isFavorite } = useExerciseStore();
-  
+  const { vars, mode } = useThemeStore();
+
   const [activeTab, setActiveTab] = useState<ExerciseType>('workout');
-  const [exercises, setExercises] = useState([]);
-  const [filteredExercises, setFilteredExercises] = useState([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+  const [searchLoading, setSearchLoading] = useState(false);
+
   // Filter states
-  const [categories, setCategories] = useState([]);
-  const [muscles, setMuscles] = useState([]);
-  const [equipment, setEquipment] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedMuscle, setSelectedMuscle] = useState(null);
-  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [muscles, setMuscles] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedMuscle, setSelectedMuscle] = useState<number | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -47,12 +51,22 @@ export default function ExercisesScreen() {
   }, []);
 
   useEffect(() => {
-    loadExercisesByTab();
+    if (searchQuery.trim() === '') {
+      loadExercisesByTab();
+    }
   }, [activeTab, selectedCategory, selectedMuscle, selectedEquipment]);
 
   useEffect(() => {
-    filterExercises();
-  }, [searchQuery, exercises]);
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch();
+      } else if (activeTab === 'workout') {
+        loadExercisesByTab();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -62,7 +76,7 @@ export default function ExercisesScreen() {
         exerciseService.getMuscles(),
         exerciseService.getEquipment(),
       ]);
-      
+
       setCategories(categoriesData);
       setMuscles(musclesData);
       setEquipment(equipmentData);
@@ -75,8 +89,8 @@ export default function ExercisesScreen() {
   const loadExercisesByTab = async () => {
     setLoading(true);
     try {
-      let exercisesData = [];
-      
+      let exercisesData: Exercise[] = [];
+
       switch (activeTab) {
         case 'warmup':
           exercisesData = await exerciseService.getWarmupExercises();
@@ -86,13 +100,14 @@ export default function ExercisesScreen() {
           break;
         case 'workout':
         default:
-          const filters = {};
+          const filters: ExerciseFilters = {};
           if (selectedMuscle) filters.muscle = selectedMuscle;
           if (selectedCategory) filters.category = selectedCategory;
+          if (selectedEquipment) filters.equipment = selectedEquipment;
           exercisesData = await exerciseService.getWorkoutExercises(filters);
           break;
       }
-      
+
       setExercises(exercisesData);
       setFilteredExercises(exercisesData);
     } catch (error) {
@@ -103,6 +118,48 @@ export default function ExercisesScreen() {
     setLoading(false);
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      loadExercisesByTab();
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      let exercisesData: Exercise[] = [];
+
+      if (activeTab === 'workout') {
+        const filters: ExerciseFilters = {
+          search: searchQuery,
+        };
+        if (selectedMuscle) filters.muscle = selectedMuscle;
+        if (selectedCategory) filters.category = selectedCategory;
+        if (selectedEquipment) filters.equipment = selectedEquipment;
+
+        exercisesData = await exerciseService.searchExercises(searchQuery, filters);
+      } else {
+        const allExercises = activeTab === 'warmup'
+          ? await exerciseService.getWarmupExercises()
+          : await exerciseService.getCooldownExercises();
+
+        const query = searchQuery.toLowerCase();
+        exercisesData = allExercises.filter(ex =>
+          ex.name.toLowerCase().includes(query) ||
+          (ex.description && ex.description.toLowerCase().includes(query)) ||
+          (ex.category && ex.category.toLowerCase().includes(query))
+        );
+      }
+
+      setExercises(exercisesData);
+      setFilteredExercises(exercisesData);
+    } catch (error) {
+      console.error('Error searching exercises:', error);
+      setExercises([]);
+      setFilteredExercises([]);
+    }
+    setSearchLoading(false);
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     exerciseService.clearCache();
@@ -110,27 +167,11 @@ export default function ExercisesScreen() {
     setRefreshing(false);
   };
 
-  const filterExercises = () => {
-    if (!searchQuery.trim()) {
-      setFilteredExercises(exercises);
-      return;
-    }
-    
-    const query = searchQuery.toLowerCase();
-    const filtered = exercises.filter(ex => 
-      ex.name.toLowerCase().includes(query) ||
-      (ex.description && ex.description.toLowerCase().includes(query)) ||
-      (ex.category && ex.category.toLowerCase().includes(query))
-    );
-    
-    setFilteredExercises(filtered);
-  };
-
-  const toggleFavorite = async (exercise) => {
+  const toggleFavorite = async (exercise: Exercise) => {
     if (isFavorite(exercise.id)) {
       await removeFavorite(exercise.id);
     } else {
-      await addFavorite(exercise.id, exercise.name);
+      await addFavorite(exercise.id, exercise.name, activeTab);
     }
   };
 
@@ -142,74 +183,109 @@ export default function ExercisesScreen() {
     loadExercisesByTab();
   };
 
-  const renderExercise = ({ item }) => (
-    <TouchableOpacity
-      className="bg-surface p-4 rounded-lg mb-3 mx-4"
-      onPress={() => router.push({
-        pathname: '/exercise-detail',
-        params: { 
-          id: item.id,
-          type: activeTab
-        }
-      })}
-    >
-      <View className="flex-row justify-between items-start">
-        <View className="flex-1 mr-3">
-          <Text className="text-text font-bold text-lg mb-1">{item.name}</Text>
-          
-          {item.category && (
-            <View className="flex-row items-center mb-1">
-              <View className={`px-2 py-1 rounded mr-2 ${
-                item.category === 'Warmup' ? 'bg-orange-500' :
-                item.category === 'Cooldown' ? 'bg-blue-500' :
-                'bg-text'
-              }`}>
-                <Text className="text-bg text-xs">{item.category}</Text>
-              </View>
-              
+  const renderExercise = ({ item }: { item: Exercise }) => {
+    // Extract muscle names for display
+    const muscleNames = item.muscles?.map(m =>
+      typeof m === 'string' ? m : (m.name_en || m.name)
+    ).filter(Boolean) || [];
+
+    return (
+      <TouchableOpacity
+        className="bg-surface p-4 rounded-xl mb-3 mx-4"
+        onPress={() => router.push({
+          pathname: '/exercise-detail',
+          params: {
+            id: item.id,
+            type: activeTab
+          }
+        })}
+        activeOpacity={0.7}
+      >
+        <View className="flex-row justify-between items-start">
+          <View className="flex-1 mr-3">
+            <Text className="text-text font-bold text-lg mb-2">{item.name}</Text>
+
+            <View className="flex-row items-center flex-wrap mb-2">
+              {/* Category Badge */}
+              {item.category && (
+                <View className={`px-3 py-1.5 rounded-full mr-2 mb-2 bg-text`}>
+                  <Text className="text-bg text-xs font-bold">{item.category}</Text>
+                </View>
+              )}
+
+              {/* Duration Badge */}
               {item.duration && (
-                <View className="flex-row items-center">
-                  <MaterialIcons name="timer" size={12} color="#9CA3AF" />
-                  <Text className="text-text-light text-xs ml-1">{item.duration}</Text>
+                <View className="flex-row items-center bg-surface-light px-3 py-1.5 rounded-full mr-2 mb-2">
+                  <MaterialIcons name="timer" size={14} color={vars['--text'] as string} />
+                  <Text className="text-text text-xs font-medium ml-1">{item.duration}</Text>
+                </View>
+              )}
+
+              {/* Difficulty Badge */}
+              {item.difficulty && (
+                <View className="bg-surface-light px-3 py-1.5 rounded-full mb-2">
+                  <Text className="text-text text-xs font-medium">{item.difficulty}</Text>
                 </View>
               )}
             </View>
-          )}
-          
-          {item.description && (
-            <Text className="text-text-light text-sm" numberOfLines={2}>
-              {item.description}
-            </Text>
-          )}
-          
-          {item.muscles && item.muscles.length > 0 && (
-            <View className="flex-row flex-wrap mt-2">
-              {item.muscles.slice(0, 2).map((muscle, index) => (
-                <View key={index} className="bg-text px-2 py-1 rounded mr-1 mb-1">
-                  <Text className="text-bg text-xs">{muscle}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+
+            {/* Description */}
+            {item.description && (
+              <Text className="text-text-light text-sm leading-5 mb-2" numberOfLines={2}>
+                {item.description}
+              </Text>
+            )}
+
+            {/* Muscles Tags */}
+            {muscleNames.length > 0 && (
+              <View className="flex-row flex-wrap mt-1">
+                {muscleNames.slice(0, 3).map((muscle, index) => (
+                  <View key={index} className="bg-text px-2.5 py-1 rounded-full mr-1.5 mb-1.5">
+                    <Text className="text-bg text-xs font-medium">{muscle}</Text>
+                  </View>
+                ))}
+                {muscleNames.length > 3 && (
+                  <View className="bg-text px-2.5 py-1 rounded-full mb-1.5">
+                    <Text className="text-bg text-xs font-medium">+{muscleNames.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Equipment Tags */}
+            {item.equipment && item.equipment.length > 0 && (
+              <View className="flex-row flex-wrap mt-1">
+                {item.equipment.slice(0, 2).map((eq, index) => (
+                  <View key={index} className="flex-row items-center bg-surface px-2.5 py-1 rounded-full mr-1.5 mb-1.5">
+                    <Feather name="tool" size={10} color={vars['--text-light'] as string} />
+                    <Text className="text-text-light text-xs ml-1">{typeof eq === 'string' ? eq : eq.name}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorite(item);
+            }}
+            className="p-2"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {isFavorite(item.id) ?
+              <AntDesign
+                name={'heart'}
+                size={24}
+                color={'#EF4444'}
+              /> :
+              <FontAwesome name="heart-o" size={24} color={vars['--text-light'] as string} />
+            }
+          </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity 
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleFavorite(item);
-          }}
-          className="p-2"
-        >
-          <AntDesign
-            name={isFavorite(item.id) ? 'heart' : 'hearto'}
-            size={24}
-            color={isFavorite(item.id) ? '#EF4444' : '#9CA3AF'}
-          />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-    const { vars, mode } = useThemeStore();
+      </TouchableOpacity>
+    );
+  };
+
   const renderFilterModal = () => (
     <Modal
       visible={showFilters}
@@ -221,8 +297,8 @@ export default function ExercisesScreen() {
         <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-text text-2xl font-bold">Filters</Text>
-            <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <AntDesign name="close" size={24} color="var(--text)" />
+            <TouchableOpacity onPress={() => setShowFilters(false)} className="p-2">
+              <AntDesign name="close" size={24} color={vars['--text'] as string} />
             </TouchableOpacity>
           </View>
 
@@ -232,22 +308,22 @@ export default function ExercisesScreen() {
               <Text className="text-text text-lg font-bold mb-3">Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                    selectedCategory === null ? 'bg-blue-600' : 'bg-surface'
-                  }`}
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === null ? 'bg-primary' : 'bg-surface'
+                    }`}
                   onPress={() => setSelectedCategory(null)}
                 >
-                  <Text className="text-text">All Categories</Text>
+                  <Text className={`font-medium ${selectedCategory === null ? 'text-white' : 'text-text'
+                    }`}>All Categories</Text>
                 </TouchableOpacity>
                 {categories.map((category) => (
                   <TouchableOpacity
                     key={category.id}
-                    className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                      selectedCategory === category.id ? 'bg-blue-600' : 'bg-surface'
-                    }`}
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === category.id ? 'bg-primary' : 'bg-surface'
+                      }`}
                     onPress={() => setSelectedCategory(category.id)}
                   >
-                    <Text className="text-text">{category.name}</Text>
+                    <Text className={`font-medium ${selectedCategory === category.id ? 'text-white' : 'text-text'
+                      }`}>{category.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -258,22 +334,22 @@ export default function ExercisesScreen() {
               <Text className="text-text text-lg font-bold mb-3">Target Muscle</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                    selectedMuscle === null ? 'bg-blue-600' : 'bg-surface'
-                  }`}
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === null ? 'bg-primary' : 'bg-surface'
+                    }`}
                   onPress={() => setSelectedMuscle(null)}
                 >
-                  <Text className="text-text">All Muscles</Text>
+                  <Text className={`font-medium ${selectedMuscle === null ? 'text-white' : 'text-text'
+                    }`}>All Muscles</Text>
                 </TouchableOpacity>
                 {muscles.map((muscle) => (
                   <TouchableOpacity
                     key={muscle.id}
-                    className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                      selectedMuscle === muscle.id ? 'bg-blue-600' : 'bg-surface'
-                    }`}
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === muscle.id ? 'bg-primary' : 'bg-surface'
+                      }`}
                     onPress={() => setSelectedMuscle(muscle.id)}
                   >
-                    <Text className="text-text">{muscle.name_en || muscle.name}</Text>
+                    <Text className={`font-medium ${selectedMuscle === muscle.id ? 'text-white' : 'text-text'
+                      }`}>{muscle.name_en || muscle.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -285,22 +361,22 @@ export default function ExercisesScreen() {
                 <Text className="text-text text-lg font-bold mb-3">Equipment</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <TouchableOpacity
-                    className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                      selectedEquipment === null ? 'bg-blue-600' : 'bg-surface'
-                    }`}
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === null ? 'bg-primary' : 'bg-surface'
+                      }`}
                     onPress={() => setSelectedEquipment(null)}
                   >
-                    <Text className="text-text">All Equipment</Text>
+                    <Text className={`font-medium ${selectedEquipment === null ? 'text-white' : 'text-text'
+                      }`}>All Equipment</Text>
                   </TouchableOpacity>
                   {equipment.map((eq) => (
                     <TouchableOpacity
                       key={eq.id}
-                      className={`px-4 py-2 rounded-full mr-2 mb-2 ${
-                        selectedEquipment === eq.id ? 'bg-blue-600' : 'bg-surface'
-                      }`}
+                      className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === eq.id ? 'bg-primary' : 'bg-surface'
+                        }`}
                       onPress={() => setSelectedEquipment(eq.id)}
                     >
-                      <Text className="text-text">{eq.name}</Text>
+                      <Text className={`font-medium ${selectedEquipment === eq.id ? 'text-white' : 'text-text'
+                        }`}>{eq.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -309,22 +385,22 @@ export default function ExercisesScreen() {
           </ScrollView>
 
           {/* Action Buttons */}
-          <View className="flex-row justify-between mt-4">
+          <View className="flex-row justify-between mt-4 pt-4 border-t border-border">
             <TouchableOpacity
-              className="bg-surface flex-1 mr-2 py-4 rounded-lg"
+              className="bg-surface flex-1 mr-2 py-4 rounded-xl"
               onPress={clearFilters}
             >
               <Text className="text-text text-center font-bold">Clear All</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
-              className="bg-blue-600 flex-1 ml-2 py-4 rounded-lg"
+              className="bg-primary flex-1 ml-2 py-4 rounded-xl"
               onPress={() => {
                 setShowFilters(false);
                 loadExercisesByTab();
               }}
             >
-              <Text className="text-text text-center font-bold">Apply Filters</Text>
+              <Text className="text-white text-center font-bold">Apply Filters</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -335,40 +411,40 @@ export default function ExercisesScreen() {
   const renderTabs = () => (
     <View className="flex-row px-4 mb-4">
       <TouchableOpacity
-        className={`flex-1 py-3 rounded-l-lg ${
-          activeTab === 'workout' ? 'bg-blue-600' : 'bg-surface'
-        }`}
+        className={`flex-1 py-3.5  ${activeTab === 'workout'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
         onPress={() => setActiveTab('workout')}
+        activeOpacity={0.7}
       >
-        <Text className={`text-center font-medium ${
-          activeTab === 'workout' ? 'text-text' : 'text-text-light'
-        }`}>
+        <Text className={`text-center font-bold text-text`}>
           Workout
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
-        className={`flex-1 py-3 ${
-          activeTab === 'warmup' ? 'bg-orange-600' : 'bg-surface'
-        }`}
+        className={`flex-1 py-3.5  ${activeTab === 'warmup'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
         onPress={() => setActiveTab('warmup')}
+        activeOpacity={0.7}
       >
-        <Text className={`text-center font-medium ${
-          activeTab === 'warmup' ? 'text-text' : 'text-text-light'
-        }`}>
+        <Text className={`text-center font-bold text-text`}>
           Warmup
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
-        className={`flex-1 py-3 rounded-r-lg ${
-          activeTab === 'cooldown' ? 'bg-blue-600' : 'bg-surface'
-        }`}
+        className={`flex-1 py-3.5  ${activeTab === 'cooldown'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
         onPress={() => setActiveTab('cooldown')}
+        activeOpacity={0.7}
       >
-        <Text className={`text-center font-medium ${
-          activeTab === 'cooldown' ? 'text-text' : 'text-text-light'
-        }`}>
+        <Text className={`text-center font-bold text-text`}>
           Cooldown
         </Text>
       </TouchableOpacity>
@@ -376,39 +452,50 @@ export default function ExercisesScreen() {
   );
 
   const renderActiveFilters = () => {
-    const activeFilters = [];
-    
+    const activeFilters: { label: string; onRemove: () => void }[] = [];
+
     if (selectedCategory) {
       const category = categories.find(c => c.id === selectedCategory);
       if (category) {
-        activeFilters.push(`Category: ${category.name}`);
+        activeFilters.push({ label: `Category: ${category.name}`, onRemove: () => setSelectedCategory(null) });
       }
     }
-    
+
     if (selectedMuscle) {
       const muscle = muscles.find(m => m.id === selectedMuscle);
       if (muscle) {
-        activeFilters.push(`Muscle: ${muscle.name_en || muscle.name}`);
+        activeFilters.push({ label: `Muscle: ${muscle.name_en || muscle.name}`, onRemove: () => setSelectedMuscle(null) });
       }
     }
-    
+
     if (selectedEquipment) {
       const eq = equipment.find(e => e.id === selectedEquipment);
       if (eq) {
-        activeFilters.push(`Equipment: ${eq.name}`);
+        activeFilters.push({ label: `Equipment: ${eq.name}`, onRemove: () => setSelectedEquipment(null) });
       }
     }
-    
+
     if (activeFilters.length === 0) return null;
-    
+
     return (
       <View className="px-4 mb-3">
-        <Text className="text-text-light text-sm mb-2">Active filters:</Text>
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="text-text-light text-sm">Active filters:</Text>
+          <TouchableOpacity onPress={clearFilters}>
+            <Text className="text-primary text-sm font-medium">Clear all</Text>
+          </TouchableOpacity>
+        </View>
         <View className="flex-row flex-wrap">
           {activeFilters.map((filter, index) => (
-            <View key={index} className="bg-blue-600 px-3 py-1 rounded-full mr-2 mb-2">
-              <Text className="text-text text-sm">{filter}</Text>
-            </View>
+            <TouchableOpacity
+              key={index}
+              onPress={filter.onRemove}
+              className="bg-primary px-3 py-1.5 rounded-full mr-2 mb-2 flex-row items-center"
+              activeOpacity={0.7}
+            >
+              <Text className="text-white text-sm font-medium mr-1">{filter.label}</Text>
+              <AntDesign name="close" size={12} color="white" />
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -419,8 +506,8 @@ export default function ExercisesScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="text-text mt-4">Loading exercises...</Text>
+          <ActivityIndicator size="large" color={vars['--primary'] as string} />
+          <Text className="text-text mt-4 font-medium">Loading exercises...</Text>
         </View>
       </SafeAreaView>
     );
@@ -431,32 +518,34 @@ export default function ExercisesScreen() {
       {/* Header */}
       <View className="px-4 pt-4 pb-2">
         <Text className="text-text text-3xl font-bold mb-4">Exercises</Text>
-        
+
         {/* Search Bar */}
         <View className="flex-row items-center mb-3">
-          <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-lg mr-2">
-            <AntDesign name="search1" size={20} color="#9CA3AF" />
+          <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-xl mr-2">
+            <FontAwesome name="search" size={20} color={vars['--text-light'] as string}/>
             <TextInput
-              className="flex-1 text-text ml-3"
+              className="flex-1 text-text ml-3 text-base"
               placeholder={`Search ${activeTab} exercises...`}
-              placeholderTextColor="#6B7280"
+              placeholderTextColor={vars['--text-light'] as string}
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
+              onSubmitEditing={handleSearch}
             />
             {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <AntDesign name="close" size={20} color="#9CA3AF" />
+              <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
+                <AntDesign name="close" size={20} color={vars['--text-light'] as string} />
               </TouchableOpacity>
             ) : null}
           </View>
-          
+
           {activeTab === 'workout' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowFilters(true)}
-              className="bg-surface p-3 rounded-lg"
+              className="bg-surface p-3 rounded-xl"
+              activeOpacity={0.7}
             >
-              <FontAwesome name="filter" size={20} color="#9CA3AF" />
+              <FontAwesome name="filter" size={20} color={vars['--text-light'] as string} />
             </TouchableOpacity>
           )}
         </View>
@@ -468,37 +557,57 @@ export default function ExercisesScreen() {
       {/* Active Filters */}
       {activeTab === 'workout' && renderActiveFilters()}
 
+      {/* Loading Indicator for Search */}
+      {searchLoading && (
+        <View className="py-2">
+          <ActivityIndicator size="small" color={vars['--primary'] as string} />
+        </View>
+      )}
+
       {/* Exercise List */}
       <FlatList
         data={filteredExercises}
         renderItem={renderExercise}
         keyExtractor={(item) => `${activeTab}_${item.id}`}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3B82F6"
-            colors={['#3B82F6']}
+            tintColor={vars['--primary'] as string}
+            colors={[vars['--primary'] as string]}
           />
         }
         ListHeaderComponent={
           <View className="px-4 pb-2">
             <Text className="text-text-light text-sm">
-              {filteredExercises.length} {activeTab} exercises found
+              {filteredExercises.length} {activeTab} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+              {searchQuery && ` for "${searchQuery}"`}
             </Text>
           </View>
         }
         ListEmptyComponent={
-          <View className="flex-1 justify-center items-center py-20">
-            <AntDesign name="search1" size={48} color="#6B7280" />
-            <Text className="text-text-light mt-4 text-center text-lg">
-              No {activeTab} exercises found
+          <View className="flex-1 justify-center items-center py-20 px-4">
+            <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
+              {searchQuery ? (
+                <AntDesign name="search" size={48} color={vars['--text-light'] as string} />
+              ) : (
+                <MaterialIcons name="fitness-center" size={48} color={vars['--text-light'] as string} />
+              )}
+            </View>
+            <Text className="text-text mt-4 text-center text-lg font-bold">
+              {searchQuery
+                ? 'No exercises found'
+                : 'No exercises available'}
             </Text>
-            <Text className="text-gray-500 mt-2 text-center">
-              {searchQuery ? 'Try different search terms' : 'Try changing filters'}
+            <Text className="text-text-light mt-2 text-center">
+              {searchQuery
+                ? 'Try adjusting your search terms'
+                : 'Try changing your filters or pull down to refresh'}
             </Text>
           </View>
         }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
 
       {/* Filter Modal */}

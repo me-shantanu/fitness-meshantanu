@@ -10,6 +10,8 @@ module.exports = {
         text: "var(--text)",
         "text-light": "var(--text-light)",
         hover: "var(--hover)",
+        brand: "var(--brand)",
+        "brand-active": "var(--brand-active)",
       },
     },
   },

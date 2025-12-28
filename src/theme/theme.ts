@@ -1,14 +1,14 @@
-import { LightColors, DarkColors } from "./colors";
+import { lightTheme, darkTheme } from "./colors";
 
 export type ThemeMode = "light" | "dark";
 
 export const Theme = {
   light: {
     mode: "light" as ThemeMode,
-    colors: LightColors,
+    colors: lightTheme,
   },
   dark: {
     mode: "dark" as ThemeMode,
-    colors: DarkColors,
+    colors: darkTheme,
   },
 };
