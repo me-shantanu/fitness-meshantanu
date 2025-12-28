@@ -31,15 +31,14 @@ export default function ExercisesScreen() {
   const { vars, mode } = useThemeStore();
 
   const [activeTab, setActiveTab] = useState<ExerciseType>('workout');
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [displayedExercises, setDisplayedExercises] = useState<Exercise[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [pageLoading, setPageLoading] = useState(false);
 
   // Filter states
   const [categories, setCategories] = useState<any[]>([]);
@@ -51,8 +50,9 @@ export default function ExercisesScreen() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Calculate pagination values
-  const totalPages = Math.ceil(filteredExercises.length / EXERCISES_PER_PAGE);
-  const hasMorePages = currentPage < totalPages;
+  const totalPages = Math.ceil(allExercises.length / EXERCISES_PER_PAGE);
+  const startIndex = (currentPage - 1) * EXERCISES_PER_PAGE;
+  const endIndex = startIndex + EXERCISES_PER_PAGE;
 
   useEffect(() => {
     loadInitialData();
@@ -77,16 +77,19 @@ export default function ExercisesScreen() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // Update displayed exercises when filtered exercises or page changes
+  // Update displayed exercises when page changes
   useEffect(() => {
     updateDisplayedExercises();
-  }, [filteredExercises, currentPage]);
+  }, [allExercises, currentPage]);
 
   const updateDisplayedExercises = () => {
-    const startIndex = 0;
-    const endIndex = currentPage * EXERCISES_PER_PAGE;
-    const paginated = filteredExercises.slice(startIndex, endIndex);
-    setDisplayedExercises(paginated);
+    setPageLoading(true);
+    // Simulate server-side pagination delay for smooth transition
+    setTimeout(() => {
+      const paginated = allExercises.slice(startIndex, endIndex);
+      setDisplayedExercises(paginated);
+      setPageLoading(false);
+    }, 300);
   };
 
   const loadInitialData = async () => {
@@ -109,7 +112,7 @@ export default function ExercisesScreen() {
 
   const loadExercisesByTab = async () => {
     setLoading(true);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
     try {
       let exercisesData: Exercise[] = [];
 
@@ -130,12 +133,10 @@ export default function ExercisesScreen() {
           break;
       }
 
-      setExercises(exercisesData);
-      setFilteredExercises(exercisesData);
+      setAllExercises(exercisesData);
     } catch (error) {
       console.error(`Error loading ${activeTab} exercises:`, error);
-      setExercises([]);
-      setFilteredExercises([]);
+      setAllExercises([]);
     }
     setLoading(false);
   };
@@ -147,7 +148,7 @@ export default function ExercisesScreen() {
     }
 
     setSearchLoading(true);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
     try {
       let exercisesData: Exercise[] = [];
 
@@ -161,35 +162,41 @@ export default function ExercisesScreen() {
 
         exercisesData = await exerciseService.searchExercises(searchQuery, filters);
       } else {
-        const allExercises = activeTab === 'warmup'
+        const allExercisesData = activeTab === 'warmup'
           ? await exerciseService.getWarmupExercises()
           : await exerciseService.getCooldownExercises();
 
         const query = searchQuery.toLowerCase();
-        exercisesData = allExercises.filter(ex =>
+        exercisesData = allExercisesData.filter(ex =>
           ex.name.toLowerCase().includes(query) ||
           (ex.description && ex.description.toLowerCase().includes(query)) ||
           (ex.category && ex.category.toLowerCase().includes(query))
         );
       }
 
-      setExercises(exercisesData);
-      setFilteredExercises(exercisesData);
+      setAllExercises(exercisesData);
     } catch (error) {
       console.error('Error searching exercises:', error);
-      setExercises([]);
-      setFilteredExercises([]);
+      setAllExercises([]);
     }
     setSearchLoading(false);
   };
 
-  const loadMoreExercises = () => {
-    if (!loadingMore && hasMorePages) {
-      setLoadingMore(true);
-      setTimeout(() => {
-        setCurrentPage(prev => prev + 1);
-        setLoadingMore(false);
-      }, 300);
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
@@ -202,10 +209,20 @@ export default function ExercisesScreen() {
   };
 
   const toggleFavorite = async (exercise: Exercise) => {
-    if (isFavorite(exercise.id)) {
-      await removeFavorite(exercise.id);
-    } else {
-      await addFavorite(exercise.id, exercise.name, activeTab);
+    try {
+      if (isFavorite(exercise.id)) {
+        const result = await removeFavorite(exercise.id);
+        if (!result.success) {
+          console.error('Failed to remove favorite');
+        }
+      } else {
+        const result = await addFavorite(exercise.id, exercise.name, activeTab);
+        if (!result.success) {
+          console.error('Failed to add favorite');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
     }
   };
 
@@ -219,7 +236,6 @@ export default function ExercisesScreen() {
   };
 
   const renderExercise = ({ item }: { item: Exercise }) => {
-    // Extract muscle names for display
     const muscleNames = item.muscles?.map(m =>
       typeof m === 'string' ? m : (m.name_en || m.name)
     ).filter(Boolean) || [];
@@ -241,14 +257,12 @@ export default function ExercisesScreen() {
             <Text className="text-text font-bold text-lg mb-2">{item.name}</Text>
 
             <View className="flex-row items-center flex-wrap mb-2">
-              {/* Category Badge */}
               {item.category && (
                 <View className={`px-3 py-1.5 rounded-full mr-2 mb-2 bg-text`}>
                   <Text className="text-bg text-xs font-bold">{item.category}</Text>
                 </View>
               )}
 
-              {/* Duration Badge */}
               {item.duration && (
                 <View className="flex-row items-center bg-surface-light px-3 py-1.5 rounded-full mr-2 mb-2">
                   <MaterialIcons name="timer" size={14} color={vars['--text'] as string} />
@@ -256,7 +270,6 @@ export default function ExercisesScreen() {
                 </View>
               )}
 
-              {/* Difficulty Badge */}
               {item.difficulty && (
                 <View className="bg-surface-light px-3 py-1.5 rounded-full mb-2">
                   <Text className="text-text text-xs font-medium">{item.difficulty}</Text>
@@ -264,14 +277,12 @@ export default function ExercisesScreen() {
               )}
             </View>
 
-            {/* Description */}
             {item.description && (
               <Text className="text-text-light text-sm leading-5 mb-2" numberOfLines={2}>
                 {item.description}
               </Text>
             )}
 
-            {/* Muscles Tags */}
             {muscleNames.length > 0 && (
               <View className="flex-row flex-wrap mt-1">
                 {muscleNames.slice(0, 3).map((muscle, index) => (
@@ -287,7 +298,6 @@ export default function ExercisesScreen() {
               </View>
             )}
 
-            {/* Equipment Tags */}
             {item.equipment && item.equipment.length > 0 && (
               <View className="flex-row flex-wrap mt-1">
                 {item.equipment.slice(0, 2).map((eq, index) => (
@@ -318,6 +328,128 @@ export default function ExercisesScreen() {
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const renderPaginationControls = () => {
+    if (allExercises.length === 0 || totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages: (number | string)[] = [];
+      const maxVisible = 5;
+
+      if (totalPages <= maxVisible) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+
+        if (currentPage > 3) {
+          pages.push('...');
+        }
+
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+
+        for (let i = start; i <= end; i++) {
+          pages.push(i);
+        }
+
+        if (currentPage < totalPages - 2) {
+          pages.push('...');
+        }
+
+        pages.push(totalPages);
+      }
+
+      return pages;
+    };
+
+    return (
+      <View className="px-4 py-6">
+        {/* Info Banner */}
+        <View className="bg-surface p-4 rounded-xl mb-4">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-text font-bold text-lg">
+                Page {currentPage} of {totalPages}
+              </Text>
+              <Text className="text-text-light text-sm mt-1">
+                Showing {startIndex + 1}-{Math.min(endIndex, allExercises.length)} of {allExercises.length} exercises
+              </Text>
+            </View>
+            <View className="bg-primary px-4 py-2 rounded-full">
+              <Text className="text-white font-bold">{allExercises.length}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Navigation Controls */}
+        <View className="flex-row items-center justify-between mb-4">
+          {/* Previous Button */}
+          <TouchableOpacity
+            onPress={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${currentPage === 1 ? 'bg-surface opacity-50' : 'bg-primary'
+              }`}
+            activeOpacity={0.7}
+          >
+            <AntDesign
+              name="left"
+              size={16}
+              color={currentPage === 1 ? vars['--text-light'] as string : 'white'}
+            />
+          </TouchableOpacity>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4 }}
+          >
+            <View className="flex-row w-fit items-center">
+              {getPageNumbers().map((page, index) => {
+                if (page === '...') {
+                  return (
+                    <View key={`ellipsis-${index}`} className="px-2">
+                      <Text className="text-text-light font-bold">...</Text>
+                    </View>
+                  );
+                }
+
+                const isActive = page === currentPage;
+                return (
+                  <TouchableOpacity
+                    key={page}
+                    onPress={() => goToPage(page as number)}
+                    className={`mx-1 w-12 h-12 rounded-xl items-center justify-center ${isActive ? 'bg-brand' : 'bg-surface'
+                      }`}
+                    activeOpacity={0.7}
+                  >
+                    <Text className={`font-bold ${isActive ? 'text-white' : 'text-text'
+                      }`}>
+                      {page}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            onPress={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${currentPage === totalPages ? 'bg-surface opacity-50' : 'bg-primary'
+              }`}
+            activeOpacity={0.7}
+          >
+            <AntDesign
+              name="right"
+              size={16}
+              color={currentPage === totalPages ? vars['--text-light'] as string : 'white'}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
@@ -537,47 +669,6 @@ export default function ExercisesScreen() {
     );
   };
 
-  const renderFooter = () => {
-    if (!hasMorePages && displayedExercises.length > 0) {
-      return (
-        <View className="py-6 px-4">
-          <View className="bg-surface p-4 rounded-xl items-center">
-            <Text className="text-text-light text-sm text-center">
-              🎉 You've reached the end! {filteredExercises.length} exercises shown.
-            </Text>
-          </View>
-        </View>
-      );
-    }
-
-    if (loadingMore) {
-      return (
-        <View className="py-6">
-          <ActivityIndicator size="small" color={vars['--primary'] as string} />
-        </View>
-      );
-    }
-
-    if (hasMorePages) {
-      return (
-        <View className="py-4 px-4">
-          <TouchableOpacity
-            onPress={loadMoreExercises}
-            className="bg-primary py-4 rounded-xl items-center"
-            activeOpacity={0.7}
-          >
-            <Text className="text-white font-bold">Load More Exercises</Text>
-            <Text className="text-white text-xs mt-1">
-              Showing {displayedExercises.length} of {filteredExercises.length}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return null;
-  };
-
   if (loading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
@@ -598,7 +689,7 @@ export default function ExercisesScreen() {
         {/* Search Bar */}
         <View className="flex-row items-center mb-3">
           <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-xl mr-2">
-            <FontAwesome name="search" size={20} color={vars['--text-light'] as string}/>
+            <FontAwesome name="search" size={20} color={vars['--text-light'] as string} />
             <TextInput
               className="flex-1 text-text ml-3 text-base"
               placeholder={`Search ${activeTab} exercises...`}
@@ -640,11 +731,21 @@ export default function ExercisesScreen() {
         </View>
       )}
 
+      {/* Page Loading Overlay */}
+      {pageLoading && (
+        <View className="absolute top-0 left-0 right-0 bottom-0 bg-bg/80 justify-center items-center z-50">
+          <View className="bg-surface p-6 rounded-2xl items-center">
+            <ActivityIndicator size="large" color={vars['--primary'] as string} />
+            <Text className="text-text mt-4 font-medium">Loading page {currentPage}...</Text>
+          </View>
+        </View>
+      )}
+
       {/* Exercise List */}
       <FlatList
         data={displayedExercises}
         renderItem={renderExercise}
-        keyExtractor={(item) => `${activeTab}_${item.id}`}
+        keyExtractor={(item) => `${activeTab}_${item.id}_${currentPage}`}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -656,13 +757,12 @@ export default function ExercisesScreen() {
         ListHeaderComponent={
           <View className="px-4 pb-2">
             <Text className="text-text-light text-sm">
-              Showing {displayedExercises.length} of {filteredExercises.length} {activeTab} exercise{filteredExercises.length !== 1 ? 's' : ''}
+              Showing {displayedExercises.length} exercises on this page
               {searchQuery && ` for "${searchQuery}"`}
-              {hasMorePages && ` • Page ${currentPage} of ${totalPages}`}
             </Text>
           </View>
         }
-        ListFooterComponent={renderFooter}
+        ListFooterComponent={renderPaginationControls}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center py-20 px-4">
             <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
