@@ -210,19 +210,24 @@ export default function ExercisesScreen() {
 
   const toggleFavorite = async (exercise: Exercise) => {
     try {
-      if (isFavorite(exercise.id)) {
-        const result = await removeFavorite(exercise.id);
-        if (!result.success) {
-          console.error('Failed to remove favorite');
-        }
+      console.log('🔄 [Component] Toggling favorite for:', exercise.name, 'ID:', exercise.id);
+      
+      // Let the store handle everything - don't do optimistic updates here
+      const result = await useExerciseStore.getState().toggleFavorite(
+        exercise.id,
+        exercise.name,
+        activeTab
+      );
+
+      if (!result.success) {
+        console.error('❌ [Component] Failed to toggle favorite:', result.error);
+        // Show error to user
+        alert(`Failed to ${isFavorite(exercise.id) ? 'remove' : 'add'} favorite: ${result.error}`);
       } else {
-        const result = await addFavorite(exercise.id, exercise.name, activeTab);
-        if (!result.success) {
-          console.error('Failed to add favorite');
-        }
+        console.log('✅ [Component] Successfully toggled favorite');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error('❌ [Component] Error toggling favorite:', error);
     }
   };
 
@@ -391,64 +396,72 @@ export default function ExercisesScreen() {
           <TouchableOpacity
             onPress={goToPreviousPage}
             disabled={currentPage === 1}
-            className={`flex-row items-center px-6 py-3 rounded-xl ${currentPage === 1 ? 'bg-surface opacity-50' : 'bg-primary'
-              }`}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${
+              currentPage === 1 ? 'bg-surface opacity-50' : 'bg-primary'
+            }`}
             activeOpacity={0.7}
           >
-            <AntDesign
-              name="left"
-              size={16}
-              color={currentPage === 1 ? vars['--text-light'] as string : 'white'}
+            <AntDesign 
+              name="left" 
+              size={16} 
+              color={currentPage === 1 ? vars['--text-light'] as string : 'white'} 
             />
           </TouchableOpacity>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 4 }}
-          >
-            <View className="flex-row w-fit items-center">
-              {getPageNumbers().map((page, index) => {
-                if (page === '...') {
-                  return (
-                    <View key={`ellipsis-${index}`} className="px-2">
-                      <Text className="text-text-light font-bold">...</Text>
-                    </View>
-                  );
-                }
-
-                const isActive = page === currentPage;
+         <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 4 }}
+        >
+          <View className="flex-row items-center">
+            {getPageNumbers().map((page, index) => {
+              if (page === '...') {
                 return (
-                  <TouchableOpacity
-                    key={page}
-                    onPress={() => goToPage(page as number)}
-                    className={`mx-1 w-12 h-12 rounded-xl items-center justify-center ${isActive ? 'bg-brand' : 'bg-surface'
-                      }`}
-                    activeOpacity={0.7}
-                  >
-                    <Text className={`font-bold ${isActive ? 'text-white' : 'text-text'
-                      }`}>
-                      {page}
-                    </Text>
-                  </TouchableOpacity>
+                  <View key={`ellipsis-${index}`} className="px-2">
+                    <Text className="text-text-light font-bold">...</Text>
+                  </View>
                 );
-              })}
-            </View>
-          </ScrollView>
+              }
+
+              const isActive = page === currentPage;
+              return (
+                <TouchableOpacity
+                  key={page}
+                  onPress={() => goToPage(page as number)}
+                  className={`mx-1 w-12 h-12 rounded-xl items-center justify-center ${
+                    isActive ? 'bg-brand' : 'bg-surface'
+                  }`}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`font-bold ${
+                    isActive ? 'text-white' : 'text-text'
+                  }`}>
+                    {page}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+
+
+          {/* Next Button */}
           <TouchableOpacity
             onPress={goToNextPage}
             disabled={currentPage === totalPages}
-            className={`flex-row items-center px-6 py-3 rounded-xl ${currentPage === totalPages ? 'bg-surface opacity-50' : 'bg-primary'
-              }`}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${
+              currentPage === totalPages ? 'bg-surface opacity-50' : 'bg-primary'
+            }`}
             activeOpacity={0.7}
           >
-            <AntDesign
-              name="right"
-              size={16}
-              color={currentPage === totalPages ? vars['--text-light'] as string : 'white'}
+            <AntDesign 
+              name="right" 
+              size={16} 
+              color={currentPage === totalPages ? vars['--text-light'] as string : 'white'} 
             />
           </TouchableOpacity>
         </View>
+        
       </View>
     );
   };
@@ -684,12 +697,28 @@ export default function ExercisesScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       {/* Header */}
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-text text-3xl font-bold mb-4">Exercises</Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-text text-3xl font-bold">Exercises</Text>
+          
+          {/* Favorites Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/favorites')}
+            className="bg-surface px-4 py-2 rounded-xl flex-row items-center"
+            activeOpacity={0.7}
+          >
+            <AntDesign name="heart" size={20} color="#EF4444" />
+            {favorites.length > 0 && (
+              <View className="bg-primary px-2 py-0.5 rounded-full ml-2">
+                <Text className="text-white text-xs font-bold">{favorites.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Search Bar */}
         <View className="flex-row items-center mb-3">
           <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-xl mr-2">
-            <FontAwesome name="search" size={20} color={vars['--text-light'] as string} />
+            <FontAwesome name="search" size={20} color={vars['--text-light'] as string}/>
             <TextInput
               className="flex-1 text-text ml-3 text-base"
               placeholder={`Search ${activeTab} exercises...`}
@@ -754,14 +783,6 @@ export default function ExercisesScreen() {
             colors={[vars['--primary'] as string]}
           />
         }
-        ListHeaderComponent={
-          <View className="px-4 pb-2">
-            <Text className="text-text-light text-sm">
-              Showing {displayedExercises.length} exercises on this page
-              {searchQuery && ` for "${searchQuery}"`}
-            </Text>
-          </View>
-        }
         ListFooterComponent={renderPaginationControls}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center py-20 px-4">
@@ -787,8 +808,6 @@ export default function ExercisesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
-
-      {/* Filter Modal */}
       {renderFilterModal()}
     </SafeAreaView>
   );
