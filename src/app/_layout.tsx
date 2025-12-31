@@ -2,8 +2,16 @@ import "../global.css";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/authStore";
-import { View, ActivityIndicator, Platform } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useFonts } from 'expo-font';
+import {
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 
 export default function RootLayout() {
   const { user, profile, loading, initialize } = useAuthStore();
@@ -11,6 +19,14 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
+
+  const [loaded] = useFonts({
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -34,7 +50,7 @@ export default function RootLayout() {
 
   return (
     <View key={mode} style={vars} className="flex-1 bg-bg">
-      {(!isReady || loading) ? (
+      {(!isReady || loading || !loaded) ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="var(--text)" />
         </View>

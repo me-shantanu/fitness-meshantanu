@@ -14,6 +14,6 @@ export const darkTheme = {
   text: "#FFFFFF",
   textLight: "#B3B3B3",
   hover: "#D4D4D4",
-  brand: "#2563EB",  // slate-600
+  brand: "#1762DF",  // slate-600
   brandActive: "#334155"
 };

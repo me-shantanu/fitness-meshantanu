@@ -13,6 +13,13 @@ module.exports = {
         brand: "var(--brand)",
         "brand-active": "var(--brand-active)",
       },
+       fontFamily: {
+        sans: ["Inter_400Regular"],
+        light: ["Inter_300Light"],
+        medium: ["Inter_500Medium"],
+        semibold: ["Inter_600SemiBold"],
+        bold: ["Inter_700Bold"],
+      },
     },
   },
   future: {
