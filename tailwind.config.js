@@ -5,13 +5,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: "var(--bg)",
-        surface: "var(--surface)",
-        text: "var(--text)",
-        "text-light": "var(--text-light)",
-        hover: "var(--hover)",
-        brand: "var(--brand)",
-        "brand-active": "var(--brand-active)",
+        bg: "#2B2B2B",
+        surface: "#303030",
+        text: "#FFFFFF",
+        "text-light": "#B3B3B3",
+        hover: "#D4D4D4",
+        brand: "#1762DF",
+        "brand-active": "#334155",
       },
        fontFamily: {
         sans: ["Inter_400Regular"],
