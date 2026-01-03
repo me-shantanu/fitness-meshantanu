@@ -12,6 +12,8 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar, Platform } from 'react-native';
 
 export default function RootLayout() {
   const { user, profile, loading, initialize } = useAuthStore();
@@ -49,14 +51,28 @@ export default function RootLayout() {
   }, [user, profile, segments, loading, isReady]);
 
   return (
-    <View key={mode} style={vars} className="flex-1 bg-bg">
-      {(!isReady || loading || !loaded) ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="var(--text)" />
-        </View>
-      ) : (
-        <Slot />
-      )}
-    </View>
+    <SafeAreaProvider>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <View key={mode} style={vars} className="flex-1 bg-bg">
+        {(!isReady || loading || !loaded) ? (
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="var(--text)" />
+          </View>
+        ) : (
+          <SafeAreaView
+            edges={['top', 'left', 'right']}
+            className="flex-1"
+            style={{
+              paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+            }}
+          ><Slot /></SafeAreaView>
+
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 }
