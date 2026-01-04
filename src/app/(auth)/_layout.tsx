@@ -7,7 +7,7 @@ export default function AuthLayout() {
 
   return (
     <View
-      key={mode}          // 🔥 forces NativeWind refresh
+      key={mode} 
       style={vars}
       className="flex-1 bg-bg"
     >

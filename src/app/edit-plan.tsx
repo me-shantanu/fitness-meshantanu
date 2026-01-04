@@ -1,0 +1,672 @@
+// app/edit-plan.tsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '../store/authStore';
+import { useWorkoutStore } from '../store/workoutStore';
+import { exerciseService } from '../services/exerciseService';
+import { supabase } from '../lib/supabase';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useThemeStore } from '@/store/useThemeStore';
+import { WorkoutDay, PlannedExercise, Exercise } from '@/types/workout';
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+export default function EditPlanScreen() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { activePlan, loadActivePlan } = useWorkoutStore();
+  
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Plan details
+  const [planName, setPlanName] = useState('');
+  const [planDescription, setPlanDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
+  // Workout days
+  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([]);
+  
+  // For adding exercises
+  const [showAddExercise, setShowAddExercise] = useState(false);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Exercise[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (activePlan) {
+      setPlanName(activePlan.name);
+      setPlanDescription(activePlan.description || '');
+      setStartDate(activePlan.start_date);
+      setEndDate(activePlan.end_date);
+      setWorkoutDays(activePlan.workout_days || []);
+    }
+  }, [activePlan]);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearching(true);
+    try {
+      const results = await exerciseService.searchExercises(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching exercises:', error);
+    }
+    setSearching(false);
+  };
+
+  const addExerciseToDay = async (exercise: Exercise) => {
+    if (!selectedDayId) return;
+    
+    try {
+      // Find the day
+      const day = workoutDays.find(d => d.id === selectedDayId);
+      if (!day) return;
+
+      // Get the max order_index
+      const maxOrder = day.planned_exercises?.length || 0;
+
+      // Add exercise to database
+      const { data, error } = await supabase
+        .from('planned_exercises')
+        .insert({
+          workout_day_id: selectedDayId,
+          exercise_id: exercise.id,
+          exercise_name: exercise.name,
+          exercise_type: 'strength',
+          target_sets: 3,
+          target_reps: 10,
+          target_weight: null,
+          order_index: maxOrder
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedDays = workoutDays.map(d => {
+        if (d.id === selectedDayId) {
+          return {
+            ...d,
+            planned_exercises: [...(d.planned_exercises || []), data]
+          };
+        }
+        return d;
+      });
+
+      setWorkoutDays(updatedDays);
+      setShowAddExercise(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      Alert.alert('Success', 'Exercise added successfully');
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      Alert.alert('Error', 'Failed to add exercise');
+    }
+  };
+
+  const removeExercise = async (exerciseId: string, dayId: string) => {
+    Alert.alert(
+      'Remove Exercise',
+      'Are you sure you want to remove this exercise?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('planned_exercises')
+                .delete()
+                .eq('id', exerciseId);
+
+              if (error) throw error;
+
+              // Update local state
+              const updatedDays = workoutDays.map(d => {
+                if (d.id === dayId) {
+                  return {
+                    ...d,
+                    planned_exercises: d.planned_exercises?.filter(e => e.id !== exerciseId) || []
+                  };
+                }
+                return d;
+              });
+
+              setWorkoutDays(updatedDays);
+              Alert.alert('Success', 'Exercise removed successfully');
+            } catch (error) {
+              console.error('Error removing exercise:', error);
+              Alert.alert('Error', 'Failed to remove exercise');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const updateExercise = async (
+    exerciseId: string,
+    field: 'target_sets' | 'target_reps' | 'target_weight',
+    value: number | null
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('planned_exercises')
+        .update({ [field]: value })
+        .eq('id', exerciseId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedDays = workoutDays.map(day => ({
+        ...day,
+        planned_exercises: day.planned_exercises?.map(ex => 
+          ex.id === exerciseId ? { ...ex, [field]: value } : ex
+        )
+      }));
+
+      setWorkoutDays(updatedDays);
+    } catch (error) {
+      console.error('Error updating exercise:', error);
+      Alert.alert('Error', 'Failed to update exercise');
+    }
+  };
+
+  const toggleRestDay = async (dayId: string) => {
+    const day = workoutDays.find(d => d.id === dayId);
+    if (!day) return;
+
+    const newRestDayStatus = !day.is_rest_day;
+
+    Alert.alert(
+      newRestDayStatus ? 'Make Rest Day' : 'Make Workout Day',
+      newRestDayStatus 
+        ? 'This will remove all exercises from this day. Continue?' 
+        : 'You can now add exercises to this day.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          onPress: async () => {
+            try {
+              // If making it a rest day, delete all exercises first
+              if (newRestDayStatus && day.planned_exercises && day.planned_exercises.length > 0) {
+                const { error: deleteError } = await supabase
+                  .from('planned_exercises')
+                  .delete()
+                  .eq('workout_day_id', dayId);
+
+                if (deleteError) throw deleteError;
+              }
+
+              // Update the day
+              const { error } = await supabase
+                .from('workout_days')
+                .update({ 
+                  is_rest_day: newRestDayStatus,
+                  name: newRestDayStatus ? '' : day.name
+                })
+                .eq('id', dayId);
+
+              if (error) throw error;
+
+              // Update local state
+              const updatedDays = workoutDays.map(d => {
+                if (d.id === dayId) {
+                  return {
+                    ...d,
+                    is_rest_day: newRestDayStatus,
+                    name: newRestDayStatus ? '' : d.name,
+                    planned_exercises: newRestDayStatus ? [] : d.planned_exercises
+                  };
+                }
+                return d;
+              });
+
+              setWorkoutDays(updatedDays);
+              Alert.alert('Success', `Day updated to ${newRestDayStatus ? 'rest day' : 'workout day'}`);
+            } catch (error) {
+              console.error('Error toggling rest day:', error);
+              Alert.alert('Error', 'Failed to update day');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const updateDayName = async (dayId: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('workout_days')
+        .update({ name })
+        .eq('id', dayId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedDays = workoutDays.map(d => 
+        d.id === dayId ? { ...d, name } : d
+      );
+      setWorkoutDays(updatedDays);
+    } catch (error) {
+      console.error('Error updating day name:', error);
+    }
+  };
+
+  const savePlanDetails = async () => {
+    if (!activePlan?.id || !user?.id) return;
+
+    if (!planName.trim()) {
+      Alert.alert('Error', 'Please enter a plan name');
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      Alert.alert('Error', 'Please select start and end dates');
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      Alert.alert('Error', 'Start date must be before end date');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('workout_plans')
+        .update({
+          name: planName,
+          description: planDescription,
+          start_date: startDate,
+          end_date: endDate
+        })
+        .eq('id', activePlan.id);
+
+      if (error) throw error;
+
+      await loadActivePlan(user.id);
+      Alert.alert('Success', 'Plan details updated successfully');
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      Alert.alert('Error', 'Failed to update plan details');
+    }
+    setSaving(false);
+  };
+
+  const addNewWorkoutDay = async () => {
+    if (!activePlan?.id) return;
+
+    // Find the next available day of week
+    const usedDays = workoutDays.map(d => d.day_of_week);
+    let nextDay = 0;
+    for (let i = 0; i < 7; i++) {
+      if (!usedDays.includes(i)) {
+        nextDay = i;
+        break;
+      }
+    }
+
+    if (usedDays.length >= 7) {
+      Alert.alert('Error', 'All days of the week are already used');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('workout_days')
+        .insert({
+          plan_id: activePlan.id,
+          day_of_week: nextDay,
+          name: 'New Workout Day',
+          is_rest_day: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setWorkoutDays([...workoutDays, { ...data, planned_exercises: [] }]);
+      Alert.alert('Success', 'New workout day added');
+    } catch (error) {
+      console.error('Error adding workout day:', error);
+      Alert.alert('Error', 'Failed to add workout day');
+    }
+  };
+
+  const removeWorkoutDay = async (dayId: string) => {
+    Alert.alert(
+      'Remove Day',
+      'Are you sure you want to remove this workout day?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('workout_days')
+                .delete()
+                .eq('id', dayId);
+
+              if (error) throw error;
+
+              setWorkoutDays(workoutDays.filter(d => d.id !== dayId));
+              Alert.alert('Success', 'Workout day removed');
+            } catch (error) {
+              console.error('Error removing day:', error);
+              Alert.alert('Error', 'Failed to remove workout day');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const { vars, mode } = useThemeStore();
+
+  const renderAddExerciseModal = () => (
+    <View style={vars} key={mode} className="absolute inset-0 bg-black/50 justify-end">
+      <View className="bg-bg rounded-t-3xl p-6 h-3/4">
+        <View className="flex-row justify-between items-center mb-6">
+          <Text className="text-text text-2xl font-bold">Add Exercise</Text>
+          <TouchableOpacity onPress={() => setShowAddExercise(false)}>
+            <AntDesign name="close" size={24} color="var(--text)" />
+          </TouchableOpacity>
+        </View>
+        
+        <TextInput
+          className="bg-surface text-text rounded-xl p-4 mb-4"
+          placeholder="Search exercises..."
+          placeholderTextColor="#6B7280"
+          value={searchQuery}
+          onChangeText={handleSearch}
+          autoFocus
+        />
+        
+        {searching ? (
+          <ActivityIndicator size="large" color="#3B82F6" />
+        ) : (
+          <ScrollView className="flex-1">
+            {searchResults.map((exercise) => (
+              <TouchableOpacity
+                key={exercise.id}
+                className="bg-surface rounded-xl p-4 mb-3"
+                onPress={() => addExerciseToDay(exercise)}
+              >
+                <Text className="text-text font-bold text-lg mb-1">
+                  {exercise.name}
+                </Text>
+                {exercise.category && (
+                  <Text className="text-text-light text-sm">{exercise.category}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            
+            {searchQuery && searchResults.length === 0 && !searching && (
+              <View className="items-center py-8">
+                <Feather name="search" size={48} color="#6B7280" />
+                <Text className="text-text-light mt-4">
+                  No exercises found for "{searchQuery}"
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
+
+  if (!activePlan) {
+    return (
+      <SafeAreaView className="flex-1 bg-bg">
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-text text-xl">No active plan to edit</Text>
+          <TouchableOpacity
+            className="bg-blue-600 px-6 py-3 rounded-lg mt-4"
+            onPress={() => router.back()}
+          >
+            <Text className="text-text font-bold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-bg">
+      <ScrollView className="flex-1">
+        <View className="px-4 pt-4">
+          <View className="flex-row items-center mb-6">
+            <TouchableOpacity onPress={() => router.back()}>
+              <AntDesign name="arrowleft" size={24} color="white" />
+            </TouchableOpacity>
+            <Text className="text-text text-2xl font-bold ml-4">Edit Plan</Text>
+          </View>
+
+          {/* Plan Details */}
+          <View className="mb-6">
+            <Text className="text-text text-xl font-bold mb-4">Plan Details</Text>
+            
+            <View className="space-y-4">
+              <View>
+                <Text className="text-text-light mb-2">Plan Name</Text>
+                <TextInput
+                  className="bg-surface text-text rounded-xl p-4"
+                  placeholder="e.g., Beginner Strength Program"
+                  placeholderTextColor="#6B7280"
+                  value={planName}
+                  onChangeText={setPlanName}
+                />
+              </View>
+              
+              <View>
+                <Text className="text-text-light mb-2">Description (Optional)</Text>
+                <TextInput
+                  className="bg-surface text-text rounded-xl p-4"
+                  placeholder="Brief description of your plan"
+                  placeholderTextColor="#6B7280"
+                  value={planDescription}
+                  onChangeText={setPlanDescription}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+              
+              <View className="flex-row justify-between">
+                <View className="flex-1 mr-2">
+                  <Text className="text-text-light mb-2">Start Date</Text>
+                  <TextInput
+                    className="bg-surface text-text rounded-xl p-4"
+                    value={startDate}
+                    onChangeText={setStartDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+                
+                <View className="flex-1 ml-2">
+                  <Text className="text-text-light mb-2">End Date</Text>
+                  <TextInput
+                    className="bg-surface text-text rounded-xl p-4"
+                    value={endDate}
+                    onChangeText={setEndDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                className="bg-blue-600 py-4 rounded-xl"
+                onPress={savePlanDetails}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-text text-center font-bold text-lg">
+                    Save Plan Details
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Workout Days */}
+          <View className="mb-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-text text-xl font-bold">Workout Days</Text>
+              <TouchableOpacity
+                className="bg-blue-600 px-4 py-2 rounded-lg flex-row items-center"
+                onPress={addNewWorkoutDay}
+              >
+                <AntDesign name="plus" size={18} color="white" />
+                <Text className="text-text font-bold ml-2">Add Day</Text>
+              </TouchableOpacity>
+            </View>
+
+            {workoutDays
+              .sort((a, b) => a.day_of_week - b.day_of_week)
+              .map((day) => (
+                <View key={day.id} className="mb-4 bg-surface rounded-xl p-4">
+                  <View className="flex-row justify-between items-center mb-4">
+                    <Text className="text-text font-bold text-lg">
+                      {DAYS_OF_WEEK[day.day_of_week]}
+                    </Text>
+                    
+                    <View className="flex-row items-center">
+                      <TouchableOpacity
+                        className={`px-4 py-2 rounded mr-2 ${
+                          day.is_rest_day ? 'bg-purple-600' : 'bg-blue-600'
+                        }`}
+                        onPress={() => day.id && toggleRestDay(day.id)}
+                      >
+                        <Text className="text-text font-bold text-sm">
+                          {day.is_rest_day ? 'Rest Day' : 'Workout'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => day.id && removeWorkoutDay(day.id)}
+                      >
+                        <MaterialIcons name="delete" size={24} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  {!day.is_rest_day && (
+                    <>
+                      <TextInput
+                        className="bg-gray-700 text-text rounded-lg p-3 mb-4"
+                        placeholder="Workout name (e.g., Chest Day)"
+                        placeholderTextColor="#6B7280"
+                        value={day.name}
+                        onChangeText={(text) => day.id && updateDayName(day.id, text)}
+                      />
+                      
+                      <TouchableOpacity
+                        className="flex-row items-center justify-center bg-gray-700 py-3 rounded-lg mb-4"
+                        onPress={() => {
+                          setSelectedDayId(day.id || null);
+                          setShowAddExercise(true);
+                        }}
+                      >
+                        <AntDesign name="plus" size={20} color="#3B82F6" />
+                        <Text className="text-blue-400 font-bold ml-2">Add Exercise</Text>
+                      </TouchableOpacity>
+                      
+                      {day.planned_exercises && day.planned_exercises.length > 0 && (
+                        <View>
+                          <Text className="text-text-light mb-2">Exercises:</Text>
+                          {day.planned_exercises.map((exercise) => (
+                            <View key={exercise.id} className="bg-gray-700 rounded-lg p-3 mb-2">
+                              <View className="flex-row justify-between items-center mb-2">
+                                <Text className="text-text font-bold flex-1">
+                                  {exercise.exercise_name}
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => exercise.id && day.id && removeExercise(exercise.id, day.id)}
+                                >
+                                  <AntDesign name="close" size={20} color="#EF4444" />
+                                </TouchableOpacity>
+                              </View>
+                              
+                              <View className="flex-row justify-between">
+                                <View className="flex-1 mr-2">
+                                  <Text className="text-text-light text-xs mb-1">Sets</Text>
+                                  <TextInput
+                                    className="bg-surface text-text rounded p-2 text-center"
+                                    value={exercise.target_sets.toString()}
+                                    onChangeText={(text) => 
+                                      exercise.id && updateExercise(exercise.id, 'target_sets', parseInt(text) || 0)
+                                    }
+                                    keyboardType="numeric"
+                                  />
+                                </View>
+                                
+                                <View className="flex-1 mx-2">
+                                  <Text className="text-text-light text-xs mb-1">Reps</Text>
+                                  <TextInput
+                                    className="bg-surface text-text rounded p-2 text-center"
+                                    value={exercise.target_reps.toString()}
+                                    onChangeText={(text) => 
+                                      exercise.id && updateExercise(exercise.id, 'target_reps', parseInt(text) || 0)
+                                    }
+                                    keyboardType="numeric"
+                                  />
+                                </View>
+                                
+                                <View className="flex-1 ml-2">
+                                  <Text className="text-text-light text-xs mb-1">Weight (kg)</Text>
+                                  <TextInput
+                                    className="bg-surface text-text rounded p-2 text-center"
+                                    placeholder="Optional"
+                                    placeholderTextColor="#6B7280"
+                                    value={exercise.target_weight ? exercise.target_weight.toString() : ''}
+                                    onChangeText={(text) => 
+                                      exercise.id && updateExercise(exercise.id, 'target_weight', text ? parseFloat(text) : null)
+                                    }
+                                    keyboardType="numeric"
+                                  />
+                                </View>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              ))}
+          </View>
+        </View>
+      </ScrollView>
+      
+      {showAddExercise && renderAddExerciseModal()}
+    </SafeAreaView>
+  );
+}

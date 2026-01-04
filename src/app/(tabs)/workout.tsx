@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// app/(tabs)/workouts.tsx
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,39 +12,33 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { useWorkoutStore } from '../../store/workoutStore';
 import { workoutService } from '../../services/workoutService';
-import { supabase } from '../../lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
+import { WorkoutDay } from '@/types/workout';
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function WorkoutsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-
-  const [activePlan, setActivePlan] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const { activePlan, loading, loadActivePlan, deletePlan: storeDeletePlan } = useWorkoutStore();
+  
   const [showDayModal, setShowDayModal] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
 
   useEffect(() => {
-    loadActivePlan();
-  }, []);
-
-  const loadActivePlan = async () => {
-    setLoading(true);
-    try {
-      const plan = await workoutService.getActiveWorkoutPlan(user.id);
-      setActivePlan(plan);
-    } catch (error) {
-      console.error('Error loading active plan:', error);
+    if (user?.id) {
+      loadActivePlan(user.id);
     }
-    setLoading(false);
-  };
+  }, [user?.id]);
 
-  const startWorkout = async (workoutDay) => {
+  const startWorkout = async (workoutDay: WorkoutDay) => {
+    if (!user?.id || !workoutDay.id) return;
+
     if (workoutDay.is_rest_day) {
       Alert.alert('Rest Day', 'Today is a rest day! Take it easy and recover.');
       return;
@@ -52,13 +47,17 @@ export default function WorkoutsScreen() {
     const session = await workoutService.startWorkoutSession(user.id, workoutDay.id);
     if (session) {
       router.push({
-        pathname: '/workout-session',
+        pathname: '/workout-session' as any,
         params: { sessionId: session.id }
       });
     }
   };
 
   const deletePlan = async () => {
+    console.log('Delete plan triggered', activePlan?.id);
+    if (!activePlan?.id) return;
+    
+    console.log('Active plan id:', activePlan.id);
     Alert.alert(
       'Delete Workout Plan',
       'Are you sure you want to delete this workout plan?',
@@ -68,18 +67,10 @@ export default function WorkoutsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('workout_plans')
-                .delete()
-                .eq('id', activePlan.id);
-
-              if (error) throw error;
-
-              setActivePlan(null);
+            const success = await storeDeletePlan(activePlan.id);
+            if (success) {
               Alert.alert('Success', 'Workout plan deleted successfully');
-            } catch (error) {
-              console.error('Error deleting plan:', error);
+            } else {
               Alert.alert('Error', 'Failed to delete workout plan');
             }
           }
@@ -88,36 +79,38 @@ export default function WorkoutsScreen() {
     );
   };
 
-  const editWorkoutDay = (day) => {
+  const editWorkoutDay = (day: WorkoutDay) => {
     setSelectedDay(day);
     setShowDayModal(true);
   };
 
-  const renderWorkoutDay = (day, index) => {
-    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
+  const renderWorkoutDay = (day: WorkoutDay, index: number) => {
     return (
       <TouchableOpacity
-        key={day.id}
-        className={`mb-4 mx-4 rounded-xl p-4 ${day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
-          }`}
+        key={day.id || index}
+        className={`mb-4 mx-4 rounded-xl p-4 ${
+          day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
+        }`}
         onPress={() => editWorkoutDay(day)}
       >
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
-            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
+            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${
+              day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
+            }`}>
+              <Text className={`font-bold text-lg ${
+                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
               }`}>
-              <Text className={`font-bold text-lg ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
-                }`}>
                 {index + 1}
               </Text>
             </View>
             <View>
               <Text className="text-text font-bold text-lg">
-                {daysOfWeek[day.day_of_week]}
+                {DAYS_OF_WEEK[day.day_of_week]}
               </Text>
-              <Text className={`text-sm ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
-                }`}>
+              <Text className={`text-sm ${
+                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+              }`}>
                 {day.is_rest_day ? 'Rest Day' : day.name || 'Workout Day'}
               </Text>
             </View>
@@ -140,7 +133,7 @@ export default function WorkoutsScreen() {
           <View className="mt-3">
             <Text className="text-text-light text-sm mb-2">Exercises:</Text>
             {day.planned_exercises.slice(0, 3).map((exercise, exIndex) => (
-              <View key={exIndex} className="flex-row items-center mb-1">
+              <View key={exercise.id || exIndex} className="flex-row items-center mb-1">
                 <View className="w-2 h-2 rounded-full bg-blue-400 mr-2" />
                 <Text className="text-gray-300 text-sm flex-1">
                   {exercise.exercise_name}
@@ -181,7 +174,6 @@ export default function WorkoutsScreen() {
             <Text className="text-text-light mb-8">Create and manage your workout routines</Text>
           </View>
 
-          {/* Empty State */}
           <View className="flex-1 justify-center items-center px-4 mt-20">
             <View className="bg-surface rounded-2xl p-8 items-center">
               <MaterialIcons name="fitness-center" size={64} color="#6B7280" />
@@ -189,25 +181,24 @@ export default function WorkoutsScreen() {
                 No Active Workout Plan
               </Text>
               <Text className="text-text-light text-center mb-8">
-                Create a workout plan to start tracking your progress and achieving your fitness goals.
+                Create a workout plan or choose from templates to start tracking your progress.
               </Text>
 
               <TouchableOpacity
-                className="bg-blue-600 py-4 rounded-xl w-full items-center"
-                onPress={() => router.push('/create-plan')}
+                className="bg-blue-600 py-4 rounded-xl w-full items-center mb-3"
+                onPress={() => router.push('/create-plan' as any)}
               >
                 <Text className="text-text font-bold text-lg">Create Workout Plan</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="mt-4 py-4 rounded-xl w-full items-center border border-gray-700"
-                onPress={() => router.push('/browse-templates')}
+                className="py-4 rounded-xl w-full items-center border border-gray-700"
+                onPress={() => router.push('/browse-templates' as any)}
               >
                 <Text className="text-gray-300">Browse Templates</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Quick Stats */}
             <View className="mt-8 w-full">
               <Text className="text-text text-lg font-bold mb-4">Why Create a Plan?</Text>
 
@@ -246,23 +237,30 @@ export default function WorkoutsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1">
-        {/* Header */}
         <View className="px-4 pt-4">
           <View className="flex-row justify-between items-center mb-4">
-            <View>
+            <View className="flex-1">
               <Text className="text-text text-3xl font-bold">Workout Plan</Text>
               <Text className="text-text-light">{activePlan.name}</Text>
             </View>
 
-            <TouchableOpacity
-              className="bg-surface p-2 rounded-lg"
-              onPress={() => router.push('/create-plan')}
-            >
-              <AntDesign name="edit" size={20} color="white" />
-            </TouchableOpacity>
+            <View className="flex-row">
+              <TouchableOpacity
+                className="bg-surface p-2 rounded-lg mr-2"
+                onPress={() => router.push('/browse-templates' as any)}
+              >
+                <MaterialIcons name="content-copy" size={20} color="white" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                className="bg-surface p-2 rounded-lg"
+                onPress={() => router.push('/edit-plan' as any)}
+              >
+                <AntDesign name="edit" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Plan Details */}
           <View className="bg-surface rounded-xl p-4 mb-6">
             <View className="flex-row justify-between mb-4">
               <View>
@@ -290,14 +288,14 @@ export default function WorkoutsScreen() {
             <View className="flex-row justify-between">
               <TouchableOpacity
                 className="bg-blue-600 flex-1 mr-2 py-3 rounded-lg items-center"
-                onPress={() => router.push('/edit-plan')}
+                onPress={() => router.push('/edit-plan' as any)}
               >
                 <Text className="text-text font-bold">Edit Plan</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="bg-red-500/20 flex-1 ml-2 py-3 rounded-lg items-center border border-red-500/30"
-                onPress={deletePlan}
+                onPress={() => deletePlan()}
               >
                 <Text className="text-red-400 font-bold">Delete Plan</Text>
               </TouchableOpacity>
@@ -305,7 +303,6 @@ export default function WorkoutsScreen() {
           </View>
         </View>
 
-        {/* Weekly Schedule */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Weekly Schedule</Text>
 
@@ -324,7 +321,7 @@ export default function WorkoutsScreen() {
               </Text>
               <TouchableOpacity
                 className="bg-blue-600 px-6 py-3 rounded-lg"
-                onPress={() => router.push('/edit-plan')}
+                onPress={() => router.push('/edit-plan' as any)}
               >
                 <Text className="text-text font-bold">Add Workout Days</Text>
               </TouchableOpacity>
@@ -332,7 +329,6 @@ export default function WorkoutsScreen() {
           )}
         </View>
 
-        {/* Stats */}
         <View className="px-4 mb-8">
           <Text className="text-text text-xl font-bold mb-4">Plan Stats</Text>
 
@@ -367,7 +363,7 @@ export default function WorkoutsScreen() {
               <Feather name="clock" size={24} color="#F59E0B" />
               <Text className="text-text text-2xl font-bold mt-2">
                 {Math.ceil(
-                  (new Date(activePlan.end_date) - new Date(activePlan.start_date)) /
+                  (new Date(activePlan.end_date).getTime() - new Date(activePlan.start_date).getTime()) /
                   (1000 * 60 * 60 * 24)
                 )}
               </Text>
@@ -377,36 +373,42 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
-      {/* Workout Day Modal */}
       <Modal
         visible={showDayModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowDayModal(false)}
       >
-        {selectedDay && <WorkoutDayModal
-          day={selectedDay}
-          onClose={() => setShowDayModal(false)}
-          onStartWorkout={() => {
-            setShowDayModal(false);
-            startWorkout(selectedDay);
-          }}
-        />}
+        {selectedDay && (
+          <WorkoutDayModal
+            day={selectedDay}
+            onClose={() => setShowDayModal(false)}
+            onStartWorkout={() => {
+              setShowDayModal(false);
+              startWorkout(selectedDay);
+            }}
+          />
+        )}
       </Modal>
     </SafeAreaView>
   );
 }
-const { vars, mode } = useThemeStore();
-// Workout Day Modal Component
-function WorkoutDayModal({ day, onClose, onStartWorkout }) {
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+interface WorkoutDayModalProps {
+  day: WorkoutDay;
+  onClose: () => void;
+  onStartWorkout: () => void;
+}
+
+function WorkoutDayModal({ day, onClose, onStartWorkout }: WorkoutDayModalProps) {
+  const { vars, mode } = useThemeStore();
 
   return (
     <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
       <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">
-            {daysOfWeek[day.day_of_week]}
+            {DAYS_OF_WEEK[day.day_of_week]}
           </Text>
           <TouchableOpacity onPress={onClose}>
             <AntDesign name="close" size={24} color="var(--text)" />
@@ -435,7 +437,7 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }) {
                   <>
                     <Text className="text-text-light mb-3">Exercises:</Text>
                     {day.planned_exercises.map((exercise, index) => (
-                      <View key={index} className="bg-surface rounded-xl p-4 mb-3">
+                      <View key={exercise.id || index} className="bg-surface rounded-xl p-4 mb-3">
                         <View className="flex-row justify-between items-start mb-2">
                           <Text className="text-text font-bold text-lg flex-1">
                             {exercise.exercise_name}
