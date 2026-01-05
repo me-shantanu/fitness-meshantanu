@@ -24,17 +24,17 @@ const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function CreatePlanScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+
   // Plan details
   const [planName, setPlanName] = useState('');
   const [planDescription, setPlanDescription] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isTemplate, setIsTemplate] = useState(false);
-  
+
   // Workout days
   const [workoutDays, setWorkoutDays] = useState<WorkoutDayForm[]>([
     { dayOfWeek: 0, name: 'Chest & Triceps', isRestDay: false, exercises: [] },
@@ -45,7 +45,7 @@ export default function CreatePlanScreen() {
     { dayOfWeek: 5, name: '', isRestDay: true, exercises: [] },
     { dayOfWeek: 6, name: '', isRestDay: true, exercises: [] },
   ]);
-  
+
   // For adding exercises
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
@@ -57,22 +57,22 @@ export default function CreatePlanScreen() {
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
-    
+
     setStartDate(today.toISOString().split('T')[0]);
     setEndDate(nextWeek.toISOString().split('T')[0]);
   }, []);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    
+
     if (query.trim().length < 2) {
       setSearchResults([]);
       return;
     }
-    
+
     setSearching(true);
     try {
-      const results = await exerciseService.searchExercises(query);
+      const results: any = await exerciseService.searchExercises(query);
       setSearchResults(results);
     } catch (error) {
       console.error('Error searching exercises:', error);
@@ -82,7 +82,7 @@ export default function CreatePlanScreen() {
 
   const addExerciseToDay = (exercise: Exercise) => {
     if (selectedDayIndex === null) return;
-    
+
     const updatedDays = [...workoutDays];
     const newExercise: ExerciseForm = {
       id: exercise.id,
@@ -93,7 +93,7 @@ export default function CreatePlanScreen() {
       type: 'strength',
       notes: ''
     };
-    
+
     updatedDays[selectedDayIndex].exercises.push(newExercise);
     setWorkoutDays(updatedDays);
     setShowAddExercise(false);
@@ -113,7 +113,7 @@ export default function CreatePlanScreen() {
     field: keyof ExerciseForm,
     value: any
   ) => {
-    const updatedDays = [...workoutDays];
+    const updatedDays:any = [...workoutDays];
     updatedDays[dayIndex].exercises[exerciseIndex][field] = value;
     setWorkoutDays(updatedDays);
   };
@@ -121,12 +121,12 @@ export default function CreatePlanScreen() {
   const toggleRestDay = (index: number) => {
     const updatedDays = [...workoutDays];
     updatedDays[index].isRestDay = !updatedDays[index].isRestDay;
-    
+
     if (updatedDays[index].isRestDay) {
       updatedDays[index].exercises = [];
       updatedDays[index].name = '';
     }
-    
+
     setWorkoutDays(updatedDays);
   };
 
@@ -155,7 +155,7 @@ export default function CreatePlanScreen() {
     }
 
     setLoading(true);
-    
+
     const planData = {
       name: planName,
       description: planDescription,
@@ -175,8 +175,8 @@ export default function CreatePlanScreen() {
         Alert.alert(
           'Success',
           `${isTemplate ? 'Template' : 'Workout plan'} created successfully!`,
-          [{ 
-            text: 'OK', 
+          [{
+            text: 'OK',
             onPress: () => router.replace(isTemplate ? '/browse-templates' : '/(tabs)/workouts' as any)
           }]
         );
@@ -187,14 +187,14 @@ export default function CreatePlanScreen() {
       console.error('Error creating plan:', error);
       Alert.alert('Error', 'Failed to create workout plan');
     }
-    
+
     setLoading(false);
   };
 
   const renderStep1 = () => (
     <View>
       <Text className="text-text text-2xl font-bold mb-6">Plan Details</Text>
-      
+
       <View className="space-y-4">
         <View>
           <Text className="text-text-light mb-2">Plan Name</Text>
@@ -206,7 +206,7 @@ export default function CreatePlanScreen() {
             onChangeText={setPlanName}
           />
         </View>
-        
+
         <View>
           <Text className="text-text-light mb-2">Description (Optional)</Text>
           <TextInput
@@ -225,15 +225,14 @@ export default function CreatePlanScreen() {
             className="flex-row items-center mb-4"
             onPress={() => setIsTemplate(!isTemplate)}
           >
-            <View className={`w-5 h-5 rounded border-2 ${
-              isTemplate ? 'bg-blue-600 border-blue-600' : 'border-gray-500'
-            } mr-3 items-center justify-center`}>
+            <View className={`w-5 h-5 rounded border-2 ${isTemplate ? 'bg-blue-600 border-blue-600' : 'border-gray-500'
+              } mr-3 items-center justify-center`}>
               {isTemplate && <Feather name="check" size={14} color="white" />}
             </View>
             <Text className="text-text">Save as template</Text>
           </TouchableOpacity>
         </View>
-        
+
         {!isTemplate && (
           <View className="flex-row justify-between">
             <View className="flex-1 mr-2">
@@ -245,7 +244,7 @@ export default function CreatePlanScreen() {
                 placeholder="YYYY-MM-DD"
               />
             </View>
-            
+
             <View className="flex-1 ml-2">
               <Text className="text-text-light mb-2">End Date</Text>
               <TextInput
@@ -258,11 +257,10 @@ export default function CreatePlanScreen() {
           </View>
         )}
       </View>
-      
+
       <TouchableOpacity
-        className={`py-4 rounded-xl mt-8 ${
-          planName.trim() ? 'bg-blue-600' : 'bg-gray-600'
-        }`}
+        className={`py-4 rounded-xl mt-8 ${planName.trim() ? 'bg-blue-600' : 'bg-gray-600'
+          }`}
         onPress={() => setStep(2)}
         disabled={!planName.trim()}
       >
@@ -276,7 +274,7 @@ export default function CreatePlanScreen() {
   const renderStep2 = () => (
     <View>
       <Text className="text-text text-2xl font-bold mb-6">Weekly Schedule</Text>
-      
+
       <ScrollView className="max-h-96 mb-6">
         {workoutDays.map((day, index) => (
           <View key={index} className="mb-4 bg-surface rounded-xl p-4">
@@ -284,11 +282,10 @@ export default function CreatePlanScreen() {
               <Text className="text-text font-bold text-lg">
                 {DAYS_OF_WEEK[day.dayOfWeek]}
               </Text>
-              
+
               <TouchableOpacity
-                className={`px-4 py-2 rounded ${
-                  day.isRestDay ? 'bg-purple-600' : 'bg-blue-600'
-                }`}
+                className={`px-4 py-2 rounded ${day.isRestDay ? 'bg-purple-600' : 'bg-blue-600'
+                  }`}
                 onPress={() => toggleRestDay(index)}
               >
                 <Text className="text-text font-bold">
@@ -296,7 +293,7 @@ export default function CreatePlanScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             {!day.isRestDay && (
               <>
                 <TextInput
@@ -310,7 +307,7 @@ export default function CreatePlanScreen() {
                     setWorkoutDays(updatedDays);
                   }}
                 />
-                
+
                 <TouchableOpacity
                   className="flex-row items-center justify-center bg-gray-700 py-3 rounded-lg mb-4"
                   onPress={() => {
@@ -321,7 +318,7 @@ export default function CreatePlanScreen() {
                   <AntDesign name="plus" size={20} color="#3B82F6" />
                   <Text className="text-blue-400 font-bold ml-2">Add Exercise</Text>
                 </TouchableOpacity>
-                
+
                 {day.exercises.length > 0 && (
                   <View>
                     <Text className="text-text-light mb-2">Exercises:</Text>
@@ -337,7 +334,7 @@ export default function CreatePlanScreen() {
                             <AntDesign name="close" size={20} color="#EF4444" />
                           </TouchableOpacity>
                         </View>
-                        
+
                         <View className="flex-row justify-between">
                           <View className="flex-1 mr-2">
                             <Text className="text-text-light text-xs mb-1">Sets</Text>
@@ -348,7 +345,7 @@ export default function CreatePlanScreen() {
                               keyboardType="numeric"
                             />
                           </View>
-                          
+
                           <View className="flex-1 mx-2">
                             <Text className="text-text-light text-xs mb-1">Reps</Text>
                             <TextInput
@@ -358,7 +355,7 @@ export default function CreatePlanScreen() {
                               keyboardType="numeric"
                             />
                           </View>
-                          
+
                           <View className="flex-1 ml-2">
                             <Text className="text-text-light text-xs mb-1">Weight (kg)</Text>
                             <TextInput
@@ -380,7 +377,7 @@ export default function CreatePlanScreen() {
           </View>
         ))}
       </ScrollView>
-      
+
       <View className="flex-row justify-between">
         <TouchableOpacity
           className="bg-surface flex-1 mr-2 py-4 rounded-xl"
@@ -388,7 +385,7 @@ export default function CreatePlanScreen() {
         >
           <Text className="text-text text-center font-bold">Back</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           className="bg-blue-600 flex-1 ml-2 py-4 rounded-xl"
           onPress={createPlan}
@@ -407,7 +404,7 @@ export default function CreatePlanScreen() {
   );
 
   const { vars, mode } = useThemeStore();
-  
+
   const renderAddExerciseModal = () => (
     <View style={vars} key={mode} className="absolute inset-0 bg-black/50 justify-end">
       <View className="bg-bg rounded-t-3xl p-6 h-3/4">
@@ -417,7 +414,7 @@ export default function CreatePlanScreen() {
             <AntDesign name="close" size={24} color="var(--text)" />
           </TouchableOpacity>
         </View>
-        
+
         <TextInput
           className="bg-surface text-text rounded-xl p-4 mb-4"
           placeholder="Search exercises..."
@@ -426,7 +423,7 @@ export default function CreatePlanScreen() {
           onChangeText={handleSearch}
           autoFocus
         />
-        
+
         {searching ? (
           <ActivityIndicator size="large" color="#3B82F6" />
         ) : (
@@ -445,7 +442,7 @@ export default function CreatePlanScreen() {
                 )}
               </TouchableOpacity>
             ))}
-            
+
             {searchQuery && searchResults.length === 0 && !searching && (
               <View className="items-center py-8">
                 <Feather name="search" size={48} color="#6B7280" />
@@ -465,37 +462,34 @@ export default function CreatePlanScreen() {
       <ScrollView className="flex-1 p-4">
         <View className="flex-row items-center mb-6">
           <TouchableOpacity onPress={() => router.back()}>
-            <AntDesign name="arrowleft" size={24} color="white" />
+            <AntDesign name="arrow-left" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">
             {isTemplate ? 'Create Template' : 'Create Workout Plan'}
           </Text>
         </View>
-        
+
         <View className="flex-row justify-between mb-8">
           {[1, 2].map((stepNum) => (
             <View key={stepNum} className="flex-1 items-center">
-              <View className={`w-8 h-8 rounded-full justify-center items-center mb-2 ${
-                step >= stepNum ? 'bg-blue-600' : 'bg-surface'
-              }`}>
-                <Text className={`font-bold ${
-                  step >= stepNum ? 'text-text' : 'text-text-light'
+              <View className={`w-8 h-8 rounded-full justify-center items-center mb-2 ${step >= stepNum ? 'bg-blue-600' : 'bg-surface'
                 }`}>
+                <Text className={`font-bold ${step >= stepNum ? 'text-text' : 'text-text-light'
+                  }`}>
                   {stepNum}
                 </Text>
               </View>
-              <Text className={`text-sm ${
-                step >= stepNum ? 'text-blue-400' : 'text-gray-500'
-              }`}>
+              <Text className={`text-sm ${step >= stepNum ? 'text-blue-400' : 'text-gray-500'
+                }`}>
                 {stepNum === 1 ? 'Details' : 'Schedule'}
               </Text>
             </View>
           ))}
         </View>
-        
+
         {step === 1 ? renderStep1() : renderStep2()}
       </ScrollView>
-      
+
       {showAddExercise && renderAddExerciseModal()}
     </SafeAreaView>
   );

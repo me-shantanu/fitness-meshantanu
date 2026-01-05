@@ -25,7 +25,7 @@ const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function BrowseTemplatesScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { templates, loadTemplates, activateTemplate } = useWorkoutStore();
+  const { templates, loadTemplates, activateTemplate, loadActivePlan } = useWorkoutStore();
   
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
@@ -72,18 +72,32 @@ export default function BrowseTemplatesScreen() {
       return;
     }
 
+    console.log('🎯 Activating template:', selectedTemplate.id);
+    console.log('Template name:', selectedTemplate.name);
+    console.log('Start date:', startDate);
+    console.log('End date:', endDate);
+
     setActivating(true);
     const success = await activateTemplate(user.id, selectedTemplate.id, startDate, endDate);
     setActivating(false);
+    setShowActivateModal(false);
 
     if (success) {
+      console.log('✅ Template activated successfully');
       Alert.alert(
         'Success',
         'Template activated as your workout plan!',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/workouts' as any) }]
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            loadActivePlan(user.id);
+            router.replace('/workouts' as any);
+          }
+        }]
       );
     } else {
-      Alert.alert('Error', 'Failed to activate template');
+      console.error('❌ Failed to activate template');
+      Alert.alert('Error', 'Failed to activate template. Please try again.');
     }
   };
 
@@ -264,7 +278,7 @@ export default function BrowseTemplatesScreen() {
       <View className="px-4 pt-4 pb-2">
         <View className="flex-row items-center mb-4">
           <TouchableOpacity onPress={() => router.back()}>
-            <AntDesign name="arrowleft" size={24} color="white" />
+            <AntDesign name="arrow-left" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Templates</Text>
         </View>

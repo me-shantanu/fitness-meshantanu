@@ -103,7 +103,7 @@ class WorkoutService {
         `)
         .eq('user_id', userId)
         .eq('is_active', true)
-        .eq('is_template', false)
+        // Don't filter by is_template - active plans can be templates too
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -116,7 +116,7 @@ class WorkoutService {
     }
   }
 
-  // Get all templates
+  // Get all templates (including active ones)
   async getTemplates(userId: string): Promise<WorkoutPlan[]> {
     try {
       const { data, error } = await supabase
@@ -129,7 +129,7 @@ class WorkoutService {
           )
         `)
         .eq('user_id', userId)
-        .eq('is_template', true)
+        .eq('is_template', true) // Show all templates, even if active
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -140,7 +140,7 @@ class WorkoutService {
     }
   }
 
-  // Activate a template as current plan
+  // Activate a template as current plan (keeps it as template)
   async activateTemplate(
     userId: string,
     templateId: string,
@@ -148,94 +148,235 @@ class WorkoutService {
     endDate: string
   ): Promise<{ success: boolean; planId?: string; error?: any }> {
     try {
-      // Get template with all days and exercises
-      const { data: template, error: templateError } = await supabase
+      // Deactivate all other active plans
+      await supabase
         .from('workout_plans')
-        .select(`
-          *,
-          workout_days (
-            *,
-            planned_exercises (*)
-          )
-        `)
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      // Activate this template (but keep it as a template!)
+      const { data: activatedPlan, error: updateError } = await supabase
+        .from('workout_plans')
+        .update({
+          is_active: true,
+          // is_template stays as it was (true or false)
+          start_date: startDate,
+          end_date: endDate
+        })
         .eq('id', templateId)
+        .select()
         .single();
 
-      if (templateError) throw templateError;
+      if (updateError) throw updateError;
 
-      // Create new plan from template
-      const planData: CreatePlanData = {
-        name: template.name,
-        description: template.description,
-        startDate,
-        endDate,
-        isTemplate: false
-      };
-
-      const days: WorkoutDayForm[] = template.workout_days.map((day: WorkoutDay) => ({
-        dayOfWeek: day.day_of_week,
-        name: day.name,
-        isRestDay: day.is_rest_day,
-        exercises: (day.planned_exercises || []).map((ex: PlannedExercise) => ({
-          id: ex.exercise_id,
-          name: ex.exercise_name,
-          sets: ex.target_sets,
-          reps: ex.target_reps,
-          weight: ex.target_weight || null,
-          type: ex.exercise_type,
-          notes: ex.notes
-        }))
-      }));
-
-      return await this.createWeeklyPlan(userId, planData, days);
+      return { success: true, planId: activatedPlan.id };
     } catch (error) {
       console.error('Error activating template:', error);
       return { success: false, error };
     }
   }
 
-  // Delete plan (cascades to workout_days and planned_exercises)
+  // Convert active plan back to template
+  async convertToTemplate(planId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('workout_plans')
+        .update({
+          is_active: false,
+          is_template: true
+        })
+        .eq('id', planId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error converting to template:', error);
+      return false;
+    }
+  }
+
+  // Deactivate current plan (archive it)
+  async deactivatePlan(planId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('workout_plans')
+        .update({ is_active: false })
+        .eq('id', planId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deactivating plan:', error);
+      return false;
+    }
+  }
+
+  // Delete plan - PRODUCTION READY VERSION
   async deletePlan(planId: string): Promise<boolean> {
     try {
-      // First get all workout days for this plan
-      const { data: workoutDays, error: fetchError } = await supabase
+      console.log('🗑️ Starting delete for plan:', planId);
+      
+      // Always use manual cascade delete for reliability
+      // This ensures we handle all foreign keys properly
+      return await this.manualCascadeDelete(planId);
+    } catch (error: any) {
+      console.error('❌ Fatal error in deletePlan:', error);
+      return false;
+    }
+  }
+
+  // Manual cascade delete - handles all foreign key relationships
+  private async manualCascadeDelete(planId: string): Promise<boolean> {
+    try {
+      console.log('📋 Step 1: Fetching plan details...');
+      
+      // Get plan details
+      const { data: plan, error: planFetchError } = await supabase
+        .from('workout_plans')
+        .select('name, is_active, is_template')
+        .eq('id', planId)
+        .single();
+
+      if (planFetchError) {
+        console.error('❌ Plan not found:', planFetchError);
+        return false;
+      }
+
+      console.log('✓ Found plan:', plan);
+
+      // Step 1: Get all workout days for this plan
+      console.log('📋 Step 2: Fetching workout days...');
+      const { data: workoutDays, error: daysError } = await supabase
         .from('workout_days')
         .select('id')
         .eq('plan_id', planId);
 
-      if (fetchError) throw fetchError;
-
-      // Delete all planned exercises for each workout day
-      if (workoutDays && workoutDays.length > 0) {
-        const dayIds = workoutDays.map(d => d.id);
-        
-        const { error: exercisesError } = await supabase
-          .from('planned_exercises')
-          .delete()
-          .in('workout_day_id', dayIds);
-
-        if (exercisesError) throw exercisesError;
-
-        // Delete all workout days
-        const { error: daysError } = await supabase
-          .from('workout_days')
-          .delete()
-          .eq('plan_id', planId);
-
-        if (daysError) throw daysError;
+      if (daysError) {
+        console.error('❌ Error fetching workout days:', daysError);
+        throw daysError;
       }
 
-      // Finally delete the plan
-      const { error: planError } = await supabase
+      console.log(`✓ Found ${workoutDays?.length || 0} workout days`);
+
+      if (!workoutDays || workoutDays.length === 0) {
+        console.log('📋 No workout days, deleting plan directly...');
+        const { error: planDeleteError } = await supabase
+          .from('workout_plans')
+          .delete()
+          .eq('id', planId);
+        
+        if (planDeleteError) {
+          console.error('❌ Error deleting plan:', planDeleteError);
+          return false;
+        }
+        console.log('✅ Plan deleted successfully');
+        return true;
+      }
+
+      const dayIds = workoutDays.map(d => d.id);
+      console.log('Day IDs to process:', dayIds);
+
+      // Step 2: Handle workout sessions
+      console.log('📋 Step 3: Handling workout sessions...');
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .in('workout_day_id', dayIds);
+
+      if (sessionsError) {
+        console.error('⚠️ Error fetching sessions:', sessionsError);
+      } else {
+        console.log(`✓ Found ${sessions?.length || 0} workout sessions`);
+      }
+
+      // Step 3: Delete exercise sets from sessions
+      if (sessions && sessions.length > 0) {
+        const sessionIds = sessions.map(s => s.id);
+        console.log('📋 Step 4: Deleting exercise sets...');
+        
+        const { error: setsError } = await supabase
+          .from('exercise_sets')
+          .delete()
+          .in('session_id', sessionIds);
+        
+        if (setsError) {
+          console.error('❌ Error deleting exercise sets:', setsError);
+          // Continue anyway - not critical
+        } else {
+          console.log('✓ Exercise sets deleted');
+        }
+
+        // Step 4: Update sessions to remove workout_day_id reference
+        console.log('📋 Step 5: Updating workout sessions...');
+        const { error: updateSessionsError } = await supabase
+          .from('workout_sessions')
+          .update({ workout_day_id: null })
+          .in('workout_day_id', dayIds);
+        
+        if (updateSessionsError) {
+          console.error('❌ Error updating sessions:', updateSessionsError);
+          // Try to delete them instead
+          console.log('📋 Attempting to delete sessions...');
+          const { error: deleteSessionsError } = await supabase
+            .from('workout_sessions')
+            .delete()
+            .in('workout_day_id', dayIds);
+          
+          if (deleteSessionsError) {
+            console.error('❌ Error deleting sessions:', deleteSessionsError);
+            throw deleteSessionsError;
+          } else {
+            console.log('✓ Sessions deleted');
+          }
+        } else {
+          console.log('✓ Sessions updated (workout_day_id set to null)');
+        }
+      }
+
+      // Step 5: Delete planned exercises
+      console.log('📋 Step 6: Deleting planned exercises...');
+      const { error: plannedExError } = await supabase
+        .from('planned_exercises')
+        .delete()
+        .in('workout_day_id', dayIds);
+      
+      if (plannedExError) {
+        console.error('❌ Error deleting planned exercises:', plannedExError);
+        throw plannedExError;
+      }
+      console.log('✓ Planned exercises deleted');
+
+      // Step 6: Delete workout days
+      console.log('📋 Step 7: Deleting workout days...');
+      const { error: deleteDaysError } = await supabase
+        .from('workout_days')
+        .delete()
+        .eq('plan_id', planId);
+      
+      if (deleteDaysError) {
+        console.error('❌ Error deleting workout days:', deleteDaysError);
+        throw deleteDaysError;
+      }
+      console.log('✓ Workout days deleted');
+
+      // Step 7: Finally delete the plan
+      console.log('📋 Step 8: Deleting workout plan...');
+      const { error: finalDeleteError } = await supabase
         .from('workout_plans')
         .delete()
         .eq('id', planId);
 
-      if (planError) throw planError;
+      if (finalDeleteError) {
+        console.error('❌ Error deleting plan:', finalDeleteError);
+        throw finalDeleteError;
+      }
 
+      console.log('✅ PLAN DELETED SUCCESSFULLY');
       return true;
-    } catch (error) {
-      console.error('Error deleting plan:', error);
+    } catch (error: any) {
+      console.error('❌ Fatal error in manual cascade delete:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return false;
     }
   }
