@@ -26,7 +26,7 @@ export default function WorkoutsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activePlan, loading, loadActivePlan, deletePlan: storeDeletePlan } = useWorkoutStore();
-  
+
   const [showDayModal, setShowDayModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
 
@@ -56,27 +56,32 @@ export default function WorkoutsScreen() {
   const deletePlan = async () => {
     console.log('Delete plan triggered', activePlan?.id);
     if (!activePlan?.id) return;
-    
+    const success = await storeDeletePlan(activePlan.id);
+    if (success) {
+      console.log('Success', 'Workout plan deleted successfully');
+    } else {
+      console.log('Error', 'Failed to delete workout plan');
+    }
     console.log('Active plan id:', activePlan.id);
-    Alert.alert(
-      'Delete Workout Plan',
-      'Are you sure you want to delete this workout plan?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const success = await storeDeletePlan(activePlan.id);
-            if (success) {
-              Alert.alert('Success', 'Workout plan deleted successfully');
-            } else {
-              Alert.alert('Error', 'Failed to delete workout plan');
-            }
-          }
-        }
-      ]
-    );
+    // Alert.alert(
+    //   'Delete Workout Plan',
+    //   'Are you sure you want to delete this workout plan?',
+    //   [
+    //     { text: 'Cancel', style: 'cancel' },
+    //     {
+    //       text: 'Delete',
+    //       style: 'destructive',
+    //       onPress: async () => {
+    //         const success = await storeDeletePlan(activePlan.id);
+    //         if (success) {
+    //           Alert.alert('Success', 'Workout plan deleted successfully');
+    //         } else {
+    //           Alert.alert('Error', 'Failed to delete workout plan');
+    //         }
+    //       }
+    //     }
+    //   ]
+    // );
   };
 
   const editWorkoutDay = (day: WorkoutDay) => {
@@ -88,19 +93,16 @@ export default function WorkoutsScreen() {
     return (
       <TouchableOpacity
         key={day.id || index}
-        className={`mb-4 mx-4 rounded-xl p-4 ${
-          day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
-        }`}
+        className={`mb-4 mx-4 rounded-xl p-4 ${day.is_rest_day ? 'bg-surface' : 'bg-surface border border-blue-500/30'
+          }`}
         onPress={() => editWorkoutDay(day)}
       >
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
-            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${
-              day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
-            }`}>
-              <Text className={`font-bold text-lg ${
-                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+            <View className={`w-10 h-10 rounded-lg justify-center items-center mr-3 ${day.is_rest_day ? 'bg-gray-700' : 'bg-blue-500/20'
               }`}>
+              <Text className={`font-bold text-lg ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+                }`}>
                 {index + 1}
               </Text>
             </View>
@@ -108,9 +110,8 @@ export default function WorkoutsScreen() {
               <Text className="text-text font-bold text-lg">
                 {DAYS_OF_WEEK[day.day_of_week]}
               </Text>
-              <Text className={`text-sm ${
-                day.is_rest_day ? 'text-text-light' : 'text-blue-400'
-              }`}>
+              <Text className={`text-sm ${day.is_rest_day ? 'text-text-light' : 'text-blue-400'
+                }`}>
                 {day.is_rest_day ? 'Rest Day' : day.name || 'Workout Day'}
               </Text>
             </View>
@@ -251,7 +252,7 @@ export default function WorkoutsScreen() {
               >
                 <MaterialIcons name="content-copy" size={20} color="white" />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 className="bg-surface p-2 rounded-lg"
                 onPress={() => router.push('/edit-plan' as any)}
