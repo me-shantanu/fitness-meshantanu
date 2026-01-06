@@ -4,12 +4,21 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, ActivityInd
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 
+interface FormData {
+  height: string;
+  weight: string;
+  age: string;
+  gender: 'male' | 'female';
+  bmr: string;
+  goal: 'lose_weight' | 'gain_muscle' | 'maintain';
+}
+
 export default function ProfileSetupScreen() {
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     height: '',
     weight: '',
     age: '',
@@ -19,9 +28,9 @@ export default function ProfileSetupScreen() {
   });
 
   const goals = [
-    { value: 'lose_weight', label: 'Lose Weight' },
-    { value: 'gain_muscle', label: 'Gain Muscle' },
-    { value: 'maintain', label: 'Maintain' },
+    { value: 'lose_weight' as const, label: 'Lose Weight', icon: '📉' },
+    { value: 'gain_muscle' as const, label: 'Gain Muscle', icon: '💪' },
+    { value: 'maintain' as const, label: 'Maintain', icon: '⚖️' },
   ];
 
   const handleSave = async () => {
@@ -44,7 +53,6 @@ export default function ProfileSetupScreen() {
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      // Router will automatically redirect to (tabs) after profile is complete
       router.replace('/(tabs)');
     }
   };
@@ -95,13 +103,13 @@ export default function ProfileSetupScreen() {
           <Text className="text-text mb-2 font-medium">Gender</Text>
           <View className="flex-row gap-3">
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'male' ? 'bg-blue-600' : 'bg-surface'}`}
+              className={`flex-1 py-3 rounded-lg ${formData.gender === 'male' ? 'bg-brand' : 'bg-surface'}`}
               onPress={() => setFormData({ ...formData, gender: 'male' })}
             >
               <Text className="text-text text-center font-bold">Male</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'female' ? 'bg-blue-600' : 'bg-surface'}`}
+              className={`flex-1 py-3 rounded-lg ${formData.gender === 'female' ? 'bg-brand' : 'bg-surface'}`}
               onPress={() => setFormData({ ...formData, gender: 'female' })}
             >
               <Text className="text-text text-center font-bold">Female</Text>
@@ -128,24 +136,27 @@ export default function ProfileSetupScreen() {
             {goals.map((goal) => (
               <TouchableOpacity
                 key={goal.value}
-                className={`py-3 rounded-lg ${formData.goal === goal.value ? 'bg-blue-600' : 'bg-surface'}`}
+                className={`py-3 px-4 rounded-lg flex-row items-center ${
+                  formData.goal === goal.value ? 'bg-brand' : 'bg-surface'
+                }`}
                 onPress={() => setFormData({ ...formData, goal: goal.value })}
               >
-                <Text className="text-text text-center font-bold">{goal.label}</Text>
+                <Text className="text-2xl mr-3">{goal.icon}</Text>
+                <Text className="text-text font-bold">{goal.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         <TouchableOpacity
-          className="bg-blue-600 py-4 rounded-lg"
+          className="bg-brand py-4 rounded-lg"
           onPress={handleSave}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-text text-center font-bold text-lg">Complete Setup</Text>
+            <Text className="text-white text-center font-bold text-lg">Complete Setup</Text>
           )}
         </TouchableOpacity>
       </View>

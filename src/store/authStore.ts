@@ -1,8 +1,35 @@
-// src/store/authStore.js
+// src/store/authStore.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
-export const useAuthStore = create((set) => ({
+interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  height: number | null;
+  weight: number | null;
+  age: number | null;
+  gender: 'male' | 'female' | null;
+  bmr: number | null;
+  goal: 'lose_weight' | 'gain_muscle' | 'maintain' | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AuthState {
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
+  initialize: () => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ data: any; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
+  signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ data: any; error: any }>;
+  refreshProfile: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   loading: true,
@@ -36,21 +63,33 @@ export const useAuthStore = create((set) => ({
   },
   
   // Sign up
-  signUp: async (email, password, fullName) => {
+  signUp: async (email: string, password: string, fullName: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
       });
       
       if (error) throw error;
       
-      // Update profile with full name
+      // Wait a bit for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update profile with full name (in case trigger didn't populate it)
       if (data.user) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ full_name: fullName })
           .eq('id', data.user.id);
+        
+        if (updateError) {
+          console.error('Error updating profile name:', updateError);
+        }
       }
       
       return { data, error: null };
@@ -60,7 +99,7 @@ export const useAuthStore = create((set) => ({
   },
   
   // Sign in
-  signIn: async (email, password) => {
+  signIn: async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -96,12 +135,17 @@ export const useAuthStore = create((set) => ({
   },
   
   // Update profile
-  updateProfile: async (updates) => {
+  updateProfile: async (updates: Partial<Profile>) => {
     try {
+      const userId = get().user?.id;
+      if (!userId) {
+        throw new Error('No user logged in');
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', useAuthStore.getState().user.id)
+        .eq('id', userId)
         .select()
         .single();
       
@@ -117,7 +161,7 @@ export const useAuthStore = create((set) => ({
   // Refresh profile
   refreshProfile: async () => {
     try {
-      const userId = useAuthStore.getState().user?.id;
+      const userId = get().user?.id;
       if (!userId) return;
       
       const { data: profile } = await supabase
