@@ -58,6 +58,15 @@ export interface Exercise {
   video_url?: string;
 }
 
+export interface PaginatedExerciseResponse {
+  exercises: Exercise[];
+  count: number;
+  totalPages: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 export interface ExerciseResponse {
   exercises: Exercise[];
   count: number;
@@ -87,10 +96,173 @@ export interface ExerciseFilters {
   category?: number;
   equipment?: number;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export const exerciseService = {
-  // Get all exercises with pagination
+  // 🚀 NEW: Server-side paginated exercises
+  getExercisesPaginated: async (
+    filters: ExerciseFilters = {},
+    page: number = 1,
+    limit: number = 15
+  ): Promise<PaginatedExerciseResponse> => {
+    try {
+      const cacheKey = `paginated_${JSON.stringify(filters)}_${page}_${limit}`;
+      
+      if (cache.exercises[cacheKey] && isCacheValid(cache.exercises[cacheKey].timestamp)) {
+        return cache.exercises[cacheKey].data;
+      }
+
+      const offset = (page - 1) * limit;
+      let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=${limit}&offset=${offset}`;
+      
+      // Apply filters
+      if (filters.category) url += `&category=${filters.category}`;
+      if (filters.muscle) url += `&muscles=${filters.muscle}`;
+      if (filters.equipment) url += `&equipment=${filters.equipment}`;
+      
+      const response = await axios.get(url);
+      
+      const exercises = response.data.results
+        .map((ex: any) => {
+          const englishName = ex.name || 
+            ex.translations?.find((t: any) => t.language === 2)?.name ||
+            'Unnamed Exercise';
+            
+          const englishDescription = ex.description ||
+            ex.translations?.find((t: any) => t.language === 2)?.description ||
+            '';
+          
+          return {
+            id: ex.id,
+            uuid: ex.uuid,
+            name: englishName,
+            description: cleanHtml(englishDescription),
+            category: ex.category?.name || 'General',
+            category_id: ex.category?.id,
+            muscles: ex.muscles || [],
+            muscles_secondary: ex.muscles_secondary || [],
+            equipment: ex.equipment || [],
+            variations: ex.variations || [],
+            license: ex.license,
+            license_author: ex.license_author,
+            images: ex.images || [],
+          };
+        })
+        .filter((ex: Exercise) => ex.name && ex.name !== 'Unnamed Exercise');
+      
+      const totalCount = response.data.count;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      const result: PaginatedExerciseResponse = {
+        exercises,
+        count: totalCount,
+        totalPages,
+        currentPage: page,
+        hasNext: !!response.data.next,
+        hasPrevious: !!response.data.previous,
+      };
+
+      cache.exercises[cacheKey] = {
+        data: result,
+        timestamp: Date.now()
+      };
+
+      return result;
+    } catch (error) {
+      console.error('Error fetching paginated exercises:', error);
+      return {
+        exercises: [],
+        count: 0,
+        totalPages: 0,
+        currentPage: page,
+        hasNext: false,
+        hasPrevious: false,
+      };
+    }
+  },
+
+  // 🚀 NEW: Optimized search with pagination
+  searchExercisesPaginated: async (
+    query: string = '',
+    filters: ExerciseFilters = {},
+    page: number = 1,
+    limit: number = 15
+  ): Promise<PaginatedExerciseResponse> => {
+    try {
+      const cacheKey = `search_paginated_${query}_${JSON.stringify(filters)}_${page}_${limit}`;
+      
+      if (cache.search[cacheKey] && isCacheValid(cache.search[cacheKey].timestamp)) {
+        return cache.search[cacheKey].data;
+      }
+
+      const offset = (page - 1) * limit;
+      let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=${limit}&offset=${offset}`;
+      
+      // Add search query
+      if (query.trim()) {
+        url += `&name=${encodeURIComponent(query)}`;
+      }
+      
+      // Apply filters
+      if (filters.category) url += `&category=${filters.category}`;
+      if (filters.muscle) url += `&muscles=${filters.muscle}`;
+      if (filters.equipment) url += `&equipment=${filters.equipment}`;
+      
+      const response = await axios.get(url);
+      
+      const exercises = response.data.results
+        .map((ex: any) => {
+          const name = ex.name || ex.translations?.[0]?.name || 'Unnamed Exercise';
+          const description = cleanHtml(ex.description || '');
+          
+          return {
+            id: ex.id,
+            uuid: ex.uuid,
+            name,
+            description,
+            category: ex.category?.name || 'General',
+            muscles: ex.muscles || [],
+            muscles_secondary: ex.muscles_secondary || [],
+            equipment: ex.equipment || [],
+            images: ex.images || [],
+          };
+        })
+        .filter((ex: Exercise) => ex.name !== 'Unnamed Exercise');
+
+      const totalCount = response.data.count;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      const result: PaginatedExerciseResponse = {
+        exercises,
+        count: totalCount,
+        totalPages,
+        currentPage: page,
+        hasNext: !!response.data.next,
+        hasPrevious: !!response.data.previous,
+      };
+
+      cache.search[cacheKey] = {
+        data: result,
+        timestamp: Date.now()
+      };
+
+      return result;
+    } catch (error) {
+      console.error('Error searching exercises:', error);
+      return {
+        exercises: [],
+        count: 0,
+        totalPages: 0,
+        currentPage: page,
+        hasNext: false,
+        hasPrevious: false,
+      };
+    }
+  },
+
+  // Keep existing methods for backward compatibility
   getAllExercises: async (limit: number = 100, offset: number = 0): Promise<ExerciseResponse> => {
     try {
       const cacheKey = `exercises_${limit}_${offset}`;
@@ -150,8 +322,22 @@ export const exerciseService = {
     }
   },
 
-  // Search exercises with improved logic
+  // 🚀 OPTIMIZED: Workout exercises with pagination
+  getWorkoutExercisesPaginated: async (
+    filters: ExerciseFilters = {},
+    page: number = 1,
+    limit: number = 15
+  ): Promise<PaginatedExerciseResponse> => {
+    if (filters.search) {
+      return exerciseService.searchExercisesPaginated(filters.search, filters, page, limit);
+    }
+    return exerciseService.getExercisesPaginated(filters, page, limit);
+  },
+
+  // Keep old method for backward compatibility (but log deprecation warning)
   searchExercises: async (query: string = '', filters: ExerciseFilters = {}): Promise<Exercise[]> => {
+    console.warn('⚠️ searchExercises is deprecated. Use searchExercisesPaginated instead for better performance.');
+    
     try {
       const cacheKey = `search_${query}_${JSON.stringify(filters)}`;
       
@@ -165,20 +351,10 @@ export const exerciseService = {
       let hasMore = true;
       const searchTerm = query.toLowerCase();
 
-      // Build base URL with filters
-      if (filters.category) {
-        url += `&category=${filters.category}`;
-      }
-      
-      if (filters.muscle) {
-        url += `&muscles=${filters.muscle}`;
-      }
-      
-      if (filters.equipment) {
-        url += `&equipment=${filters.equipment}`;
-      }
+      if (filters.category) url += `&category=${filters.category}`;
+      if (filters.muscle) url += `&muscles=${filters.muscle}`;
+      if (filters.equipment) url += `&equipment=${filters.equipment}`;
 
-      // Paginate through results
       while (hasMore && exercises.length < 500) {
         const response = await axios.get(`${url}&offset=${offset}`);
         const results = response.data.results;
@@ -225,7 +401,6 @@ export const exerciseService = {
         }
       }
 
-      // Additional search if needed
       if (searchTerm && exercises.length < 50) {
         const searchResponse = await axios.get(
           `${WGER_API_BASE}/exerciseinfo/?language=2&name=${encodeURIComponent(query)}&limit=200`
@@ -271,8 +446,9 @@ export const exerciseService = {
     }
   },
 
-  // Get workout exercises with enhanced search capabilities
   getWorkoutExercises: async (filters: ExerciseFilters = {}): Promise<Exercise[]> => {
+    console.warn('⚠️ getWorkoutExercises is deprecated. Use getWorkoutExercisesPaginated instead for better performance.');
+    
     try {
       const cacheKey = `workout_${JSON.stringify(filters)}`;
       
@@ -291,17 +467,9 @@ export const exerciseService = {
       } else {
         let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=1500`;
         
-        if (filters.muscle) {
-          url += `&muscles=${filters.muscle}`;
-        }
-        
-        if (filters.category) {
-          url += `&category=${filters.category}`;
-        }
-        
-        if (filters.equipment) {
-          url += `&equipment=${filters.equipment}`;
-        }
+        if (filters.muscle) url += `&muscles=${filters.muscle}`;
+        if (filters.category) url += `&category=${filters.category}`;
+        if (filters.equipment) url += `&equipment=${filters.equipment}`;
         
         const response = await axios.get(url);
         
@@ -337,7 +505,6 @@ export const exerciseService = {
     }
   },
 
-  // Get exercise by ID with full details
   getExerciseById: async (id: number | string): Promise<Exercise | null> => {
     try {
       if (typeof id === 'string' && (id.startsWith('warmup_') || id.startsWith('cooldown_'))) {
@@ -392,7 +559,6 @@ export const exerciseService = {
     }
   },
 
-  // Get categories
   getCategories: async (): Promise<Category[]> => {
     try {
       if (cache.categories.data && isCacheValid(cache.categories.timestamp)) {
@@ -417,7 +583,6 @@ export const exerciseService = {
     }
   },
 
-  // Get muscles
   getMuscles: async (): Promise<Muscle[]> => {
     try {
       if (cache.muscles.data && isCacheValid(cache.muscles.timestamp)) {
@@ -444,7 +609,6 @@ export const exerciseService = {
     }
   },
 
-  // Get equipment
   getEquipment: async (): Promise<Equipment[]> => {
     try {
       if (cache.equipment.data && isCacheValid(cache.equipment.timestamp)) {
@@ -469,7 +633,6 @@ export const exerciseService = {
     }
   },
 
-  // Get exercise images
   getExerciseImages: async (exerciseId: number | string): Promise<any[]> => {
     try {
       const cacheKey = `images_${exerciseId}`;
@@ -499,7 +662,6 @@ export const exerciseService = {
     }
   },
 
-  // Get exercise videos
   getExerciseVideos: async (exerciseId: number | string): Promise<any[]> => {
     try {
       const cacheKey = `videos_${exerciseId}`;
@@ -536,7 +698,7 @@ export const exerciseService = {
       return [];
     }
   },
-
+  
   // Enhanced warmup exercises
   getWarmupExercises: async (): Promise<Exercise[]> => {
     const warmupExercises: Exercise[] = [
