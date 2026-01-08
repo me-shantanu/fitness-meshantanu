@@ -22,19 +22,19 @@ import { WorkoutSession, ExerciseSet, PlannedExercise } from '@/types/workout';
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const { user } = useAuthStore();
+  const { user }: { user: any } = useAuthStore();
   const { completeSession } = useWorkoutStore();
-  
+
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [sets, setSets] = useState<ExerciseSet[]>([]);
-  
+
   // Input values
   const [repsInput, setRepsInput] = useState('');
   const [weightInput, setWeightInput] = useState('');
-  
+
   // Timer
   const [workoutDuration, setWorkoutDuration] = useState(0);
   const [caloriesBurned, setCaloriesBurned] = useState(0);
@@ -66,13 +66,13 @@ export default function WorkoutSessionScreen() {
 
   const loadSession = async () => {
     if (!sessionId) return;
-    
+
     setLoading(true);
     const sessionData = await workoutService.getSessionDetails(sessionId);
     if (sessionData) {
       setSession(sessionData);
       setSets(sessionData.exercise_sets || []);
-      
+
       // Set default values from planned exercise
       if (sessionData.workout_days?.planned_exercises?.[0]) {
         const firstExercise = sessionData.workout_days.planned_exercises[0];
@@ -122,7 +122,7 @@ export default function WorkoutSessionScreen() {
     if (savedSet) {
       setSets([...sets, savedSet]);
       setCurrentSet(currentSet + 1);
-      
+
       if (savedSet.is_pr) {
         Alert.alert('🏆 Personal Record!', `New PR for ${currentExercise.exercise_name}!`);
       }
@@ -135,18 +135,18 @@ export default function WorkoutSessionScreen() {
 
   const nextExercise = () => {
     if (!session?.workout_days?.planned_exercises) return;
-    
+
     const nextIndex = currentExerciseIndex + 1;
     if (nextIndex >= session.workout_days.planned_exercises.length) {
       handleCompleteWorkout();
       return;
     }
-    
+
     setCurrentExerciseIndex(nextIndex);
     setCurrentSet(1);
     setRepsInput('');
     setWeightInput('');
-    
+
     // Set default values for next exercise
     const nextEx = session.workout_days.planned_exercises[nextIndex];
     setRepsInput(nextEx.target_reps.toString());
@@ -157,13 +157,13 @@ export default function WorkoutSessionScreen() {
 
   const previousExercise = () => {
     if (currentExerciseIndex === 0) return;
-    
+
     const prevIndex = currentExerciseIndex - 1;
     setCurrentExerciseIndex(prevIndex);
     setCurrentSet(1);
     setRepsInput('');
     setWeightInput('');
-    
+
     if (session?.workout_days?.planned_exercises) {
       const prevEx = session.workout_days.planned_exercises[prevIndex];
       setRepsInput(prevEx.target_reps.toString());
@@ -183,7 +183,7 @@ export default function WorkoutSessionScreen() {
           text: 'Complete',
           onPress: async () => {
             if (!user?.id) return;
-            
+
             const success = await completeSession(sessionId, caloriesBurned, user.id);
             if (success) {
               router.push({
@@ -236,12 +236,12 @@ export default function WorkoutSessionScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <AntDesign name="close" size={24} color="white" />
         </TouchableOpacity>
-        
+
         <View className="items-center">
           <Text className="text-text text-lg font-bold">{formatTime(workoutDuration)}</Text>
           <Text className="text-text-light text-sm">{caloriesBurned} cal</Text>
         </View>
-        
+
         <TouchableOpacity onPress={handleCompleteWorkout}>
           <Text className="text-blue-400 font-bold">Finish</Text>
         </TouchableOpacity>
@@ -260,14 +260,14 @@ export default function WorkoutSessionScreen() {
                   {currentExercise.exercise_name}
                 </Text>
               </View>
-              
+
               <View className="bg-blue-500/20 px-4 py-2 rounded-lg">
                 <Text className="text-blue-400 font-bold text-lg">
                   Set {currentSet}
                 </Text>
               </View>
             </View>
-            
+
             <View className="flex-row justify-between mt-4 pt-4 border-t border-gray-700">
               <View className="items-center">
                 <Text className="text-text-light text-sm">Target Sets</Text>
@@ -319,15 +319,15 @@ export default function WorkoutSessionScreen() {
                 />
               </View>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               className="bg-blue-600 py-4 rounded-lg mb-3"
               onPress={logSet}
             >
               <Text className="text-text text-center font-bold text-lg">Log Set</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               className="bg-gray-700 py-4 rounded-lg"
               onPress={skipSet}
             >
@@ -364,21 +364,19 @@ export default function WorkoutSessionScreen() {
         {/* Exercise Navigation */}
         <View className="px-4 pb-6">
           <View className="flex-row justify-between">
-            <TouchableOpacity 
-              className={`py-3 px-6 rounded-lg ${
-                currentExerciseIndex === 0 ? 'bg-gray-800' : 'bg-surface'
-              }`}
+            <TouchableOpacity
+              className={`py-3 px-6 rounded-lg ${currentExerciseIndex === 0 ? 'bg-gray-800' : 'bg-surface'
+                }`}
               onPress={previousExercise}
               disabled={currentExerciseIndex === 0}
             >
-              <Text className={`${
-                currentExerciseIndex === 0 ? 'text-gray-600' : 'text-text'
-              } font-bold`}>
+              <Text className={`${currentExerciseIndex === 0 ? 'text-gray-600' : 'text-text'
+                } font-bold`}>
                 ← Previous
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               className="bg-blue-600 py-3 px-6 rounded-lg"
               onPress={nextExercise}
             >
@@ -398,13 +396,12 @@ export default function WorkoutSessionScreen() {
             const exerciseSets = sets.filter(s => s.planned_exercise_id === exercise.id);
             const isCompleted = exerciseSets.length >= exercise.target_sets;
             const isCurrent = index === currentExerciseIndex;
-            
+
             return (
               <TouchableOpacity
                 key={exercise.id}
-                className={`bg-surface rounded-lg p-4 mb-3 ${
-                  isCurrent ? 'border-2 border-blue-500' : ''
-                }`}
+                className={`bg-surface rounded-lg p-4 mb-3 ${isCurrent ? 'border-2 border-blue-500' : ''
+                  }`}
                 onPress={() => {
                   setCurrentExerciseIndex(index);
                   setCurrentSet(exerciseSets.length + 1);
@@ -429,7 +426,7 @@ export default function WorkoutSessionScreen() {
                       </Text>
                     )}
                   </View>
-                  
+
                   {isCompleted && (
                     <Feather name="check-circle" size={24} color="#10B981" />
                   )}

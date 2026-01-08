@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
   Modal,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { exerciseService, Exercise, ExerciseFilters, PaginatedExerciseResponse } from '../../services/exerciseService';
+import { exerciseService, Exercise, ExerciseFilters } from '../../services/exerciseService';
 import { useExerciseStore } from '../../store/exerciseStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -29,206 +31,188 @@ export default function ExercisesScreen() {
   const { vars, mode } = useThemeStore();
 
   const [activeTab, setActiveTab] = useState<ExerciseType>('workout');
-
-  // 🚀 OPTIMIZED: Only store current page data
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [displayedExercises, setDisplayedExercises] = useState<Exercise[]>([]);
-  const [paginationInfo, setPaginationInfo] = useState<{
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-  }>({
-    currentPage: 1,
-    totalPages: 0,
-    totalCount: 0,
-    hasNext: false,
-    hasPrevious: false,
-  });
-
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
 
   // Filter states
-  const [categories, setCategories] = useState([]);
-  const [muscles, setMuscles] = useState([]);
-  const [equipment, setEquipment] = useState([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [muscles, setMuscles] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedMuscle, setSelectedMuscle] = useState<number | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // 🚀 OPTIMIZED: Debounce reference
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Calculate pagination values
+  const totalPages = Math.ceil(allExercises.length / EXERCISES_PER_PAGE);
+  const startIndex = (currentPage - 1) * EXERCISES_PER_PAGE;
+  const endIndex = startIndex + EXERCISES_PER_PAGE;
 
-  // Load initial data (categories, muscles, equipment) only once
   useEffect(() => {
     loadInitialData();
     loadFavorites();
   }, []);
 
-  // 🚀 OPTIMIZED: Load exercises when tab or filters change
   useEffect(() => {
-    loadExercises(1); // Reset to page 1 when filters change
+    if (searchQuery.trim() === '') {
+      loadExercisesByTab();
+    }
   }, [activeTab, selectedCategory, selectedMuscle, selectedEquipment]);
 
-  // 🚀 OPTIMIZED: Debounced search
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      loadExercises(1); // Reset to page 1 when searching
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch();
+      } else if (activeTab === 'workout') {
+        loadExercisesByTab();
+      }
     }, 500);
 
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
+  // Update displayed exercises when page changes
+  useEffect(() => {
+    updateDisplayedExercises();
+  }, [allExercises, currentPage]);
+
+  const updateDisplayedExercises = () => {
+    setPageLoading(true);
+    // Simulate server-side pagination delay for smooth transition
+    setTimeout(() => {
+      const paginated = allExercises.slice(startIndex, endIndex);
+      setDisplayedExercises(paginated);
+      setPageLoading(false);
+    }, 300);
+  };
+
   const loadInitialData = async () => {
+    setLoading(true);
     try {
       const [categoriesData, musclesData, equipmentData] = await Promise.all([
         exerciseService.getCategories(),
         exerciseService.getMuscles(),
         exerciseService.getEquipment(),
       ]);
+
       setCategories(categoriesData);
       setMuscles(musclesData);
       setEquipment(equipmentData);
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
+    setLoading(false);
   };
 
-  // 🚀 OPTIMIZED: Server-side pagination
-  const loadExercises = async (page: number = 1) => {
-    // Don't show loading for page changes, only for initial load
-    if (page === 1) {
-      setLoading(true);
-    } else {
-      setPageLoading(true);
+  const loadExercisesByTab = async () => {
+    setLoading(true);
+    setCurrentPage(1);
+    try {
+      let exercisesData: Exercise[] = [];
+
+      switch (activeTab) {
+        case 'warmup':
+          exercisesData = await exerciseService.getWarmupExercises();
+          break;
+        case 'cooldown':
+          exercisesData = await exerciseService.getCooldownExercises();
+          break;
+        case 'workout':
+        default:
+          const filters: ExerciseFilters = {};
+          if (selectedMuscle) filters.muscle = selectedMuscle;
+          if (selectedCategory) filters.category = selectedCategory;
+          if (selectedEquipment) filters.equipment = selectedEquipment;
+          exercisesData = await exerciseService.getWorkoutExercises(filters);
+          break;
+      }
+
+      setAllExercises(exercisesData);
+    } catch (error) {
+      console.error(`Error loading ${activeTab} exercises:`, error);
+      setAllExercises([]);
+    }
+    setLoading(false);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      loadExercisesByTab();
+      return;
     }
 
+    setSearchLoading(true);
+    setCurrentPage(1);
     try {
-      let result: PaginatedExerciseResponse;
+      let exercisesData: Exercise[] = [];
 
-      if (activeTab === 'warmup') {
-        // For warmup/cooldown, we handle pagination client-side
-        const allExercises = await exerciseService.getWarmupExercises();
-        const filtered = searchQuery
-          ? allExercises.filter(ex =>
-            ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ex.description?.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          : allExercises;
-
-        const start = (page - 1) * EXERCISES_PER_PAGE;
-        const end = start + EXERCISES_PER_PAGE;
-        const paginated = filtered.slice(start, end);
-
-        result = {
-          exercises: paginated,
-          count: filtered.length,
-          totalPages: Math.ceil(filtered.length / EXERCISES_PER_PAGE),
-          currentPage: page,
-          hasNext: end < filtered.length,
-          hasPrevious: page > 1,
-        };
-      } else if (activeTab === 'cooldown') {
-        const allExercises = await exerciseService.getCooldownExercises();
-        const filtered = searchQuery
-          ? allExercises.filter(ex =>
-            ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ex.description?.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          : allExercises;
-
-        const start = (page - 1) * EXERCISES_PER_PAGE;
-        const end = start + EXERCISES_PER_PAGE;
-        const paginated = filtered.slice(start, end);
-
-        result = {
-          exercises: paginated,
-          count: filtered.length,
-          totalPages: Math.ceil(filtered.length / EXERCISES_PER_PAGE),
-          currentPage: page,
-          hasNext: end < filtered.length,
-          hasPrevious: page > 1,
-        };
-      } else {
-        // 🚀 OPTIMIZED: Real server-side pagination for workout exercises
+      if (activeTab === 'workout') {
         const filters: ExerciseFilters = {
-          muscle: selectedMuscle || undefined,
-          category: selectedCategory || undefined,
-          equipment: selectedEquipment || undefined,
-          search: searchQuery.trim() || undefined,
+          search: searchQuery,
         };
+        if (selectedMuscle) filters.muscle = selectedMuscle;
+        if (selectedCategory) filters.category = selectedCategory;
+        if (selectedEquipment) filters.equipment = selectedEquipment;
 
-        result = await exerciseService.getWorkoutExercisesPaginated(
-          filters,
-          page,
-          EXERCISES_PER_PAGE
+        exercisesData = await exerciseService.searchExercises(searchQuery, filters);
+      } else {
+        const allExercisesData = activeTab === 'warmup'
+          ? await exerciseService.getWarmupExercises()
+          : await exerciseService.getCooldownExercises();
+
+        const query = searchQuery.toLowerCase();
+        exercisesData = allExercisesData.filter(ex =>
+          ex.name.toLowerCase().includes(query) ||
+          (ex.description && ex.description.toLowerCase().includes(query)) ||
+          (ex.category && ex.category.toLowerCase().includes(query))
         );
       }
 
-      setDisplayedExercises(result.exercises);
-      setPaginationInfo({
-        currentPage: result.currentPage,
-        totalPages: result.totalPages,
-        totalCount: result.count,
-        hasNext: result.hasNext,
-        hasPrevious: result.hasPrevious,
-      });
+      setAllExercises(exercisesData);
     } catch (error) {
-      console.error('Error loading exercises:', error);
-      setDisplayedExercises([]);
-      setPaginationInfo({
-        currentPage: 1,
-        totalPages: 0,
-        totalCount: 0,
-        hasNext: false,
-        hasPrevious: false,
-      });
-    } finally {
-      setLoading(false);
-      setPageLoading(false);
+      console.error('Error searching exercises:', error);
+      setAllExercises([]);
     }
-  };
-
-  // 🚀 OPTIMIZED: Simple page navigation
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= paginationInfo.totalPages && page !== paginationInfo.currentPage) {
-      loadExercises(page);
-    }
+    setSearchLoading(false);
   };
 
   const goToNextPage = () => {
-    if (paginationInfo.hasNext) {
-      goToPage(paginationInfo.currentPage + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
   const goToPreviousPage = () => {
-    if (paginationInfo.hasPrevious) {
-      goToPage(paginationInfo.currentPage - 1);
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setCurrentPage(1);
     exerciseService.clearCache();
-    await loadExercises(1);
+    await loadExercisesByTab();
     setRefreshing(false);
   };
 
   const toggleFavorite = async (exercise: Exercise) => {
     try {
+      console.log('🔄 [Component] Toggling favorite for:', exercise.name, 'ID:', exercise.id);
+      
+      // Let the store handle everything - don't do optimistic updates here
       const result = await useExerciseStore.getState().toggleFavorite(
         exercise.id,
         exercise.name,
@@ -236,10 +220,14 @@ export default function ExercisesScreen() {
       );
 
       if (!result.success) {
-        console.error('Failed to toggle favorite:', result.error);
+        console.error('❌ [Component] Failed to toggle favorite:', result.error);
+        // Show error to user
+        alert(`Failed to ${isFavorite(exercise.id) ? 'remove' : 'add'} favorite: ${result.error}`);
+      } else {
+        console.log('✅ [Component] Successfully toggled favorite');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error('❌ [Component] Error toggling favorite:', error);
     }
   };
 
@@ -248,6 +236,8 @@ export default function ExercisesScreen() {
     setSelectedMuscle(null);
     setSelectedEquipment(null);
     setSearchQuery('');
+    setCurrentPage(1);
+    loadExercisesByTab();
   };
 
   const renderExercise = ({ item }: { item: Exercise }) => {
@@ -257,126 +247,79 @@ export default function ExercisesScreen() {
 
     return (
       <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: '/exercise-detail',
-            params: { id: item.id, type: activeTab }
-          })
-        }
+        className="bg-surface p-4 rounded-xl mb-3 mx-4"
+        onPress={() => router.push({
+          pathname: '/exercise-detail',
+          params: {
+            id: item.id,
+            type: activeTab
+          }
+        })}
         activeOpacity={0.7}
-        style={{
-          backgroundColor: vars.surface,
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 12,
-        }}
       >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <View style={{ flex: 1, marginRight: 12 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: vars.text, marginBottom: 6 }}>
-              {item.name}
-            </Text>
+        <View className="flex-row justify-between items-start">
+          <View className="flex-1 mr-3">
+            <Text className="text-text font-bold text-lg mb-2">{item.name}</Text>
 
-            {item.category && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                <MaterialIcons name="category" size={14} color={vars.textSecondary} />
-                <Text style={{ fontSize: 12, color: vars.textSecondary, marginLeft: 4 }}>
-                  {item.category}
-                </Text>
-              </View>
-            )}
+            <View className="flex-row items-center flex-wrap mb-2">
+              {item.category && (
+                <View className={`px-3 py-1.5 rounded-full mr-2 mb-2 bg-text`}>
+                  <Text className="text-bg text-xs font-bold">{item.category}</Text>
+                </View>
+              )}
 
-            {item.duration && (
-              <View className="flex-row items-center bg-surface-light px-3 py-1.5 rounded-full mr-2 mb-2">
-                <MaterialIcons name="timer" size={14} color={vars['--text'] as string} />
-                <Text className="text-text text-xs font-medium ml-1">{item.duration}</Text>
-              </View>
-            )}
+              {item.duration && (
+                <View className="flex-row items-center bg-surface-light px-3 py-1.5 rounded-full mr-2 mb-2">
+                  <MaterialIcons name="timer" size={14} color={vars['--text'] as string} />
+                  <Text className="text-text text-xs font-medium ml-1">{item.duration}</Text>
+                </View>
+              )}
 
-            {item.difficulty && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                <MaterialIcons name="fitness-center" size={14} color={vars.textSecondary} />
-                <Text style={{ fontSize: 12, color: vars.textSecondary, marginLeft: 4 }}>
-                  {item.difficulty}
-                </Text>
-              </View>
-            )}
+              {item.difficulty && (
+                <View className="bg-surface-light px-3 py-1.5 rounded-full mb-2">
+                  <Text className="text-text text-xs font-medium">{item.difficulty}</Text>
+                </View>
+              )}
+            </View>
 
             {item.description && (
-              <Text
-                numberOfLines={2}
-                style={{ fontSize: 13, color: vars.textSecondary, marginTop: 6, lineHeight: 18 }}
-              >
+              <Text className="text-text-light text-sm leading-5 mb-2" numberOfLines={2}>
                 {item.description}
               </Text>
             )}
 
             {muscleNames.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
+              <View className="flex-row flex-wrap mt-1">
                 {muscleNames.slice(0, 3).map((muscle, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      backgroundColor: vars.brand + '20',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Text style={{ fontSize: 11, color: vars.brand, fontWeight: '500' }}>
-                      {muscle}
-                    </Text>
+                  <View key={index} className="bg-text px-2.5 py-1 rounded-full mr-1.5 mb-1.5">
+                    <Text className="text-bg text-xs font-medium">{muscle}</Text>
                   </View>
                 ))}
                 {muscleNames.length > 3 && (
-                  <View
-                    style={{
-                      backgroundColor: vars.surface,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: vars.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: 11, color: vars.textSecondary }}>
-                      +{muscleNames.length - 3}
-                    </Text>
+                  <View className="bg-text px-2.5 py-1 rounded-full mb-1.5">
+                    <Text className="text-bg text-xs font-medium">+{muscleNames.length - 3}</Text>
                   </View>
                 )}
               </View>
             )}
 
             {item.equipment && item.equipment.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 6 }}>
+              <View className="flex-row flex-wrap mt-1">
                 {item.equipment.slice(0, 2).map((eq, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: vars.background,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <FontAwesome name="cube" size={10} color={vars.textSecondary} />
-                    <Text style={{ fontSize: 11, color: vars.textSecondary, marginLeft: 4 }}>
-                      {typeof eq === 'string' ? eq : eq.name}
-                    </Text>
+                  <View key={index} className="flex-row items-center bg-surface px-2.5 py-1 rounded-full mr-1.5 mb-1.5">
+                    <Feather name="tool" size={10} color={vars['--text-light'] as string} />
+                    <Text className="text-text-light text-xs ml-1">{typeof eq === 'string' ? eq : eq.name}</Text>
                   </View>
                 ))}
               </View>
             )}
           </View>
-
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
               toggleFavorite(item);
             }}
-            style={{ padding: 8 }}
+            className="p-2"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {isFavorite(item.id) ?
@@ -394,12 +337,11 @@ export default function ExercisesScreen() {
   };
 
   const renderPaginationControls = () => {
-    if (paginationInfo.totalPages <= 1) return null;
+    if (allExercises.length === 0 || totalPages <= 1) return null;
 
     const getPageNumbers = () => {
       const pages: (number | string)[] = [];
       const maxVisible = 5;
-      const { currentPage, totalPages } = paginationInfo;
 
       if (totalPages <= maxVisible) {
         for (let i = 1; i <= totalPages; i++) {
@@ -407,7 +349,10 @@ export default function ExercisesScreen() {
         }
       } else {
         pages.push(1);
-        if (currentPage > 3) pages.push('...');
+
+        if (currentPage > 3) {
+          pages.push('...');
+        }
 
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
@@ -416,134 +361,107 @@ export default function ExercisesScreen() {
           pages.push(i);
         }
 
-        if (currentPage < totalPages - 2) pages.push('...');
+        if (currentPage < totalPages - 2) {
+          pages.push('...');
+        }
+
         pages.push(totalPages);
       }
 
       return pages;
     };
 
-    const startIndex = (paginationInfo.currentPage - 1) * EXERCISES_PER_PAGE;
-    const endIndex = Math.min(startIndex + EXERCISES_PER_PAGE, paginationInfo.totalCount);
-
     return (
-      <View style={{ marginTop: 16, marginBottom: 20 }}>
+      <View className="px-4 py-6">
         {/* Info Banner */}
-        <View
-          style={{
-            backgroundColor: vars.surface,
-            padding: 12,
-            borderRadius: 12,
-            marginBottom: 12,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: vars.textSecondary }}>
-              Page {paginationInfo.currentPage} of {paginationInfo.totalPages}
-            </Text>
-            <Text style={{ fontSize: 13, color: vars.textSecondary }}>
-              Showing {startIndex + 1}-{endIndex} of {paginationInfo.totalCount}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 4 }}>
-            <Text style={{ fontSize: 11, color: vars.brand, fontWeight: '600' }}>
-              {paginationInfo.totalCount} exercises
-            </Text>
+        <View className="bg-surface p-4 rounded-xl mb-4">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-text font-bold text-lg">
+                Page {currentPage} of {totalPages}
+              </Text>
+              <Text className="text-text-light text-sm mt-1">
+                Showing {startIndex + 1}-{Math.min(endIndex, allExercises.length)} of {allExercises.length} exercises
+              </Text>
+            </View>
+            <View className="bg-primary px-4 py-2 rounded-full">
+              <Text className="text-white font-bold">{allExercises.length}</Text>
+            </View>
           </View>
         </View>
 
         {/* Navigation Controls */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+        <View className="flex-row items-center justify-between mb-4">
           {/* Previous Button */}
           <TouchableOpacity
             onPress={goToPreviousPage}
-            disabled={!paginationInfo.hasPrevious}
-            style={{
-              backgroundColor: paginationInfo.hasPrevious ? vars.brand : vars.surface,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 12,
-              marginRight: 8,
-              opacity: paginationInfo.hasPrevious ? 1 : 0.5,
-            }}
+            disabled={currentPage === 1}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${
+              currentPage === 1 ? 'bg-surface opacity-50' : 'bg-primary'
+            }`}
             activeOpacity={0.7}
           >
-            <AntDesign
-              name="left"
-              size={16}
-              color={paginationInfo.hasPrevious ? '#FFFFFF' : vars.textSecondary}
+            <AntDesign 
+              name="left" 
+              size={16} 
+              color={currentPage === 1 ? vars['--text-light'] as string : 'white'} 
             />
           </TouchableOpacity>
 
-          {getPageNumbers().map((page, index) => {
-            if (page === '...') {
+         <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 4 }}
+        >
+          <View className="flex-row items-center">
+            {getPageNumbers().map((page, index) => {
+              if (page === '...') {
+                return (
+                  <View key={`ellipsis-${index}`} className="px-2">
+                    <Text className="text-text-light font-bold">...</Text>
+                  </View>
+                );
+              }
+
+              const isActive = page === currentPage;
               return (
-                <View
-                  key={`ellipsis-${index}`}
-                  style={{
-                    marginHorizontal: 4,
-                    width: 48,
-                    height: 48,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                <TouchableOpacity
+                  key={page}
+                  onPress={() => goToPage(page as number)}
+                  className={`mx-1 w-12 h-12 rounded-xl items-center justify-center ${
+                    isActive ? 'bg-brand' : 'bg-surface'
+                  }`}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 16, color: vars.textSecondary }}>...</Text>
-                </View>
+                  <Text className={`font-bold ${
+                    isActive ? 'text-white' : 'text-text'
+                  }`}>
+                    {page}
+                  </Text>
+                </TouchableOpacity>
               );
-            }
+            })}
+          </View>
+        </ScrollView>
 
-            const isActive = page === paginationInfo.currentPage;
-
-            return (
-              <TouchableOpacity
-                key={page}
-                onPress={() => goToPage(page as number)}
-                style={{
-                  marginHorizontal: 4,
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: isActive ? vars.brand : vars.surface,
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: isActive ? '600' : '400',
-                    color: isActive ? '#FFFFFF' : vars.text,
-                  }}
-                >
-                  {page}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
 
           {/* Next Button */}
           <TouchableOpacity
             onPress={goToNextPage}
-            disabled={!paginationInfo.hasNext}
-            style={{
-              backgroundColor: paginationInfo.hasNext ? vars.brand : vars.surface,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 12,
-              marginLeft: 8,
-              opacity: paginationInfo.hasNext ? 1 : 0.5,
-            }}
+            disabled={currentPage === totalPages}
+            className={`flex-row items-center px-6 py-3 rounded-xl ${
+              currentPage === totalPages ? 'bg-surface opacity-50' : 'bg-primary'
+            }`}
             activeOpacity={0.7}
           >
-            <AntDesign
-              name="right"
-              size={16}
-              color={paginationInfo.hasNext ? '#FFFFFF' : vars.textSecondary}
+            <AntDesign 
+              name="right" 
+              size={16} 
+              color={currentPage === totalPages ? vars['--text-light'] as string : 'white'} 
             />
           </TouchableOpacity>
         </View>
+        
       </View>
     );
   };
@@ -555,101 +473,114 @@ export default function ExercisesScreen() {
       transparent={true}
       onRequestClose={() => setShowFilters(false)}
     >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: vars.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 20,
-            maxHeight: '80%',
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <Text style={{ fontSize: 20, fontWeight: '600', color: vars.text }}>
-              Filters
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowFilters(false)}
-              style={{ padding: 8 }}
-            >
-              <AntDesign name="close" size={24} color={vars.text} />
+      <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
+        <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
+          <View className="flex-row justify-between items-center mb-6">
+            <Text className="text-text text-2xl font-bold">Filters</Text>
+            <TouchableOpacity onPress={() => setShowFilters(false)} className="p-2">
+              <AntDesign name="close" size={24} color={vars['--text'] as string} />
             </TouchableOpacity>
           </View>
 
-          {/* Filter content in ScrollView */}
-          <View style={{ maxHeight: '70%' }}>
+          <ScrollView showsVerticalScrollIndicator={false}>
             {/* Category Filter */}
-            <Text style={{ fontSize: 16, fontWeight: '600', color: vars.text, marginBottom: 12 }}>
-              Category
-            </Text>
-            <TouchableOpacity
-              onPress={() => setSelectedCategory(null)}
-              style={{
-                backgroundColor: selectedCategory === null ? vars.brand : vars.surface,
-                padding: 12,
-                borderRadius: 12,
-                marginBottom: 8,
-              }}
-            >
-              <Text style={{ color: selectedCategory === null ? '#FFFFFF' : vars.text }}>
-                All Categories
-              </Text>
-            </TouchableOpacity>
-            {categories.map((category: any) => (
-              <TouchableOpacity
-                key={category.id}
-                onPress={() => setSelectedCategory(category.id)}
-                style={{
-                  backgroundColor: selectedCategory === category.id ? vars.brand : vars.surface,
-                  padding: 12,
-                  borderRadius: 12,
-                  marginBottom: 8,
-                }}
-              >
-                <Text style={{ color: selectedCategory === category.id ? '#FFFFFF' : vars.text }}>
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <View className="mb-6">
+              <Text className="text-text text-lg font-bold mb-3">Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === null ? 'bg-primary' : 'bg-surface'
+                    }`}
+                  onPress={() => setSelectedCategory(null)}
+                >
+                  <Text className={`font-medium ${selectedCategory === null ? 'text-white' : 'text-text'
+                    }`}>All Categories</Text>
+                </TouchableOpacity>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === category.id ? 'bg-primary' : 'bg-surface'
+                      }`}
+                    onPress={() => setSelectedCategory(category.id)}
+                  >
+                    <Text className={`font-medium ${selectedCategory === category.id ? 'text-white' : 'text-text'
+                      }`}>{category.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-            {/* Similar sections for Muscle and Equipment */}
-          </View>
+            {/* Muscle Filter */}
+            <View className="mb-6">
+              <Text className="text-text text-lg font-bold mb-3">Target Muscle</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === null ? 'bg-primary' : 'bg-surface'
+                    }`}
+                  onPress={() => setSelectedMuscle(null)}
+                >
+                  <Text className={`font-medium ${selectedMuscle === null ? 'text-white' : 'text-text'
+                    }`}>All Muscles</Text>
+                </TouchableOpacity>
+                {muscles.map((muscle) => (
+                  <TouchableOpacity
+                    key={muscle.id}
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === muscle.id ? 'bg-primary' : 'bg-surface'
+                      }`}
+                    onPress={() => setSelectedMuscle(muscle.id)}
+                  >
+                    <Text className={`font-medium ${selectedMuscle === muscle.id ? 'text-white' : 'text-text'
+                      }`}>{muscle.name_en || muscle.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Equipment Filter */}
+            {activeTab === 'workout' && (
+              <View className="mb-6">
+                <Text className="text-text text-lg font-bold mb-3">Equipment</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <TouchableOpacity
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === null ? 'bg-primary' : 'bg-surface'
+                      }`}
+                    onPress={() => setSelectedEquipment(null)}
+                  >
+                    <Text className={`font-medium ${selectedEquipment === null ? 'text-white' : 'text-text'
+                      }`}>All Equipment</Text>
+                  </TouchableOpacity>
+                  {equipment.map((eq) => (
+                    <TouchableOpacity
+                      key={eq.id}
+                      className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === eq.id ? 'bg-primary' : 'bg-surface'
+                        }`}
+                      onPress={() => setSelectedEquipment(eq.id)}
+                    >
+                      <Text className={`font-medium ${selectedEquipment === eq.id ? 'text-white' : 'text-text'
+                        }`}>{eq.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </ScrollView>
 
           {/* Action Buttons */}
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+          <View className="flex-row justify-between mt-4 pt-4 border-t border-border">
             <TouchableOpacity
+              className="bg-surface flex-1 mr-2 py-4 rounded-xl"
               onPress={clearFilters}
-              style={{
-                flex: 1,
-                backgroundColor: vars.surface,
-                padding: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-              }}
             >
-              <Text style={{ color: vars.text, fontWeight: '600' }}>Clear All</Text>
+              <Text className="text-text text-center font-bold">Clear All</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
+              className="bg-primary flex-1 ml-2 py-4 rounded-xl"
               onPress={() => {
                 setShowFilters(false);
-                loadExercises(1);
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: vars.brand,
-                padding: 16,
-                borderRadius: 12,
-                alignItems: 'center',
+                loadExercisesByTab();
               }}
             >
-              <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Apply Filters</Text>
+              <Text className="text-white text-center font-bold">Apply Filters</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -657,71 +588,227 @@ export default function ExercisesScreen() {
     </Modal>
   );
 
+  const renderTabs = () => (
+    <View className="flex-row px-4 mb-4">
+      <TouchableOpacity
+        className={`flex-1 py-3.5  ${activeTab === 'workout'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
+        onPress={() => setActiveTab('workout')}
+        activeOpacity={0.7}
+      >
+        <Text className={`text-center font-bold text-text`}>
+          Workout
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className={`flex-1 py-3.5  ${activeTab === 'warmup'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
+        onPress={() => setActiveTab('warmup')}
+        activeOpacity={0.7}
+      >
+        <Text className={`text-center font-bold text-text`}>
+          Warmup
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className={`flex-1 py-3.5  ${activeTab === 'cooldown'
+          ? 'bg-brand'
+          : 'bg-surface'
+          }`}
+        onPress={() => setActiveTab('cooldown')}
+        activeOpacity={0.7}
+      >
+        <Text className={`text-center font-bold text-text`}>
+          Cooldown
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderActiveFilters = () => {
+    const activeFilters: { label: string; onRemove: () => void }[] = [];
+
+    if (selectedCategory) {
+      const category = categories.find(c => c.id === selectedCategory);
+      if (category) {
+        activeFilters.push({ label: `Category: ${category.name}`, onRemove: () => setSelectedCategory(null) });
+      }
+    }
+
+    if (selectedMuscle) {
+      const muscle = muscles.find(m => m.id === selectedMuscle);
+      if (muscle) {
+        activeFilters.push({ label: `Muscle: ${muscle.name_en || muscle.name}`, onRemove: () => setSelectedMuscle(null) });
+      }
+    }
+
+    if (selectedEquipment) {
+      const eq = equipment.find(e => e.id === selectedEquipment);
+      if (eq) {
+        activeFilters.push({ label: `Equipment: ${eq.name}`, onRemove: () => setSelectedEquipment(null) });
+      }
+    }
+
+    if (activeFilters.length === 0) return null;
+
+    return (
+      <View className="px-4 mb-3">
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="text-text-light text-sm">Active filters:</Text>
+          <TouchableOpacity onPress={clearFilters}>
+            <Text className="text-primary text-sm font-medium">Clear all</Text>
+          </TouchableOpacity>
+        </View>
+        <View className="flex-row flex-wrap">
+          {activeFilters.map((filter, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={filter.onRemove}
+              className="bg-primary px-3 py-1.5 rounded-full mr-2 mb-2 flex-row items-center"
+              activeOpacity={0.7}
+            >
+              <Text className="text-white text-sm font-medium mr-1">{filter.label}</Text>
+              <AntDesign name="close" size={12} color="white" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: vars.background, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={vars.brand} />
-        <Text style={{ color: vars.text, marginTop: 12 }}>Loading exercises...</Text>
+      <SafeAreaView className="flex-1 bg-bg">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color={vars['--primary'] as string} />
+          <Text className="text-text mt-4 font-medium">Loading exercises...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: vars.background }}>
-      <View style={{ flex: 1, paddingHorizontal: 16 }}>
-        {/* Your existing header, search, tabs, etc. */}
-
-        {/* Loading Overlay for Page Changes */}
-        {pageLoading && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1000,
-            }}
+    <SafeAreaView className="flex-1 bg-bg">
+      {/* Header */}
+      <View className="px-4 pt-4 pb-2">
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-text text-3xl font-bold">Exercises</Text>
+          
+          {/* Favorites Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/favorites')}
+            className="bg-surface px-4 py-2 rounded-xl flex-row items-center"
+            activeOpacity={0.7}
           >
-            <View style={{ backgroundColor: vars.surface, padding: 24, borderRadius: 16, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={vars.brand} />
-              <Text style={{ color: vars.text, marginTop: 12, fontSize: 16 }}>
-                Loading page {paginationInfo.currentPage}...
-              </Text>
-            </View>
-          </View>
-        )}
+            <AntDesign name="heart" size={20} color="#EF4444" />
+            {favorites.length > 0 && (
+              <View className="bg-primary px-2 py-0.5 rounded-full ml-2">
+                <Text className="text-white text-xs font-bold">{favorites.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-        {/* Exercise List */}
-        <FlatList
-          data={displayedExercises}
-          renderItem={renderExercise}
-          keyExtractor={(item) => `${activeTab}_${item.id}`}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={vars.brand}
-              colors={[vars.brand]}
+        {/* Search Bar */}
+        <View className="flex-row items-center mb-3">
+          <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-xl mr-2">
+            <FontAwesome name="search" size={20} color={vars['--text-light'] as string}/>
+            <TextInput
+              className="flex-1 text-text ml-3 text-base"
+              placeholder={`Search ${activeTab} exercises...`}
+              placeholderTextColor={vars['--text-light'] as string}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
             />
-          }
-          ListFooterComponent={renderPaginationControls}
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Text style={{ fontSize: 16, color: vars.textSecondary }}>
-                No exercises found
-              </Text>
-            </View>
-          }
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-        />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
+                <AntDesign name="close" size={20} color={vars['--text-light'] as string} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
-        {renderFilterModal()}
+          {activeTab === 'workout' && (
+            <TouchableOpacity
+              onPress={() => setShowFilters(true)}
+              className="bg-surface p-3 rounded-xl"
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="filter" size={20} color={vars['--text-light'] as string} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {/* Tabs */}
+      {renderTabs()}
+
+      {/* Active Filters */}
+      {activeTab === 'workout' && renderActiveFilters()}
+
+      {/* Loading Indicator for Search */}
+      {searchLoading && (
+        <View className="py-2">
+          <ActivityIndicator size="small" color={vars['--primary'] as string} />
+        </View>
+      )}
+
+      {/* Page Loading Overlay */}
+      {pageLoading && (
+        <View className="absolute top-0 left-0 right-0 bottom-0 bg-bg/80 justify-center items-center z-50">
+          <View className="bg-surface p-6 rounded-2xl items-center">
+            <ActivityIndicator size="large" color={vars['--primary'] as string} />
+            <Text className="text-text mt-4 font-medium">Loading page {currentPage}...</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Exercise List */}
+      <FlatList
+        data={displayedExercises}
+        renderItem={renderExercise}
+        keyExtractor={(item) => `${activeTab}_${item.id}_${currentPage}`}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={vars['--primary'] as string}
+            colors={[vars['--primary'] as string]}
+          />
+        }
+        ListFooterComponent={renderPaginationControls}
+        ListEmptyComponent={
+          <View className="flex-1 justify-center items-center py-20 px-4">
+            <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
+              {searchQuery ? (
+                <AntDesign name="search" size={48} color={vars['--text-light'] as string} />
+              ) : (
+                <MaterialIcons name="fitness-center" size={48} color={vars['--text-light'] as string} />
+              )}
+            </View>
+            <Text className="text-text mt-4 text-center text-lg font-bold">
+              {searchQuery
+                ? 'No exercises found'
+                : 'No exercises available'}
+            </Text>
+            <Text className="text-text-light mt-2 text-center">
+              {searchQuery
+                ? 'Try adjusting your search terms'
+                : 'Try changing your filters or pull down to refresh'}
+            </Text>
+          </View>
+        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+      {renderFilterModal()}
     </SafeAreaView>
   );
 }

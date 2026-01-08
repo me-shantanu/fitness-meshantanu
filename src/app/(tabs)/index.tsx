@@ -9,16 +9,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
-import { useWorkoutStore } from '../../store/workoutStore';
 import { workoutService } from '../../services/workoutService';
 import { nutritionService } from '../../services/nutritionService';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Icon from '@/components/Icon';
+import { User } from '@supabase/supabase-js';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  console.log('User in HomeScreen:', user);
+  const { user, profile } = useAuthStore();
   const [activePlan, setActivePlan] = useState(null);
   const [todayWorkout, setTodayWorkout] = useState(null);
   const [nutrition, setNutrition] = useState(null);
@@ -50,12 +50,12 @@ export default function HomeScreen() {
       setNutrition(nutritionData);
 
       // Calculate stats
-      const workoutsThisWeek = history.filter(s => 
+      const workoutsThisWeek = history.filter(s =>
         new Date(s.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       ).length;
 
       const totalVolume = history.reduce((sum, session) => {
-        return sum + (session.exercise_sets?.reduce((setSum, set) => 
+        return sum + (session.exercise_sets?.reduce((setSum, set) =>
           setSum + (set.weight * set.reps), 0) || 0);
       }, 0);
 
@@ -80,7 +80,7 @@ export default function HomeScreen() {
 
   const startWorkout = async () => {
     if (!todayWorkout) return;
-    
+
     const session = await workoutService.startWorkoutSession(user.id, todayWorkout.id);
     if (session) {
       router.push({
@@ -105,7 +105,7 @@ export default function HomeScreen() {
       <ScrollView className="flex-1">
         {/* Welcome Header */}
         <View className="px-4 pt-4 pb-2">
-          <Text className="text-text text-2xl font-bold">Welcome back {user?.name || 'User'}!</Text>
+          <Text className="text-text text-2xl font-bold">Welcome back {profile?.full_name?.split(' ')[0] || 'User'}</Text>
           <Text className="text-text-light">Ready for your workout today?</Text>
         </View>
 
@@ -123,7 +123,7 @@ export default function HomeScreen() {
                     <Text className="text-text opacity-90 mb-4">
                       {todayWorkout.planned_exercises?.length || 0} exercises
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       className="bg-white py-3 rounded-lg"
                       onPress={startWorkout}
                     >
@@ -137,7 +137,7 @@ export default function HomeScreen() {
             ) : (
               <>
                 <Text className="text-text text-xl mb-4">No workout scheduled</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   className="bg-white py-3 rounded-lg"
                   onPress={() => router.push('/create-plan')}
                 >
@@ -189,7 +189,7 @@ export default function HomeScreen() {
               <Text className="text-text text-2xl font-bold mt-2">{stats.workoutsThisWeek}</Text>
               <Text className="text-text-light">Workouts this week</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
               <FontAwesome name="line-chart" size={24} color="#10B981" />
               <Text className="text-text text-2xl font-bold mt-2">
@@ -197,13 +197,13 @@ export default function HomeScreen() {
               </Text>
               <Text className="text-text-light">Total volume</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4">
               <FontAwesome name="trophy" size={24} color="#F59E0B" />
               <Text className="text-text text-2xl font-bold mt-2">{stats.prsThisMonth}</Text>
               <Text className="text-text-light">PRs this month</Text>
             </View>
-            
+
             <View className="bg-surface w-[48%] rounded-xl p-4">
               <FontAwesome name="fire" size={24} color="#EF4444" />
               <Text className="text-text text-2xl font-bold mt-2">
@@ -218,27 +218,27 @@ export default function HomeScreen() {
         <View className="px-4 mt-6 mb-8">
           <Text className="text-text text-xl font-bold mb-4">Quick Actions</Text>
           <View className="flex-row justify-between">
-            <TouchableOpacity 
+            <TouchableOpacity
               className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center"
               onPress={() => router.push('/exercises')}
             >
-              <AntDesign name="pluscircleo" size={24} color="#3B82F6" />
+              <Icon name="CirclePlus" size={24} color="#3B82F6" />
               <Text className="text-text mt-2 text-center">Add Exercise</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center"
               onPress={() => router.push('/history')}
             >
-              <AntDesign name="calendar" size={24} color="#10B981" />
+              <Icon name="Calendars" size={24} color="#10B981" />
               <Text className="text-text mt-2 text-center">History</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center"
               onPress={() => router.push('/progress')}
             >
-              <AntDesign name="linechart" size={24} color="#F59E0B" />
+              <Icon name="ChartColumnIncreasing" size={24} color="#F59E0B" />
               <Text className="text-text mt-2 text-center">Progress</Text>
             </TouchableOpacity>
           </View>
