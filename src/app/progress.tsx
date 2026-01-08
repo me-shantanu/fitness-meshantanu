@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -20,7 +21,7 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function ProgressScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('volume'); // volume, workouts, calories, prs
   const [selectedPeriod, setSelectedPeriod] = useState('month'); // week, month, 3months, year
@@ -45,7 +46,7 @@ export default function ProgressScreen() {
       // Calculate date range
       const now = new Date();
       let startDate = new Date();
-      
+
       switch (selectedPeriod) {
         case 'week':
           startDate.setDate(now.getDate() - 7);
@@ -105,12 +106,12 @@ export default function ProgressScreen() {
   const processProgressData = (sessions) => {
     // Group sessions by week for display
     const weeklyData = {};
-    
+
     sessions.forEach(session => {
       const date = new Date(session.date);
       const weekStart = getWeekStart(date);
       const weekKey = weekStart.toISOString().split('T')[0];
-      
+
       if (!weeklyData[weekKey]) {
         weeklyData[weekKey] = {
           weekStart,
@@ -120,11 +121,11 @@ export default function ProgressScreen() {
           sets: 0
         };
       }
-      
+
       // Calculate session volume
-      const sessionVolume = session.exercise_sets?.reduce((sum, set) => 
+      const sessionVolume = session.exercise_sets?.reduce((sum, set) =>
         sum + (set.weight * set.reps), 0) || 0;
-      
+
       weeklyData[weekKey].volume += sessionVolume;
       weeklyData[weekKey].calories += session.total_calories_burned || 0;
       weeklyData[weekKey].workouts += 1;
@@ -133,8 +134,8 @@ export default function ProgressScreen() {
 
     // Convert to array and sort by date
     return Object.values(weeklyData)
-      .sort((a, b) => a.weekStart - b.weekStart)
-      .map((week, index) => ({
+      .sort((a: any, b: any) => a.weekStart - b.weekStart)
+      .map((week: any, index) => ({
         ...week,
         label: `Week ${index + 1}`,
         shortLabel: `W${index + 1}`
@@ -157,26 +158,26 @@ export default function ProgressScreen() {
     const workoutDays = new Set();
 
     // Sort sessions by date
-    const sortedSessions = [...sessions].sort((a, b) => 
-      new Date(a.date) - new Date(b.date)
+    const sortedSessions = [...sessions].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
     // Calculate streaks and totals
     let prevDate = null;
     sortedSessions.forEach(session => {
       // Calculate volume and calories
-      const sessionVolume = session.exercise_sets?.reduce((sum, set) => 
+      const sessionVolume = session.exercise_sets?.reduce((sum, set) =>
         sum + (set.weight * set.reps), 0) || 0;
       totalVolume += sessionVolume;
       totalCalories += session.total_calories_burned || 0;
-      
+
       // Track unique workout days
       workoutDays.add(session.date);
-      
+
       // Calculate streak
       const currentDate = new Date(session.date);
       if (prevDate) {
-        const diffDays = Math.floor((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.floor((currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
         if (diffDays === 1) {
           currentStreakCount++;
           bestStreak = Math.max(bestStreak, currentStreakCount);
@@ -190,12 +191,12 @@ export default function ProgressScreen() {
     });
 
     currentStreak = currentStreakCount;
-    
+
     // Calculate workout days this month
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
     const workoutDaysThisMonth = Array.from(workoutDays).filter(dateStr => {
-      const date = new Date(dateStr);
+      const date = new Date(dateStr as string);
       return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
     }).length;
 
@@ -226,7 +227,7 @@ export default function ProgressScreen() {
 
     // Get max value for scaling
     const maxValue = Math.max(...progressData.map(item => item[selectedMetric]));
-    
+
     return (
       <View className="bg-surface rounded-xl p-4">
         <View className="flex-row justify-between mb-2">
@@ -240,20 +241,20 @@ export default function ProgressScreen() {
             {progressData.length} weeks
           </Text>
         </View>
-        
+
         <View className="h-40 flex-row items-end justify-between">
           {progressData.slice(-8).map((week, index) => {
             const value = week[selectedMetric];
             const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-            
+
             let barColor = '#3B82F6'; // Blue for volume
             if (selectedMetric === 'workouts') barColor = '#10B981'; // Green
             if (selectedMetric === 'calories') barColor = '#EF4444'; // Red
             if (selectedMetric === 'sets') barColor = '#8B5CF6'; // Purple
-            
+
             return (
               <View key={index} className="items-center flex-1">
-                <View 
+                <View
                   className="w-6 rounded-t-lg"
                   style={{
                     height: `${percentage}%`,
@@ -285,7 +286,7 @@ export default function ProgressScreen() {
             <Text className="text-text text-2xl font-bold">{stats.currentStreak} days</Text>
             <Text className="text-blue-300 text-sm">Best: {stats.bestStreak} days</Text>
           </View>
-          
+
           <View className="bg-green-600/20 rounded-xl p-4 mr-3 w-40">
             <View className="flex-row items-center mb-2">
               <Feather name="calendar" size={20} color="#10B981" />
@@ -294,7 +295,7 @@ export default function ProgressScreen() {
             <Text className="text-text text-2xl font-bold">{stats.workoutDaysThisMonth} days</Text>
             <Text className="text-green-300 text-sm">Workout days</Text>
           </View>
-          
+
           <View className="bg-purple-600/20 rounded-xl p-4 w-40">
             <View className="flex-row items-center mb-2">
               <Feather name="award" size={20} color="#8B5CF6" />
@@ -311,7 +312,7 @@ export default function ProgressScreen() {
   const renderPersonalRecords = () => (
     <View className="px-4 mb-8">
       <Text className="text-text text-xl font-bold mb-4">Personal Records</Text>
-      
+
       {personalRecords.length > 0 ? (
         personalRecords.slice(0, 5).map((pr, index) => (
           <TouchableOpacity
@@ -328,24 +329,24 @@ export default function ProgressScreen() {
                 <Text className="text-yellow-400 font-bold">PR 🏆</Text>
               </View>
             </View>
-            
+
             <View className="flex-row justify-between">
               <View>
                 <Text className="text-text-light text-sm">Max Weight</Text>
                 <Text className="text-text font-bold text-xl">{pr.max_weight}kg</Text>
               </View>
-              
+
               <View>
                 <Text className="text-text-light text-sm">Max Reps</Text>
                 <Text className="text-text font-bold text-xl">{pr.max_reps}</Text>
               </View>
-              
+
               <View>
                 <Text className="text-text-light text-sm">Date</Text>
                 <Text className="text-text">
-                  {new Date(pr.achieved_at).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
+                  {new Date(pr.achieved_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
                   })}
                 </Text>
               </View>
@@ -363,7 +364,7 @@ export default function ProgressScreen() {
           </Text>
         </View>
       )}
-      
+
       {personalRecords.length > 5 && (
         <TouchableOpacity
           className="bg-surface rounded-xl p-4 items-center mt-3"
@@ -396,7 +397,7 @@ export default function ProgressScreen() {
         {/* Header */}
         <View className="px-4 pt-4 pb-2">
           <Text className="text-text text-3xl font-bold mb-4">Progress</Text>
-          
+
           {/* Metric Selector */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {[
@@ -407,17 +408,19 @@ export default function ProgressScreen() {
             ].map((metric) => (
               <TouchableOpacity
                 key={metric.id}
-                className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${
-                  selectedMetric === metric.id ? 'bg-blue-600' : 'bg-surface'
-                }`}
+                className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${selectedMetric === metric.id ? 'bg-blue-600' : 'bg-surface'
+                  }`}
                 onPress={() => setSelectedMetric(metric.id)}
               >
-                <Feather name={metric.icon} size={16} color="white" />
+                {metric.icon === 'fire' ?
+                  <AntDesign name={metric.icon} size={16} color="white" /> :
+                  <Feather name={metric.icon as any} size={16} color="white" />
+                }
                 <Text className="text-text font-medium ml-2">{metric.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
+
           {/* Period Selector */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
             {[
@@ -428,9 +431,8 @@ export default function ProgressScreen() {
             ].map((period) => (
               <TouchableOpacity
                 key={period.id}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  selectedPeriod === period.id ? 'bg-green-600' : 'bg-surface'
-                }`}
+                className={`px-4 py-2 rounded-full mr-2 ${selectedPeriod === period.id ? 'bg-green-600' : 'bg-surface'
+                  }`}
                 onPress={() => setSelectedPeriod(period.id)}
               >
                 <Text className="text-text font-medium">{period.label}</Text>
@@ -450,45 +452,45 @@ export default function ProgressScreen() {
             {selectedMetric === 'calories' && 'Calories Burned'}
             {selectedMetric === 'sets' && 'Sets Completed'}
           </Text>
-          
+
           {renderProgressBars()}
         </View>
 
         {/* Stats Summary */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Statistics</Text>
-          
+
           <View className="bg-surface rounded-xl p-4">
             <View className="flex-row justify-between mb-4">
               <View className="items-center flex-1">
                 <Text className="text-text text-2xl font-bold">{stats.totalWorkouts}</Text>
                 <Text className="text-text-light">Total Workouts</Text>
               </View>
-              
+
               <View className="items-center flex-1">
                 <Text className="text-text text-2xl font-bold">{stats.totalCalories}</Text>
                 <Text className="text-text-light">Calories Burned</Text>
               </View>
-              
+
               <View className="items-center flex-1">
                 <Text className="text-text text-2xl font-bold">{Math.round(stats.totalVolume)}</Text>
                 <Text className="text-text-light">Total Volume (kg)</Text>
               </View>
             </View>
-            
+
             <View className="flex-row justify-between">
               <View className="items-center flex-1">
                 <Feather name="trending-up" size={20} color="#10B981" />
                 <Text className="text-text font-bold mt-1">{stats.currentStreak}</Text>
                 <Text className="text-text-light text-xs">Current Streak</Text>
               </View>
-              
+
               <View className="items-center flex-1">
                 <Feather name="target" size={20} color="#3B82F6" />
                 <Text className="text-text font-bold mt-1">{stats.bestStreak}</Text>
                 <Text className="text-text-light text-xs">Best Streak</Text>
               </View>
-              
+
               <View className="items-center flex-1">
                 <Feather name="calendar" size={20} color="#8B5CF6" />
                 <Text className="text-text font-bold mt-1">{stats.workoutDaysThisMonth}</Text>

@@ -112,7 +112,11 @@ export default function ExerciseDetailScreen() {
     if (isFavorite(exercise.id)) {
       await removeFavorite(exercise.id);
     } else {
-      await addFavorite(exercise.id, exercise.name, type || 'workout');
+      await addFavorite(
+        exercise.id,
+        exercise.name,
+        Array.isArray(type) ? type[0] : (type || 'workout')
+      );
     }
   };
 
@@ -607,14 +611,14 @@ export default function ExerciseDetailScreen() {
         </View>
 
         <TouchableOpacity onPress={toggleFavorite} className="p-2">
-           {isFavorite(exercise.id) ?
-              <AntDesign
-                name={'heart'}
-                size={24}
-                color={'#EF4444'}
-              /> :
-              <FontAwesome name="heart-o" size={24} color={vars['--text-light'] as string} />
-            }
+          {isFavorite(exercise.id) ?
+            <AntDesign
+              name={'heart'}
+              size={24}
+              color={'#EF4444'}
+            /> :
+            <FontAwesome name="heart-o" size={24} color={vars['--text-light'] as string} />
+          }
         </TouchableOpacity>
       </View>
 
