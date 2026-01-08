@@ -1,9 +1,7 @@
 import { Tabs } from "expo-router";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useThemeStore } from "@/store/useThemeStore";
 import { View } from "react-native";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Icon from "@/components/Icon";
 
 export default function TabsLayout() {
   const { vars, mode } = useThemeStore();
@@ -30,7 +28,8 @@ export default function TabsLayout() {
           options={{
             title: "Home",
             tabBarIcon: ({ color, size }) => (
-              <AntDesign name="home" color={color} size={size} />
+              <Icon name="House" color={color} size={size} />
+              // <AntDesign name="home" color={color} size={size} />
             ),
           }}
         />
@@ -40,7 +39,7 @@ export default function TabsLayout() {
           options={{
             title: "Exercises",
             tabBarIcon: ({ color, size }) => (
-              <FontAwesome name="list-alt" size={size} color={color} />
+              <Icon name="ClipboardList" color={color} size={size} />
             ),
           }}
         />
@@ -50,7 +49,7 @@ export default function TabsLayout() {
           options={{
             title: "Workout",
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="fitness-center" color={color} size={size} />
+              <Icon name="Dumbbell" color={color} size={size} />
             ),
           }}
         />
@@ -60,7 +59,7 @@ export default function TabsLayout() {
           options={{
             title: "Profile",
             tabBarIcon: ({ color, size }) => (
-              <AntDesign name="user" color={color} size={size} />
+              <Icon name="UserCircle" color={color} size={size} />
             ),
           }}
         />
