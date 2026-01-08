@@ -19,7 +19,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 export default function HistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('week'); // week, month, year
@@ -53,7 +53,7 @@ export default function HistoryScreen() {
       // Apply date filter
       const now = new Date();
       let startDate = new Date();
-      
+
       switch (selectedPeriod) {
         case 'week':
           startDate.setDate(now.getDate() - 7);
@@ -136,11 +136,11 @@ export default function HistoryScreen() {
   };
 
   const renderWorkoutSession = ({ item: session }) => {
-    const duration = session.completed_at 
-      ? Math.round((new Date(session.completed_at) - new Date(session.started_at)) / 60000)
+    const duration = session.completed_at
+      ? Math.round((new Date(session.completed_at).getTime() - new Date(session.started_at).getTime()) / 60000)
       : null;
-    
-    const totalVolume = session.exercise_sets?.reduce((sum, set) => 
+
+    const totalVolume = session.exercise_sets?.reduce((sum, set) =>
       sum + (set.weight * set.reps), 0) || 0;
 
     return (
@@ -160,7 +160,7 @@ export default function HistoryScreen() {
               {session.completed_at ? 'Completed' : 'In Progress'}
             </Text>
           </View>
-          
+
           <View className="items-end">
             <Text className="text-text font-bold">
               {session.start_time ? new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
@@ -170,34 +170,34 @@ export default function HistoryScreen() {
             )}
           </View>
         </View>
-        
+
         <View className="flex-row justify-between mb-3">
           <View className="items-center flex-1">
             <Feather name="activity" size={20} color="#10B981" />
             <Text className="text-text font-bold mt-1">{session.exercise_sets?.length || 0}</Text>
             <Text className="text-text-light text-xs">Sets</Text>
           </View>
-          
+
           <View className="items-center flex-1">
             <Feather name="bar-chart-2" size={20} color="#3B82F6" />
             <Text className="text-text font-bold mt-1">{Math.round(totalVolume)}</Text>
             <Text className="text-text-light text-xs">Volume</Text>
           </View>
-          
+
           <View className="items-center flex-1">
-            <Feather name="fire" size={20} color="#EF4444" />
+            <AntDesign name="fire" size={20} color="#EF4444" />
             <Text className="text-text font-bold mt-1">{session.total_calories_burned || 0}</Text>
             <Text className="text-text-light text-xs">Calories</Text>
           </View>
         </View>
-        
+
         {session.exercise_sets && session.exercise_sets.length > 0 && (
           <View className="mt-3 pt-3 border-t border-gray-700">
             <Text className="text-text-light text-sm mb-2">Exercises:</Text>
             <View className="flex-row flex-wrap">
               {[...new Set(session.exercise_sets.map(s => s.exercise_name))].slice(0, 3).map((name, index) => (
                 <View key={index} className="bg-gray-700 px-2 py-1 rounded mr-1 mb-1">
-                  <Text className="text-gray-300 text-xs">{name}</Text>
+                  <Text className="text-gray-300 text-xs">{name as string}</Text>
                 </View>
               ))}
             </View>
@@ -233,7 +233,7 @@ export default function HistoryScreen() {
         {/* Header */}
         <View className="px-4 pt-4 pb-2">
           <Text className="text-text text-3xl font-bold mb-4">Workout History</Text>
-          
+
           {/* Period Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             {[
@@ -244,16 +244,15 @@ export default function HistoryScreen() {
             ].map((period) => (
               <TouchableOpacity
                 key={period.id}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  selectedPeriod === period.id ? 'bg-blue-600' : 'bg-surface'
-                }`}
+                className={`px-4 py-2 rounded-full mr-2 ${selectedPeriod === period.id ? 'bg-blue-600' : 'bg-surface'
+                  }`}
                 onPress={() => setSelectedPeriod(period.id)}
               >
                 <Text className="text-text font-medium">{period.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
+
           {/* Status Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
             {[
@@ -263,9 +262,8 @@ export default function HistoryScreen() {
             ].map((filter) => (
               <TouchableOpacity
                 key={filter.id}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  selectedFilter === filter.id ? 'bg-green-600' : 'bg-surface'
-                }`}
+                className={`px-4 py-2 rounded-full mr-2 ${selectedFilter === filter.id ? 'bg-green-600' : 'bg-surface'
+                  }`}
                 onPress={() => setSelectedFilter(filter.id)}
               >
                 <Text className="text-text font-medium">{filter.label}</Text>
@@ -277,20 +275,20 @@ export default function HistoryScreen() {
         {/* Stats Summary */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Summary</Text>
-          
+
           <View className="flex-row justify-between">
             <View className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center">
               <MaterialIcons name="fitness-center" size={24} color="#3B82F6" />
               <Text className="text-text text-2xl font-bold mt-2">{stats.totalWorkouts}</Text>
               <Text className="text-text-light">Workouts</Text>
             </View>
-            
+
             <View className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center">
-              <Feather name="fire" size={24} color="#EF4444" />
+              <AntDesign name="fire" size={24} color="#EF4444" />
               <Text className="text-text text-2xl font-bold mt-2">{stats.totalCalories}</Text>
               <Text className="text-text-light">Calories</Text>
             </View>
-            
+
             <View className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center">
               <Feather name="activity" size={24} color="#10B981" />
               <Text className="text-text text-2xl font-bold mt-2">{stats.totalSets}</Text>
@@ -318,7 +316,7 @@ export default function HistoryScreen() {
                   No Workouts Found
                 </Text>
                 <Text className="text-text-light text-center mb-4">
-                  {selectedFilter === 'active' 
+                  {selectedFilter === 'active'
                     ? 'No active workouts in this period'
                     : 'No completed workouts in this period'}
                 </Text>
