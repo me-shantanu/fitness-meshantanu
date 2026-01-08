@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -20,108 +21,161 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useThemeStore } from '@/store/useThemeStore';
 
+const INITIAL_FOOD_FORM = {
+  name: '',
+  calories: '',
+  protein: '',
+  carbs: '',
+  fats: '',
+  servingSize: '',
+};
+
 export default function NutritionScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { vars, mode } = useThemeStore();
+  
   const [nutrition, setNutrition] = useState(null);
   const [dailyLog, setDailyLog] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddFood, setShowAddFood] = useState(false);
-  const [foodForm, setFoodForm] = useState({
-    name: '',
-    calories: '',
-    protein: '',
-    carbs: '',
-    fats: '',
-    servingSize: '',
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [foodForm, setFoodForm] = useState(INITIAL_FOOD_FORM);
 
+  // Load nutrition data on mount and date change
   useEffect(() => {
     loadNutritionData();
-  }, [selectedDate]);
+  }, [selectedDate, user.id]);
+
+  // Memoized date string
+  const dateString = useMemo(() => 
+    selectedDate.toISOString().split('T')[0],
+    [selectedDate]
+  );
 
   const loadNutritionData = async () => {
-    setLoading(true);
     try {
-      // Get nutrition targets
-      const nutritionData = await nutritionService.calculateDailyTargets(user.id);
-      setNutrition(nutritionData);
+      setLoading(true);
 
-      // Get daily log for selected date
-      const dateString = selectedDate.toISOString().split('T')[0];
-      const { data: logData } = await supabase
-        .from('daily_nutrition')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', dateString)
-        .single();
+      // Fetch nutrition targets and daily log in parallel
+      const [nutritionData, logData]: [any, any] = await Promise.all([
+        nutritionService.calculateDailyTargets(user.id),
+        supabase
+          .from('daily_nutrition')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', dateString)
+          .maybeSingle()
+      ]);
 
-      setDailyLog(logData || {
-        calories_consumed: 0,
-        protein_consumed: 0,
-        carbs_consumed: 0,
-        fats_consumed: 0,
-        water_intake_ml: 0,
-      });
+      // Handle incomplete profile
+      if (nutritionData && nutritionData.error === 'incomplete_profile') {
+        Alert.alert(
+          'Complete Your Profile',
+          'Please complete your profile (weight, height, age, gender) to calculate nutrition targets.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Go to Profile', onPress: () => router.push('/profile') }
+          ]
+        );
+        setNutrition(null);
+      } else if (nutritionData && nutritionData.success) {
+        setNutrition(nutritionData);
+      } else {
+        console.error('Failed to load nutrition data');
+        setNutrition(null);
+      }
+
+      // Set daily log or default values
+      if (logData.data) {
+        setDailyLog(logData.data);
+      } else {
+        setDailyLog({
+          calories_consumed: 0,
+          protein_consumed: 0,
+          carbs_consumed: 0,
+          fats_consumed: 0,
+          water_intake_ml: 0,
+          calories_burned: 0
+        });
+      }
     } catch (error) {
       console.error('Error loading nutrition data:', error);
+      Alert.alert('Error', 'Failed to load nutrition data. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
   };
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadNutritionData();
+  }, []);
+
   const addFood = async () => {
-    if (!foodForm.name || !foodForm.calories) {
-      Alert.alert('Error', 'Please enter food name and calories');
-      return;
-    }
+    // Prevent double submission
+    if (submitting) return;
 
     try {
-      const dateString = selectedDate.toISOString().split('T')[0];
+      setSubmitting(true);
+
+      // Validate input
+      const validatedFood = nutritionService.validateFoodInput(foodForm);
 
       // Check if daily log exists
-      const { data: existingLog } = await supabase
+      const { data: existingLog, error: fetchError } = await supabase
         .from('daily_nutrition')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', dateString)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
 
       if (existingLog) {
         // Update existing log
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('daily_nutrition')
           .update({
-            calories_consumed: existingLog.calories_consumed + parseInt(foodForm.calories),
-            protein_consumed: existingLog.protein_consumed + parseFloat(foodForm.protein || 0),
-            carbs_consumed: existingLog.carbs_consumed + parseFloat(foodForm.carbs || 0),
-            fats_consumed: existingLog.fats_consumed + parseFloat(foodForm.fats || 0),
+            calories_consumed: existingLog.calories_consumed + validatedFood.calories,
+            protein_consumed: existingLog.protein_consumed + validatedFood.protein,
+            carbs_consumed: existingLog.carbs_consumed + validatedFood.carbs,
+            fats_consumed: existingLog.fats_consumed + validatedFood.fats,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingLog.id);
 
-        if (error) throw error;
+        if (updateError) throw updateError;
       } else {
         // Create new log with nutrition targets
-        const { error } = await supabase
+        const targets = nutrition || await nutritionService.calculateDailyTargets(user.id);
+        
+        if (!targets || !targets.success) {
+          throw new Error('Unable to calculate nutrition targets');
+        }
+
+        const { error: insertError } = await supabase
           .from('daily_nutrition')
           .insert({
             user_id: user.id,
             date: dateString,
-            target_calories: nutrition?.calories || 2000,
-            target_protein: nutrition?.protein || 150,
-            target_carbs: nutrition?.carbs || 250,
-            target_fats: nutrition?.fats || 65,
-            calories_consumed: parseInt(foodForm.calories),
-            protein_consumed: parseFloat(foodForm.protein || 0),
-            carbs_consumed: parseFloat(foodForm.carbs || 0),
-            fats_consumed: parseFloat(foodForm.fats || 0),
-            water_intake_ml: 0
+            target_calories: targets.calories,
+            target_protein: targets.protein,
+            target_carbs: targets.carbs,
+            target_fats: targets.fats,
+            calories_consumed: validatedFood.calories,
+            protein_consumed: validatedFood.protein,
+            carbs_consumed: validatedFood.carbs,
+            fats_consumed: validatedFood.fats,
+            water_intake_ml: 0,
+            calories_burned: 0
           });
 
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
 
       // Add to food log history
@@ -130,47 +184,47 @@ export default function NutritionScreen() {
         .insert({
           user_id: user.id,
           date: dateString,
-          food_name: foodForm.name,
-          calories: parseInt(foodForm.calories),
-          protein: parseFloat(foodForm.protein || 0),
-          carbs: parseFloat(foodForm.carbs || 0),
-          fats: parseFloat(foodForm.fats || 0),
-          serving_size: foodForm.servingSize,
-          meal_type: 'snack'
+          food_name: validatedFood.name,
+          calories: validatedFood.calories,
+          protein: validatedFood.protein,
+          carbs: validatedFood.carbs,
+          fats: validatedFood.fats,
+          serving_size: validatedFood.servingSize || null,
+          meal_type: 'snack',
+          logged_at: new Date().toISOString()
         });
 
-      if (foodError) throw error;
+      if (foodError) throw foodError;
 
-      Alert.alert('Success', 'Food added successfully!');
+      // Success
+      Alert.alert('Success', `${validatedFood.name} added successfully!`);
       setShowAddFood(false);
-      setFoodForm({
-        name: '',
-        calories: '',
-        protein: '',
-        carbs: '',
-        fats: '',
-        servingSize: '',
-      });
+      setFoodForm(INITIAL_FOOD_FORM);
       loadNutritionData();
     } catch (error) {
       console.error('Error adding food:', error);
-      Alert.alert('Error', 'Failed to add food');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to add food. Please check your input and try again.'
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const addWater = async (amount) => {
     try {
-      const dateString = selectedDate.toISOString().split('T')[0];
-
-      const { data: existingLog } = await supabase
+      const { data: existingLog, error: fetchError } = await supabase
         .from('daily_nutrition')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', dateString)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
 
       if (existingLog) {
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('daily_nutrition')
           .update({
             water_intake_ml: (existingLog.water_intake_ml || 0) + amount,
@@ -178,53 +232,67 @@ export default function NutritionScreen() {
           })
           .eq('id', existingLog.id);
 
-        if (error) throw error;
+        if (updateError) throw updateError;
       } else {
-        const { error } = await supabase
-          .from('daily_nutrition')
-          .insert({
-            user_id: user.id,
-            date: dateString,
-            water_intake_ml: amount,
-            calories_consumed: 0,
-            protein_consumed: 0,
-            carbs_consumed: 0,
-            fats_consumed: 0
-          });
+        // Create new log if doesn't exist
+        const targets = nutrition || await nutritionService.calculateDailyTargets(user.id);
+        
+        if (targets && targets.success) {
+          const { error: insertError } = await supabase
+            .from('daily_nutrition')
+            .insert({
+              user_id: user.id,
+              date: dateString,
+              target_calories: targets.calories,
+              target_protein: targets.protein,
+              target_carbs: targets.carbs,
+              target_fats: targets.fats,
+              water_intake_ml: amount,
+              calories_consumed: 0,
+              protein_consumed: 0,
+              carbs_consumed: 0,
+              fats_consumed: 0,
+              calories_burned: 0
+            });
 
-        if (error) throw error;
+          if (insertError) throw insertError;
+        }
       }
 
       loadNutritionData();
     } catch (error) {
       console.error('Error adding water:', error);
+      Alert.alert('Error', 'Failed to add water intake');
     }
   };
 
-  const calculateRemaining = (consumed, target) => {
+  const calculateRemaining = useCallback((consumed, target) => {
+    if (!target || target <= 0) return 0;
     const remaining = target - consumed;
-    return remaining > 0 ? remaining : 0;
-  };
+    return Math.max(0, remaining);
+  }, []);
 
-  const calculatePercentage = (consumed, target) => {
-    if (target === 0) return 0;
+  const calculatePercentage = useCallback((consumed, target) => {
+    if (!target || target <= 0) return 0;
     const percentage = (consumed / target) * 100;
-    return percentage > 100 ? 100 : percentage;
-  };
-  const renderMacroCard = (title, consumed, target, unit, color) => {
+    return Math.min(100, percentage);
+  }, []);
+
+  const renderMacroCard = useCallback((title, consumed, target, unit, color) => {
     const remaining = calculateRemaining(consumed, target);
     const percentage = calculatePercentage(consumed, target);
+    const isOverTarget = consumed > target;
 
     return (
       <View className="bg-surface rounded-xl p-4 mb-3">
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-text font-bold">{title}</Text>
+          <Text className="text-text font-bold text-base">{title}</Text>
           <View className="flex-row items-center">
-            <Text className="text-text-light mr-2">
+            <Text className="text-text-light mr-2 text-sm">
               {consumed.toFixed(0)}/{target} {unit}
             </Text>
-            <Text className={`font-bold ${remaining > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {remaining > 0 ? `${remaining} ${unit} left` : 'Goal reached!'}
+            <Text className={`font-bold text-sm ${isOverTarget ? 'text-orange-400' : 'text-green-400'}`}>
+              {isOverTarget ? `+${(consumed - target).toFixed(0)} over` : `${remaining} left`}
             </Text>
           </View>
         </View>
@@ -243,21 +311,67 @@ export default function NutritionScreen() {
         </View>
       </View>
     );
+  }, [calculateRemaining, calculatePercentage]);
+
+  const quickAddFood = (name, calories, protein, carbs, fats, servingSize) => {
+    setFoodForm({
+      name,
+      calories: String(calories),
+      protein: String(protein),
+      carbs: String(carbs),
+      fats: String(fats),
+      servingSize
+    });
+    setShowAddFood(true);
   };
 
-  if (loading) {
+  // Show loading state
+  if (loading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="text-text-light mt-4">Loading nutrition data...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Show incomplete profile message
+  if (!nutrition) {
+    return (
+      <SafeAreaView className="flex-1 bg-bg">
+        <View className="flex-1 justify-center items-center px-6">
+          <Feather name="alert-circle" size={64} color="#F59E0B" />
+          <Text className="text-text text-xl font-bold mt-6 text-center">
+            Complete Your Profile
+          </Text>
+          <Text className="text-text-light text-center mt-2 mb-6">
+            Please update your profile with weight, height, age, and gender to calculate your nutrition targets.
+          </Text>
+          <TouchableOpacity
+            className="bg-blue-600 px-8 py-4 rounded-xl"
+            onPress={() => router.push('/profile')}
+          >
+            <Text className="text-text font-bold text-lg">Go to Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Calculate net calories (consumed - burned)
+  const netCalories = (dailyLog?.calories_consumed || 0) - (dailyLog?.calories_burned || 0);
+  const adjustedTarget = nutrition.calories + (dailyLog?.calories_burned || 0);
+
   return (
     <SafeAreaView className="flex-1 bg-bg">
-      <ScrollView className="flex-1">
+      <ScrollView 
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />
+        }
+      >
         {/* Header */}
         <View className="px-4 pt-4 pb-2">
           <View className="flex-row justify-between items-center mb-4">
@@ -270,40 +384,50 @@ export default function NutritionScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Daily Goals Card */}
           <View className="bg-surface rounded-xl p-4 mb-4">
-            <Text className="text-text font-bold text-lg mb-2">
-              Daily Goals
+            <Text className="text-text font-bold text-lg mb-3">
+              Daily Targets
             </Text>
             <View className="flex-row justify-between">
               <View className="items-center">
                 <Text className="text-text text-2xl font-bold">
-                  {nutrition?.calories || 0}
+                  {nutrition.calories}
                 </Text>
                 <Text className="text-text-light text-sm">Calories</Text>
               </View>
               <View className="items-center">
                 <Text className="text-text text-2xl font-bold">
-                  {nutrition?.protein || 0}g
+                  {nutrition.protein}g
                 </Text>
                 <Text className="text-text-light text-sm">Protein</Text>
               </View>
               <View className="items-center">
                 <Text className="text-text text-2xl font-bold">
-                  {nutrition?.carbs || 0}g
+                  {nutrition.carbs}g
                 </Text>
                 <Text className="text-text-light text-sm">Carbs</Text>
               </View>
               <View className="items-center">
                 <Text className="text-text text-2xl font-bold">
-                  {nutrition?.fats || 0}g
+                  {nutrition.fats}g
                 </Text>
                 <Text className="text-text-light text-sm">Fats</Text>
+              </View>
+            </View>
+            
+            {/* Show BMR and TDEE info */}
+            <View className="mt-3 pt-3 border-t border-gray-700">
+              <View className="flex-row justify-between">
+                <Text className="text-text-light text-xs">BMR: {nutrition.bmr} kcal</Text>
+                <Text className="text-text-light text-xs">TDEE: {nutrition.tdee} kcal</Text>
+                <Text className="text-text-light text-xs capitalize">Goal: {nutrition.goal?.replace('_', ' ')}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Calories */}
+        {/* Calories Card */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">Calories</Text>
 
@@ -312,13 +436,18 @@ export default function NutritionScreen() {
               <View>
                 <Text className="text-text font-bold text-lg">Daily Intake</Text>
                 <Text className="text-text/80">
-                  {dailyLog?.calories_consumed || 0} / {nutrition?.calories || 0} kcal
+                  {netCalories} / {adjustedTarget} kcal
                 </Text>
+                {dailyLog?.calories_burned > 0 && (
+                  <Text className="text-text/60 text-xs mt-1">
+                    Burned: {dailyLog.calories_burned} kcal
+                  </Text>
+                )}
               </View>
 
               <View className="bg-white/20 px-4 py-2 rounded-full">
                 <Text className="text-text font-bold">
-                  {calculateRemaining(dailyLog?.calories_consumed || 0, nutrition?.calories || 0)} kcal left
+                  {calculateRemaining(netCalories, adjustedTarget)} kcal left
                 </Text>
               </View>
             </View>
@@ -328,9 +457,9 @@ export default function NutritionScreen() {
               <View className="relative items-center justify-center">
                 <View className="w-40 h-40 rounded-full border-8 border-gray-300/20 items-center justify-center">
                   <Text className="text-text text-3xl font-bold">
-                    {calculatePercentage(dailyLog?.calories_consumed || 0, nutrition?.calories || 0).toFixed(0)}%
+                    {calculatePercentage(netCalories, adjustedTarget).toFixed(0)}%
                   </Text>
-                  <Text className="text-gray-300">of goal</Text>
+                  <Text className="text-gray-300 text-sm">of goal</Text>
                 </View>
               </View>
             </View>
@@ -353,7 +482,7 @@ export default function NutritionScreen() {
           {renderMacroCard(
             'Protein',
             dailyLog?.protein_consumed || 0,
-            nutrition?.protein || 0,
+            nutrition.protein,
             'g',
             'bg-blue-500'
           )}
@@ -361,7 +490,7 @@ export default function NutritionScreen() {
           {renderMacroCard(
             'Carbohydrates',
             dailyLog?.carbs_consumed || 0,
-            nutrition?.carbs || 0,
+            nutrition.carbs,
             'g',
             'bg-green-500'
           )}
@@ -369,7 +498,7 @@ export default function NutritionScreen() {
           {renderMacroCard(
             'Fats',
             dailyLog?.fats_consumed || 0,
-            nutrition?.fats || 0,
+            nutrition.fats,
             'g',
             'bg-yellow-500'
           )}
@@ -384,13 +513,13 @@ export default function NutritionScreen() {
               <View>
                 <Text className="text-text font-bold text-lg">Daily Goal: 2.5L</Text>
                 <Text className="text-text-light">
-                  {(dailyLog?.water_intake_ml || 0) / 1000}L / 2.5L
+                  {((dailyLog?.water_intake_ml || 0) / 1000).toFixed(1)}L / 2.5L
                 </Text>
               </View>
 
               <View className="bg-blue-500/20 px-4 py-2 rounded-full">
                 <Text className="text-blue-400 font-bold">
-                  {((dailyLog?.water_intake_ml || 0) / 2500 * 100).toFixed(0)}%
+                  {Math.min(100, ((dailyLog?.water_intake_ml || 0) / 2500 * 100)).toFixed(0)}%
                 </Text>
               </View>
             </View>
@@ -399,10 +528,10 @@ export default function NutritionScreen() {
               {[250, 500, 1000].map((amount) => (
                 <TouchableOpacity
                   key={amount}
-                  className="bg-blue-600/20 px-4 py-3 rounded-lg border border-blue-500/30"
+                  className="bg-blue-600/20 px-4 py-3 rounded-lg border border-blue-500/30 flex-1 mx-1"
                   onPress={() => addWater(amount)}
                 >
-                  <Text className="text-blue-400 font-bold">
+                  <Text className="text-blue-400 font-bold text-center">
                     +{amount}ml
                   </Text>
                 </TouchableOpacity>
@@ -413,15 +542,15 @@ export default function NutritionScreen() {
               <FontAwesome name="tint" size={24} color="#3B82F6" />
               <View className="flex-1 ml-3">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-gray-300">Water Intake</Text>
-                  <Text className="text-text font-bold">
+                  <Text className="text-gray-300 text-sm">Water Intake</Text>
+                  <Text className="text-text font-bold text-sm">
                     {dailyLog?.water_intake_ml || 0}ml
                   </Text>
                 </View>
                 <View className="h-2 bg-gray-700 rounded-full overflow-hidden">
                   <View
                     className="h-full bg-blue-500 rounded-full"
-                    style={{ width: `${((dailyLog?.water_intake_ml || 0) / 2500) * 100}%` }}
+                    style={{ width: `${Math.min(100, ((dailyLog?.water_intake_ml || 0) / 2500) * 100)}%` }}
                   />
                 </View>
               </View>
@@ -436,18 +565,7 @@ export default function NutritionScreen() {
           <View className="flex-row justify-between">
             <TouchableOpacity
               className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center"
-              onPress={() => {
-                setFoodForm({
-                  ...foodForm,
-                  name: 'Chicken Breast',
-                  calories: '165',
-                  protein: '31',
-                  carbs: '0',
-                  fats: '3.6',
-                  servingSize: '100g'
-                });
-                setShowAddFood(true);
-              }}
+              onPress={() => quickAddFood('Chicken Breast', 165, 31, 0, 3.6, '100g')}
             >
               <MaterialIcons name="fastfood" size={24} color="#10B981" />
               <Text className="text-text mt-2 text-center text-sm">Chicken Breast</Text>
@@ -455,18 +573,7 @@ export default function NutritionScreen() {
 
             <TouchableOpacity
               className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center"
-              onPress={() => {
-                setFoodForm({
-                  ...foodForm,
-                  name: 'Brown Rice',
-                  calories: '111',
-                  protein: '2.6',
-                  carbs: '23',
-                  fats: '0.9',
-                  servingSize: '100g'
-                });
-                setShowAddFood(true);
-              }}
+              onPress={() => quickAddFood('Brown Rice', 111, 2.6, 23, 0.9, '100g')}
             >
               <FontAwesome name="spoon" size={24} color="#F59E0B" />
               <Text className="text-text mt-2 text-center text-sm">Brown Rice</Text>
@@ -474,18 +581,7 @@ export default function NutritionScreen() {
 
             <TouchableOpacity
               className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center"
-              onPress={() => {
-                setFoodForm({
-                  ...foodForm,
-                  name: 'Protein Shake',
-                  calories: '120',
-                  protein: '25',
-                  carbs: '3',
-                  fats: '1',
-                  servingSize: '1 scoop'
-                });
-                setShowAddFood(true);
-              }}
+              onPress={() => quickAddFood('Protein Shake', 120, 25, 3, 1, '1 scoop')}
             >
               <MaterialIcons name="local-cafe" size={24} color="#EF4444" />
               <Text className="text-text mt-2 text-center text-sm">Protein Shake</Text>
@@ -499,6 +595,7 @@ export default function NutritionScreen() {
         visible={showAddFood}
         animationType="slide"
         transparent={true}
+        onRequestClose={() => setShowAddFood(false)}
       >
         <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
           <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
@@ -509,32 +606,34 @@ export default function NutritionScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <View className="space-y-4">
-                <View>
-                  <Text className="text-text-light mb-2">Food Name</Text>
+                <View className="mb-4">
+                  <Text className="text-text-light mb-2">Food Name *</Text>
                   <TextInput
                     className="bg-surface text-text rounded-xl p-4"
                     placeholder="e.g., Chicken Breast"
                     placeholderTextColor="#6B7280"
                     value={foodForm.name}
                     onChangeText={(text) => setFoodForm({ ...foodForm, name: text })}
+                    editable={!submitting}
                   />
                 </View>
 
-                <View>
-                  <Text className="text-text-light mb-2">Calories</Text>
+                <View className="mb-4">
+                  <Text className="text-text-light mb-2">Calories *</Text>
                   <TextInput
                     className="bg-surface text-text rounded-xl p-4"
                     placeholder="e.g., 165"
                     placeholderTextColor="#6B7280"
                     value={foodForm.calories}
-                    onChangeText={(text) => setFoodForm({ ...foodForm, calories: text })}
+                    onChangeText={(text) => setFoodForm({ ...foodForm, calories: text.replace(/[^0-9]/g, '') })}
                     keyboardType="numeric"
+                    editable={!submitting}
                   />
                 </View>
 
-                <View className="flex-row justify-between">
+                <View className="flex-row justify-between mb-4">
                   <View className="flex-1 mr-2">
                     <Text className="text-text-light mb-2">Protein (g)</Text>
                     <TextInput
@@ -542,8 +641,9 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.protein}
-                      onChangeText={(text) => setFoodForm({ ...foodForm, protein: text })}
-                      keyboardType="numeric"
+                      onChangeText={(text) => setFoodForm({ ...foodForm, protein: text.replace(/[^0-9.]/g, '') })}
+                      keyboardType="decimal-pad"
+                      editable={!submitting}
                     />
                   </View>
 
@@ -554,8 +654,9 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.carbs}
-                      onChangeText={(text) => setFoodForm({ ...foodForm, carbs: text })}
-                      keyboardType="numeric"
+                      onChangeText={(text) => setFoodForm({ ...foodForm, carbs: text.replace(/[^0-9.]/g, '') })}
+                      keyboardType="decimal-pad"
+                      editable={!submitting}
                     />
                   </View>
 
@@ -566,13 +667,14 @@ export default function NutritionScreen() {
                       placeholder="0"
                       placeholderTextColor="#6B7280"
                       value={foodForm.fats}
-                      onChangeText={(text) => setFoodForm({ ...foodForm, fats: text })}
-                      keyboardType="numeric"
+                      onChangeText={(text) => setFoodForm({ ...foodForm, fats: text.replace(/[^0-9.]/g, '') })}
+                      keyboardType="decimal-pad"
+                      editable={!submitting}
                     />
                   </View>
                 </View>
 
-                <View>
+                <View className="mb-4">
                   <Text className="text-text-light mb-2">Serving Size</Text>
                   <TextInput
                     className="bg-surface text-text rounded-xl p-4"
@@ -580,18 +682,24 @@ export default function NutritionScreen() {
                     placeholderTextColor="#6B7280"
                     value={foodForm.servingSize}
                     onChangeText={(text) => setFoodForm({ ...foodForm, servingSize: text })}
+                    editable={!submitting}
                   />
                 </View>
               </View>
             </ScrollView>
 
             <TouchableOpacity
-              className="bg-blue-600 py-4 rounded-xl mt-6"
+              className={`py-4 rounded-xl mt-6 ${submitting ? 'bg-blue-600/50' : 'bg-blue-600'}`}
               onPress={addFood}
+              disabled={submitting}
             >
-              <Text className="text-text text-center font-bold text-lg">
-                Add to Daily Log
-              </Text>
+              {submitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-text text-center font-bold text-lg">
+                  Add to Daily Log
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
