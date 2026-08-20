@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,9 @@ import {
   Image,
   Linking,
   Dimensions,
-  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { exerciseService } from '../services/exerciseService';
 import { useExerciseStore } from '../store/exerciseStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -20,10 +19,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/useThemeStore';
-import { showAlert } from '@/utils/alert';
+import AddToPlanSheet from '@/components/AddToPlanSheet';
 
 const { width } = Dimensions.get('window');
 
@@ -39,16 +36,22 @@ export default function ExerciseDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('details');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const { user } = useAuthStore();
   const [showAddToPlanModal, setShowAddToPlanModal] = useState(false);
-  const [userPlans, setUserPlans] = useState([]);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [addingToPlan, setAddingToPlan] = useState(false);
+
+  const typeParam = Array.isArray(type) ? type[0] : type;
+  const exerciseType: 'workout' | 'warmup' | 'cooldown' =
+    typeParam === 'warmup' || typeParam === 'cooldown' ? typeParam : 'workout';
+
+  // wger-hosted exercise video (mp4), when the exercise has one.
+  const videoUri: string | null = videos.length > 0 && (videos[0] as any)?.video
+    ? (videos[0] as any).video
+    : null;
+  const player = useVideoPlayer(videoUri, (p) => {
+    p.loop = false;
+  });
 
   useEffect(() => {
     loadExerciseDetail();
-    loadUserPlans();
   }, [id, type]);
 
   const loadExerciseDetail = async () => {
@@ -76,34 +79,11 @@ export default function ExerciseDetailScreen() {
       setExercise(exerciseData);
       setImages(imagesData);
       setVideos(videosData);
+      setSelectedImageIndex(0);
     } catch (error) {
       console.error('Error loading exercise detail:', error);
     }
     setLoading(false);
-  };
-
-  const loadUserPlans = async () => {
-    try {
-      const { data: plans, error } = await supabase
-        .from('workout_plans')
-        .select(`
-          *,
-          workout_days (
-            id,
-            day_of_week,
-            name,
-            is_rest_day
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUserPlans(plans || []);
-    } catch (error) {
-      console.error('Error loading user plans:', error);
-    }
   };
 
   const toggleFavorite = async () => {
@@ -119,192 +99,6 @@ export default function ExerciseDetailScreen() {
       );
     }
   };
-
-  const handleAddToPlan = async () => {
-    if (!selectedPlan || !selectedDay || !exercise) {
-      showAlert('Error', 'Please select a plan and day');
-      return;
-    }
-
-    if (selectedDay.is_rest_day) {
-      showAlert('Error', 'Cannot add exercises to rest days');
-      return;
-    }
-
-    setAddingToPlan(true);
-    try {
-      // Get the next order index for the day
-      const { data: existingExercises, error: fetchError } = await supabase
-        .from('planned_exercises')
-        .select('order_index')
-        .eq('workout_day_id', selectedDay.id)
-        .order('order_index', { ascending: false })
-        .limit(1);
-
-      if (fetchError) throw fetchError;
-
-      const nextOrderIndex = existingExercises?.length > 0
-        ? existingExercises[0].order_index + 1
-        : 0;
-
-      // Add the exercise to the plan
-      const { error: insertError } = await supabase
-        .from('planned_exercises')
-        .insert({
-          workout_day_id: selectedDay.id,
-          exercise_id: exercise.id,
-          exercise_name: exercise.name,
-          exercise_type: type === 'warmup' ? 'warmup' : type === 'cooldown' ? 'cooldown' : 'strength',
-          target_sets: type === 'warmup' || type === 'cooldown' ? 1 : 3,
-          target_reps: type === 'warmup' || type === 'cooldown' ? 10 : 10,
-          target_duration: exercise.duration || null,
-          order_index: nextOrderIndex,
-          user_id: user.id
-        });
-
-      if (insertError) throw insertError;
-
-      showAlert('Success', `"${exercise.name}" added to workout plan!`, [
-        {
-          text: 'View Plan',
-          style: 'default',
-          onPress: () => {
-            setShowAddToPlanModal(false);
-            router.push('/(tabs)/workout');
-          }
-        },
-        {
-          text: 'OK',
-          style: 'cancel',
-          onPress: () => {
-            setShowAddToPlanModal(false);
-          }
-        }
-      ]);
-    } catch (error: any) {
-      console.error('Error adding exercise to plan:', error);
-      showAlert('Error', error.message || 'Failed to add exercise to plan');
-    }
-    setAddingToPlan(false);
-  };
-
-
-  const renderAddToPlanModal = () => (
-    <Modal
-      visible={showAddToPlanModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowAddToPlanModal(false)}
-    >
-      <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-        <View className="bg-bg rounded-t-3xl p-6 max-h-3/4">
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-text text-2xl font-bold">Add to Workout Plan</Text>
-            <TouchableOpacity onPress={() => setShowAddToPlanModal(false)}>
-              <AntDesign name="close" size={24} color="var(--text)" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Select Plan */}
-            <View className="mb-6">
-              <Text className="text-text text-lg font-bold mb-3">Select Plan</Text>
-              {userPlans.length === 0 ? (
-                <View className="bg-surface rounded-xl p-6 items-center">
-                  <MaterialIcons name="fitness-center" size={48} color="#6B7280" />
-                  <Text className="text-text text-lg font-bold mt-4 mb-2">
-                    No Active Plans
-                  </Text>
-                  <Text className="text-text-light text-center mb-4">
-                    Create a workout plan first to add exercises
-                  </Text>
-                  <TouchableOpacity
-                    className="bg-primary px-6 py-3 rounded-lg"
-                    onPress={() => {
-                      setShowAddToPlanModal(false);
-                      router.push('/create-plan');
-                    }}
-                  >
-                    <Text className="text-bg font-bold">Create Plan</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                userPlans.map((plan) => (
-                  <TouchableOpacity
-                    key={plan.id}
-                    className={`bg-surface rounded-xl p-4 mb-3 ${selectedPlan?.id === plan.id ? 'border-2 border-primary' : ''}`}
-                    onPress={() => setSelectedPlan(plan)}
-                  >
-                    <Text className="text-text font-bold text-lg">{plan.name}</Text>
-                    <Text className="text-text-light text-sm">
-                      {plan.workout_days?.filter(d => !d.is_rest_day).length} workout days
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-
-            {/* Select Day */}
-            {selectedPlan && (
-              <View className="mb-6">
-                <Text className="text-text text-lg font-bold mb-3">Select Day</Text>
-                {selectedPlan.workout_days
-                  ?.filter(day => !day.is_rest_day)
-                  .sort((a, b) => a.day_of_week - b.day_of_week)
-                  .map((day) => {
-                    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                    return (
-                      <TouchableOpacity
-                        key={day.id}
-                        className={`bg-surface rounded-xl p-4 mb-3 ${selectedDay?.id === day.id ? 'border-2 border-primary' : ''}`}
-                        onPress={() => setSelectedDay(day)}
-                      >
-                        <Text className="text-text font-bold">{daysOfWeek[day.day_of_week]}</Text>
-                        <Text className="text-text-light">{day.name || 'Workout Day'}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </View>
-            )}
-
-            {/* Exercise Summary */}
-            {exercise && (
-              <View className="mb-6">
-                <Text className="text-text text-lg font-bold mb-3">Exercise</Text>
-                <View className="bg-surface rounded-xl p-4">
-                  <Text className="text-text font-bold text-lg">{exercise.name}</Text>
-                  <Text className="text-text-light">
-                    {exercise.category} • {type}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Add Button */}
-          {selectedPlan && selectedDay && (
-            <TouchableOpacity
-              className="bg-primary py-4 rounded-xl mt-4 flex-row items-center justify-center"
-              onPress={handleAddToPlan}
-              disabled={addingToPlan}
-            >
-              {addingToPlan ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <MaterialIcons name="add-circle-outline" size={24} color="var(--bg)" />
-                  <Text className="text-bg text-center font-bold text-lg ml-2">
-                    Add to {selectedPlan.name} - {selectedDay.name || 'Selected Day'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </Modal>
-  );
-
 
   const renderImageGallery = () => {
     if (images.length === 0) return null;
@@ -380,13 +174,62 @@ export default function ExerciseDetailScreen() {
     );
   };
 
+  const renderVideoSection = () => {
+    if (!videoUri) return null;
+
+    return (
+      <View className="mb-6 px-4">
+        <Text className="text-text font-bold text-lg mb-3">Exercise Video</Text>
+        <View className="rounded-xl overflow-hidden bg-surface">
+          <VideoView
+            player={player}
+            style={{ width: '100%', aspectRatio: 16 / 9 }}
+            nativeControls
+            contentFit="contain"
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const openYoutubeTutorial = () => {
+    if (!exercise) return;
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+      exercise.name + ' proper form'
+    )}`;
+    Linking.openURL(url);
+  };
+
+  const renderYoutubeRow = () => (
+    <TouchableOpacity
+      className="mb-6 rounded-xl p-4 flex-row items-center"
+      style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+      onPress={openYoutubeTutorial}
+      activeOpacity={0.7}
+    >
+      <View className="bg-red-600 w-10 h-10 rounded-full items-center justify-center mr-3">
+        <Ionicons name="logo-youtube" size={20} color="white" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-text font-bold">Watch tutorial on YouTube</Text>
+        <Text className="text-text-light text-sm mt-0.5" numberOfLines={1}>
+          Search "{exercise?.name} proper form"
+        </Text>
+      </View>
+      <Feather name="external-link" size={18} color={vars['--text-light'] as string} />
+    </TouchableOpacity>
+  );
+
   const renderDetailContent = () => {
     if (!exercise) return null;
 
     return (
       <View>
-        {/* Image Gallery
-        {renderImageGallery()} */}
+        {/* Image Gallery */}
+        {renderImageGallery()}
+
+        {/* wger-hosted exercise video, when available */}
+        {renderVideoSection()}
 
         <View className="px-4">
           {/* Basic Info */}
@@ -418,6 +261,9 @@ export default function ExerciseDetailScreen() {
               )}
             </View>
           </View>
+
+          {/* YouTube tutorial search — always available */}
+          {renderYoutubeRow()}
 
           {/* Description */}
           {exercise.description && (
@@ -793,8 +639,17 @@ export default function ExerciseDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Add to Plan Modal */}
-      {renderAddToPlanModal()}
+      {/* Add to Plan Sheet */}
+      <AddToPlanSheet
+        visible={showAddToPlanModal}
+        exercise={exercise ? {
+          id: (exercise as any).id,
+          name: (exercise as any).name,
+          duration: (exercise as any).duration,
+        } : null}
+        exerciseType={exerciseType}
+        onClose={() => setShowAddToPlanModal(false)}
+      />
     </SafeAreaView>
   );
 }

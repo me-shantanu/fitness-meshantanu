@@ -261,9 +261,9 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <View className="px-4 mt-6 mb-8">
           <Text className="text-text text-xl font-bold mb-4">Quick Actions</Text>
-          <View className="flex-row justify-between">
+          <View className="flex-row flex-wrap justify-between">
             <TouchableOpacity
-              className="bg-surface flex-1 mr-2 rounded-xl p-4 items-center"
+              className="bg-surface w-[48%] rounded-xl p-4 items-center mb-4"
               onPress={() => router.push('/exercises')}
             >
               <Icon name="CirclePlus" size={24} color="#3B82F6" />
@@ -271,7 +271,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface flex-1 mx-2 rounded-xl p-4 items-center"
+              className="bg-surface w-[48%] rounded-xl p-4 items-center mb-4"
               onPress={() => router.push('/history')}
             >
               <Icon name="Calendars" size={24} color="#10B981" />
@@ -279,11 +279,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface flex-1 ml-2 rounded-xl p-4 items-center"
+              className="bg-surface w-[48%] rounded-xl p-4 items-center"
               onPress={() => router.push('/progress')}
             >
               <Icon name="ChartColumnIncreasing" size={24} color="#F59E0B" />
               <Text className="text-text mt-2 text-center">Progress</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="bg-surface w-[48%] rounded-xl p-4 items-center"
+              onPress={() => router.push('/(tabs)/coach' as any)}
+            >
+              <Icon name="Bot" size={24} color="#8B5CF6" />
+              <Text className="text-text mt-2 text-center">AI Coach</Text>
             </TouchableOpacity>
           </View>
         </View>

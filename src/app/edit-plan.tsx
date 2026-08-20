@@ -1,5 +1,5 @@
 // app/edit-plan.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -57,22 +57,43 @@ export default function EditPlanScreen() {
         }
     }, [activePlan]);
 
-    const handleSearch = async (query: string) => {
+    // Debounced server-side search with a request-sequence guard so stale
+    // responses never overwrite newer ones.
+    const searchSeqRef = useRef(0);
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        };
+    }, []);
+
+    const handleSearch = (query: string) => {
         setSearchQuery(query);
+
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        const seq = ++searchSeqRef.current;
 
         if (query.trim().length < 2) {
             setSearchResults([]);
+            setSearching(false);
             return;
         }
 
         setSearching(true);
-        try {
-            const results: any = await exerciseService.searchExercises(query);
-            setSearchResults(results);
-        } catch (error) {
-            console.error('Error searching exercises:', error);
-        }
-        setSearching(false);
+        searchTimerRef.current = setTimeout(async () => {
+            try {
+                const results: any = await exerciseService.searchExercisesServer(query);
+                if (seq !== searchSeqRef.current) return;
+                setSearchResults(results);
+            } catch (error) {
+                if (seq !== searchSeqRef.current) return;
+                console.error('Error searching exercises:', error);
+                setSearchResults([]);
+            } finally {
+                if (seq === searchSeqRef.current) setSearching(false);
+            }
+        }, 400);
     };
 
     const addExerciseToDay = async (exercise: Exercise) => {

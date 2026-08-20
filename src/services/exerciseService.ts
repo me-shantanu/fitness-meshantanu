@@ -2,8 +2,15 @@ import axios from 'axios';
 
 const WGER_API_BASE = 'https://wger.de/api/v2';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache
+const PAGE_SIZE = 20;
 
-// Enhanced cache system with pagination support
+// Shared axios instance so every wger request gets a timeout.
+const http = axios.create({
+  baseURL: WGER_API_BASE,
+  timeout: 10000,
+});
+
+// Cache system
 let cache = {
   exercises: {},
   exerciseDetails: {},
@@ -58,22 +65,6 @@ export interface Exercise {
   video_url?: string;
 }
 
-export interface PaginatedExerciseResponse {
-  exercises: Exercise[];
-  count: number;
-  totalPages: number;
-  currentPage: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-export interface ExerciseResponse {
-  exercises: Exercise[];
-  count: number;
-  next?: string;
-  previous?: string;
-}
-
 export interface Category {
   id: number;
   name: string;
@@ -95,414 +86,119 @@ export interface ExerciseFilters {
   muscle?: number;
   category?: number;
   equipment?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
 }
 
+// Shared mapper for wger /exerciseinfo/ records. The English name/description
+// live in the `translations` array (language 2 = English); records without a
+// usable name are dropped by returning null.
+const mapExerciseInfo = (ex: any): Exercise | null => {
+  if (!ex || ex.id == null) return null;
+
+  const english = ex.translations?.find((t: any) => t?.language === 2);
+  const fallback = ex.translations?.[0];
+  const name = ex.name || english?.name || fallback?.name;
+  if (!name) return null;
+
+  return {
+    id: ex.id,
+    uuid: ex.uuid,
+    name,
+    description: cleanHtml(ex.description || english?.description || fallback?.description || ''),
+    category: ex.category?.name || 'General',
+    category_id: ex.category?.id,
+    muscles: ex.muscles || [],
+    muscles_secondary: ex.muscles_secondary || [],
+    equipment: ex.equipment || [],
+    variations: ex.variations || [],
+    license: ex.license,
+    license_author: ex.license_author,
+    images: ex.images || [],
+    videos: ex.videos || [],
+  };
+};
+
+const mapExerciseInfoList = (results: any): Exercise[] => {
+  if (!Array.isArray(results)) return [];
+  const seen = new Set<string>();
+  const exercises: Exercise[] = [];
+  for (const raw of results) {
+    const ex = mapExerciseInfo(raw);
+    if (!ex) continue;
+    const key = String(ex.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    exercises.push(ex);
+  }
+  return exercises;
+};
+
 export const exerciseService = {
-  // 🚀 NEW: Server-side paginated exercises
-  getExercisesPaginated: async (
-    filters: ExerciseFilters = {},
-    page: number = 1,
-    limit: number = 15
-  ): Promise<PaginatedExerciseResponse> => {
-    try {
-      const cacheKey = `paginated_${JSON.stringify(filters)}_${page}_${limit}`;
-      
-      if (cache.exercises[cacheKey] && isCacheValid(cache.exercises[cacheKey].timestamp)) {
-        return cache.exercises[cacheKey].data;
-      }
+  // Real server-side exercise search.
+  //
+  // NOTE: wger >= 2.7 removed the old /exercise/search/ suggestion endpoint
+  // (verified live: it returns 404 now). The supported replacement is the
+  // fulltext `name__search` filter on /exerciseinfo/, which is fuzzy
+  // (trigram-based), relevance-ordered, and returns the same record shape as
+  // the browse endpoint.
+  //
+  // Throws on network failure so callers can show a proper error state.
+  searchExercisesServer: async (query: string): Promise<Exercise[]> => {
+    const term = query.trim();
+    if (!term) return [];
 
-      const offset = (page - 1) * limit;
-      let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=${limit}&offset=${offset}`;
-      
-      // Apply filters
-      if (filters.category) url += `&category=${filters.category}`;
-      if (filters.muscle) url += `&muscles=${filters.muscle}`;
-      if (filters.equipment) url += `&equipment=${filters.equipment}`;
-      
-      const response = await axios.get(url);
-      
-      const exercises = response.data.results
-        .map((ex: any) => {
-          const englishName = ex.name || 
-            ex.translations?.find((t: any) => t.language === 2)?.name ||
-            'Unnamed Exercise';
-            
-          const englishDescription = ex.description ||
-            ex.translations?.find((t: any) => t.language === 2)?.description ||
-            '';
-          
-          return {
-            id: ex.id,
-            uuid: ex.uuid,
-            name: englishName,
-            description: cleanHtml(englishDescription),
-            category: ex.category?.name || 'General',
-            category_id: ex.category?.id,
-            muscles: ex.muscles || [],
-            muscles_secondary: ex.muscles_secondary || [],
-            equipment: ex.equipment || [],
-            variations: ex.variations || [],
-            license: ex.license,
-            license_author: ex.license_author,
-            images: ex.images || [],
-          };
-        })
-        .filter((ex: Exercise) => ex.name && ex.name !== 'Unnamed Exercise');
-      
-      const totalCount = response.data.count;
-      const totalPages = Math.ceil(totalCount / limit);
-      
-      const result: PaginatedExerciseResponse = {
-        exercises,
-        count: totalCount,
-        totalPages,
-        currentPage: page,
-        hasNext: !!response.data.next,
-        hasPrevious: !!response.data.previous,
-      };
-
-      cache.exercises[cacheKey] = {
-        data: result,
-        timestamp: Date.now()
-      };
-
-      return result;
-    } catch (error) {
-      console.error('Error fetching paginated exercises:', error);
-      return {
-        exercises: [],
-        count: 0,
-        totalPages: 0,
-        currentPage: page,
-        hasNext: false,
-        hasPrevious: false,
-      };
+    const cacheKey = `server_${term.toLowerCase()}`;
+    if (cache.search[cacheKey] && isCacheValid(cache.search[cacheKey].timestamp)) {
+      return cache.search[cacheKey].data;
     }
+
+    const response = await http.get('/exerciseinfo/', {
+      params: {
+        name__search: term,
+        language__code: 'en',
+        language: 2,
+        limit: 30,
+        format: 'json',
+      },
+    });
+
+    const exercises = mapExerciseInfoList(response.data?.results).slice(0, 30);
+
+    cache.search[cacheKey] = { data: exercises, timestamp: Date.now() };
+    return exercises;
   },
 
-  // 🚀 NEW: Optimized search with pagination
-  searchExercisesPaginated: async (
-    query: string = '',
-    filters: ExerciseFilters = {},
-    page: number = 1,
-    limit: number = 15
-  ): Promise<PaginatedExerciseResponse> => {
-    try {
-      const cacheKey = `search_paginated_${query}_${JSON.stringify(filters)}_${page}_${limit}`;
-      
-      if (cache.search[cacheKey] && isCacheValid(cache.search[cacheKey].timestamp)) {
-        return cache.search[cacheKey].data;
-      }
-
-      const offset = (page - 1) * limit;
-      let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=${limit}&offset=${offset}`;
-      
-      // Add search query
-      if (query.trim()) {
-        url += `&name=${encodeURIComponent(query)}`;
-      }
-      
-      // Apply filters
-      if (filters.category) url += `&category=${filters.category}`;
-      if (filters.muscle) url += `&muscles=${filters.muscle}`;
-      if (filters.equipment) url += `&equipment=${filters.equipment}`;
-      
-      const response = await axios.get(url);
-      
-      const exercises = response.data.results
-        .map((ex: any) => {
-          const name = ex.name || ex.translations?.[0]?.name || 'Unnamed Exercise';
-          const description = cleanHtml(ex.description || '');
-          
-          return {
-            id: ex.id,
-            uuid: ex.uuid,
-            name,
-            description,
-            category: ex.category?.name || 'General',
-            muscles: ex.muscles || [],
-            muscles_secondary: ex.muscles_secondary || [],
-            equipment: ex.equipment || [],
-            images: ex.images || [],
-          };
-        })
-        .filter((ex: Exercise) => ex.name !== 'Unnamed Exercise');
-
-      const totalCount = response.data.count;
-      const totalPages = Math.ceil(totalCount / limit);
-      
-      const result: PaginatedExerciseResponse = {
-        exercises,
-        count: totalCount,
-        totalPages,
-        currentPage: page,
-        hasNext: !!response.data.next,
-        hasPrevious: !!response.data.previous,
-      };
-
-      cache.search[cacheKey] = {
-        data: result,
-        timestamp: Date.now()
-      };
-
-      return result;
-    } catch (error) {
-      console.error('Error searching exercises:', error);
-      return {
-        exercises: [],
-        count: 0,
-        totalPages: 0,
-        currentPage: page,
-        hasNext: false,
-        hasPrevious: false,
-      };
+  // Lean paged browse: one page (PAGE_SIZE records) per request instead of
+  // fetching 1500 fat records at once.
+  //
+  // Throws on network failure so callers can show a proper error state.
+  getWorkoutExercisesPaged: async (
+    page: number,
+    filters: ExerciseFilters = {}
+  ): Promise<{ exercises: Exercise[]; hasMore: boolean }> => {
+    const cacheKey = `paged_${page}_${JSON.stringify(filters)}`;
+    if (cache.exercises[cacheKey] && isCacheValid(cache.exercises[cacheKey].timestamp)) {
+      return cache.exercises[cacheKey].data;
     }
-  },
 
-  // Keep existing methods for backward compatibility
-  getAllExercises: async (limit: number = 100, offset: number = 0): Promise<ExerciseResponse> => {
-    try {
-      const cacheKey = `exercises_${limit}_${offset}`;
-      
-      if (cache.exercises[cacheKey] && isCacheValid(cache.exercises[cacheKey].timestamp)) {
-        return cache.exercises[cacheKey].data;
-      }
+    const params: Record<string, string | number> = {
+      language: 2,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
+      format: 'json',
+    };
+    if (filters.category) params.category = filters.category;
+    if (filters.muscle) params.muscles = filters.muscle;
+    if (filters.equipment) params.equipment = filters.equipment;
 
-      const response = await axios.get(
-        `${WGER_API_BASE}/exerciseinfo/?limit=${limit}&offset=${offset}&language=2`
-      );
-      
-      const exercises = response.data.results
-        .map((ex: any) => {
-          const englishName = ex.name || 
-            ex.translations?.find((t: any) => t.language === 2)?.name ||
-            'Unnamed Exercise';
-            
-          const englishDescription = ex.description ||
-            ex.translations?.find((t: any) => t.language === 2)?.description ||
-            '';
-          
-          return {
-            id: ex.id,
-            uuid: ex.uuid,
-            name: englishName,
-            description: cleanHtml(englishDescription),
-            category: ex.category?.name || 'General',
-            category_id: ex.category?.id,
-            muscles: ex.muscles || [],
-            muscles_secondary: ex.muscles_secondary || [],
-            equipment: ex.equipment || [],
-            variations: ex.variations || [],
-            license: ex.license,
-            license_author: ex.license_author,
-            images: ex.images || [],
-          };
-        })
-        .filter((ex: Exercise) => ex.name && ex.name !== 'Unnamed Exercise');
-      
-      const result = {
-        exercises,
-        count: response.data.count,
-        next: response.data.next,
-        previous: response.data.previous,
-      };
+    const response = await http.get('/exerciseinfo/', { params });
 
-      cache.exercises[cacheKey] = {
-        data: result,
-        timestamp: Date.now()
-      };
+    const result = {
+      exercises: mapExerciseInfoList(response.data?.results),
+      hasMore: response.data?.next != null,
+    };
 
-      return result;
-    } catch (error) {
-      console.error('Error fetching exercises:', error);
-      return { exercises: [], count: 0 };
-    }
-  },
-
-  // 🚀 OPTIMIZED: Workout exercises with pagination
-  getWorkoutExercisesPaginated: async (
-    filters: ExerciseFilters = {},
-    page: number = 1,
-    limit: number = 15
-  ): Promise<PaginatedExerciseResponse> => {
-    if (filters.search) {
-      return exerciseService.searchExercisesPaginated(filters.search, filters, page, limit);
-    }
-    return exerciseService.getExercisesPaginated(filters, page, limit);
-  },
-
-  // Keep old method for backward compatibility (but log deprecation warning)
-  searchExercises: async (query: string = '', filters: ExerciseFilters = {}): Promise<Exercise[]> => {
-    console.warn('⚠️ searchExercises is deprecated. Use searchExercisesPaginated instead for better performance.');
-    
-    try {
-      const cacheKey = `search_${query}_${JSON.stringify(filters)}`;
-      
-      if (cache.search[cacheKey] && isCacheValid(cache.search[cacheKey].timestamp)) {
-        return cache.search[cacheKey].data;
-      }
-
-      let exercises: Exercise[] = [];
-      let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=200`;
-      let offset = 0;
-      let hasMore = true;
-      const searchTerm = query.toLowerCase();
-
-      if (filters.category) url += `&category=${filters.category}`;
-      if (filters.muscle) url += `&muscles=${filters.muscle}`;
-      if (filters.equipment) url += `&equipment=${filters.equipment}`;
-
-      while (hasMore && exercises.length < 500) {
-        const response = await axios.get(`${url}&offset=${offset}`);
-        const results = response.data.results;
-        
-        if (!results || results.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        const filteredResults = results
-          .map((ex: any) => {
-            const name = ex.name || ex.translations?.[0]?.name || 'Unnamed Exercise';
-            const description = cleanHtml(ex.description || '');
-            
-            return {
-              id: ex.id,
-              uuid: ex.uuid,
-              name,
-              description,
-              category: ex.category?.name || 'General',
-              muscles: ex.muscles || [],
-              equipment: ex.equipment || [],
-              images: ex.images || [],
-            };
-          })
-          .filter((ex: Exercise) => {
-            if (ex.name === 'Unnamed Exercise') return false;
-            
-            if (searchTerm) {
-              return ex.name.toLowerCase().includes(searchTerm) ||
-                     ex.description.toLowerCase().includes(searchTerm) ||
-                     ex.category.toLowerCase().includes(searchTerm);
-            }
-            
-            return true;
-          });
-
-        exercises = [...exercises, ...filteredResults];
-        
-        if (!response.data.next) {
-          hasMore = false;
-        } else {
-          offset += 200;
-        }
-      }
-
-      if (searchTerm && exercises.length < 50) {
-        const searchResponse = await axios.get(
-          `${WGER_API_BASE}/exerciseinfo/?language=2&name=${encodeURIComponent(query)}&limit=200`
-        );
-        
-        const searchResults = searchResponse.data.results
-          .map((ex: any) => {
-            const name = ex.name || ex.translations?.[0]?.name || 'Unnamed Exercise';
-            const description = cleanHtml(ex.description || '');
-            
-            return {
-              id: ex.id,
-              uuid: ex.uuid,
-              name,
-              description,
-              category: ex.category?.name || 'General',
-              muscles: ex.muscles || [],
-              equipment: ex.equipment || [],
-              images: ex.images || [],
-            };
-          })
-          .filter((ex: Exercise) => ex.name !== 'Unnamed Exercise');
-
-        const exerciseMap = new Map();
-        [...exercises, ...searchResults].forEach(ex => {
-          if (!exerciseMap.has(ex.id)) {
-            exerciseMap.set(ex.id, ex);
-          }
-        });
-        
-        exercises = Array.from(exerciseMap.values());
-      }
-
-      cache.search[cacheKey] = {
-        data: exercises,
-        timestamp: Date.now()
-      };
-
-      return exercises;
-    } catch (error) {
-      console.error('Error searching exercises:', error);
-      return [];
-    }
-  },
-
-  getWorkoutExercises: async (filters: ExerciseFilters = {}): Promise<Exercise[]> => {
-    console.warn('⚠️ getWorkoutExercises is deprecated. Use getWorkoutExercisesPaginated instead for better performance.');
-    
-    try {
-      const cacheKey = `workout_${JSON.stringify(filters)}`;
-      
-      if (cache.exercises[cacheKey] && isCacheValid(cache.exercises[cacheKey].timestamp)) {
-        return cache.exercises[cacheKey].data;
-      }
-
-      let exercises: Exercise[] = [];
-      
-      if (filters.search) {
-        exercises = await exerciseService.searchExercises(filters.search, {
-          muscle: filters.muscle,
-          category: filters.category,
-          equipment: filters.equipment,
-        });
-      } else {
-        let url = `${WGER_API_BASE}/exerciseinfo/?language=2&limit=1500`;
-        
-        if (filters.muscle) url += `&muscles=${filters.muscle}`;
-        if (filters.category) url += `&category=${filters.category}`;
-        if (filters.equipment) url += `&equipment=${filters.equipment}`;
-        
-        const response = await axios.get(url);
-        
-        exercises = response.data.results
-          .map((ex: any) => {
-            const name = ex.name || ex.translations?.[0]?.name || 'Unnamed Exercise';
-            const description = cleanHtml(ex.description || '');
-            
-            return {
-              id: ex.id,
-              uuid: ex.uuid,
-              name,
-              description,
-              category: ex.category?.name || 'General',
-              muscles: ex.muscles || [],
-              muscles_secondary: ex.muscles_secondary || [],
-              equipment: ex.equipment || [],
-              images: ex.images || [],
-            };
-          })
-          .filter((ex: Exercise) => ex.name !== 'Unnamed Exercise');
-      }
-
-      cache.exercises[cacheKey] = {
-        data: exercises,
-        timestamp: Date.now()
-      };
-
-      return exercises;
-    } catch (error) {
-      console.error('Error fetching workout exercises:', error);
-      return [];
-    }
+    cache.exercises[cacheKey] = { data: result, timestamp: Date.now() };
+    return result;
   },
 
   getExerciseById: async (id: number | string): Promise<Exercise | null> => {
@@ -511,7 +207,7 @@ export const exerciseService = {
         const allExercises = id.startsWith('warmup_')
           ? await exerciseService.getWarmupExercises()
           : await exerciseService.getCooldownExercises();
-        
+
         return allExercises.find((ex: Exercise) => ex.id === id) || null;
       }
 
@@ -519,34 +215,10 @@ export const exerciseService = {
         return cache.exerciseDetails[id].data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/exerciseinfo/${id}/?language=2`);
-      const ex = response.data;
-      
-      const englishName = ex.name || 
-        ex.translations?.find((t: any) => t.language === 2)?.name ||
-        'Unnamed Exercise';
-        
-      const englishDescription = ex.description ||
-        ex.translations?.find((t: any) => t.language === 2)?.description ||
-        '';
-      
-      const exercise: Exercise = {
-        id: ex.id,
-        uuid: ex.uuid,
-        name: englishName,
-        description: cleanHtml(englishDescription),
-        category: ex.category?.name || 'General',
-        category_id: ex.category?.id,
-        muscles: ex.muscles || [],
-        muscles_secondary: ex.muscles_secondary || [],
-        equipment: ex.equipment || [],
-        variations: ex.variations || [],
-        images: ex.images || [],
-        videos: ex.videos || [],
-        license: ex.license,
-        license_author: ex.license_author,
-      };
-      
+      const response = await http.get(`/exerciseinfo/${id}/?language=2`);
+      const exercise = mapExerciseInfo(response.data);
+      if (!exercise) return null;
+
       cache.exerciseDetails[id] = {
         data: exercise,
         timestamp: Date.now()
@@ -565,7 +237,7 @@ export const exerciseService = {
         return cache.categories.data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/exercisecategory/`);
+      const response = await http.get('/exercisecategory/');
       const categories = response.data.results.map((cat: any) => ({
         id: cat.id,
         name: cat.name,
@@ -589,7 +261,7 @@ export const exerciseService = {
         return cache.muscles.data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/muscle/`);
+      const response = await http.get('/muscle/');
       const muscles = response.data.results.map((muscle: any) => ({
         id: muscle.id,
         name: muscle.name,
@@ -615,7 +287,7 @@ export const exerciseService = {
         return cache.equipment.data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/equipment/`);
+      const response = await http.get('/equipment/');
       const equipment = response.data.results.map((eq: any) => ({
         id: eq.id,
         name: eq.name,
@@ -636,12 +308,12 @@ export const exerciseService = {
   getExerciseImages: async (exerciseId: number | string): Promise<any[]> => {
     try {
       const cacheKey = `images_${exerciseId}`;
-      
+
       if (cache.images[cacheKey] && isCacheValid(cache.images[cacheKey].timestamp)) {
         return cache.images[cacheKey].data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/exerciseimage/?exercise=${exerciseId}`);
+      const response = await http.get(`/exerciseimage/?exercise=${exerciseId}`);
       const images = response.data.results.map((img: any) => ({
         id: img.id,
         image: img.image,
@@ -665,12 +337,14 @@ export const exerciseService = {
   getExerciseVideos: async (exerciseId: number | string): Promise<any[]> => {
     try {
       const cacheKey = `videos_${exerciseId}`;
-      
+
       if (cache.videos[cacheKey] && isCacheValid(cache.videos[cacheKey].timestamp)) {
         return cache.videos[cacheKey].data;
       }
 
-      const response = await axios.get(`${WGER_API_BASE}/exercisevideo/?exercise=${exerciseId}`);
+      // wger >= 2.7 serves exercise videos at /video/ (the old /exercisevideo/
+      // endpoint was removed and now returns 404).
+      const response = await http.get(`/video/?exercise=${exerciseId}`);
       const videos = response.data.results.map((vid: any) => ({
         id: vid.id,
         uuid: vid.uuid,
