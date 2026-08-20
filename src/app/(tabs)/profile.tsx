@@ -6,11 +6,11 @@ import {
   SafeAreaView, 
   ScrollView, 
   TextInput,
-  Alert,
   ActivityIndicator 
 } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
 import { Feather } from '@expo/vector-icons';
+import { showAlert } from '@/utils/alert';
 
 export default function ProfileScreen() {
   const { profile, signOut, updateProfile } = useAuthStore();
@@ -35,7 +35,7 @@ export default function ProfileScreen() {
 
   const handleSave = async () => {
     if (!formData.full_name) {
-      Alert.alert('Error', 'Name is required');
+      showAlert('Error', 'Name is required');
       return;
     }
 
@@ -56,9 +56,9 @@ export default function ProfileScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message);
     } else {
-      Alert.alert('Success', 'Profile updated successfully');
+      showAlert('Success', 'Profile updated successfully');
       setIsEditing(false);
     }
   };

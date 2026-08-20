@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { workoutService } from '../../services/workoutService';
 import { nutritionService } from '../../services/nutritionService';
@@ -15,6 +15,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Icon from '@/components/Icon';
 import { User } from '@supabase/supabase-js';
+import { showAlert } from '@/utils/alert';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -23,27 +24,38 @@ export default function HomeScreen() {
   const [todayWorkout, setTodayWorkout] = useState(null);
   const [nutrition, setNutrition] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
   const [stats, setStats] = useState({
     workoutsThisWeek: 0,
     totalVolume: 0,
     prsThisMonth: 0,
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [user?.id])
+  );
 
   const loadDashboardData = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const [
         plan,
         nutritionData,
-        history
+        history,
+        personalRecords
       ] = await Promise.all([
         workoutService.getActiveWorkoutPlan(user.id),
         nutritionService.calculateDailyTargets(user.id),
-        workoutService.getWorkoutHistory(user.id, 7)
+        workoutService.getWorkoutHistory(user.id, 50),
+        workoutService.getPersonalRecords(user.id)
       ]);
 
       setActivePlan(plan);
@@ -59,10 +71,17 @@ export default function HomeScreen() {
           setSum + (set.weight * set.reps), 0) || 0);
       }, 0);
 
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const prsThisMonth = (personalRecords || []).filter(
+        (pr: any) => pr.achieved_at && new Date(pr.achieved_at) >= monthStart
+      ).length;
+
       setStats({
         workoutsThisWeek,
         totalVolume,
-        prsThisMonth: 0, // You'll need to fetch this
+        prsThisMonth,
       });
 
       // Get today's workout
@@ -79,14 +98,25 @@ export default function HomeScreen() {
   };
 
   const startWorkout = async () => {
-    if (!todayWorkout) return;
+    if (!todayWorkout || !user?.id) return;
 
-    const session = await workoutService.startWorkoutSession(user.id, todayWorkout.id);
-    if (session) {
-      router.push({
-        pathname: '/workout-session',
-        params: { sessionId: session.id }
-      });
+    if (startingRef.current) return;
+    startingRef.current = true;
+    setStarting(true);
+
+    try {
+      const session = await workoutService.startWorkoutSession(user.id, todayWorkout.id);
+      if (session) {
+        router.push({
+          pathname: '/workout-session',
+          params: { sessionId: session.id }
+        });
+      } else {
+        showAlert('Error', 'Could not start workout. Please try again.');
+      }
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
     }
   };
 
@@ -111,7 +141,7 @@ export default function HomeScreen() {
 
         {/* Today's Workout Card */}
         <View className="px-4 mt-4">
-          <View className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6">
+          <View className="bg-blue-600 rounded-2xl p-6">
             <Text className="text-text text-lg font-bold mb-2">Today's Workout</Text>
             {todayWorkout ? (
               <>
@@ -124,7 +154,8 @@ export default function HomeScreen() {
                       {todayWorkout.planned_exercises?.length || 0} exercises
                     </Text>
                     <TouchableOpacity
-                      className="bg-white py-3 rounded-lg"
+                      className={`bg-white py-3 rounded-lg ${starting ? 'opacity-50' : ''}`}
+                      disabled={starting}
                       onPress={startWorkout}
                     >
                       <Text className="text-blue-600 text-center font-bold text-lg">
@@ -151,7 +182,20 @@ export default function HomeScreen() {
         </View>
 
         {/* Nutrition Summary */}
-        {nutrition && (
+        {nutrition?.error === 'incomplete_profile' && (
+          <View className="px-4 mt-6">
+            <View className="bg-surface rounded-xl p-4">
+              <Text className="text-text font-bold mb-1">Complete your profile</Text>
+              <Text className="text-text-light text-sm mb-3">
+                Add your weight, height, age and gender to see nutrition targets.
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/profile-setup')}>
+                <Text className="text-blue-400 font-bold">Complete Profile →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {nutrition?.success && (
           <View className="px-4 mt-6">
             <Text className="text-text text-xl font-bold mb-4">Nutrition Today</Text>
             <View className="bg-surface rounded-xl p-4">

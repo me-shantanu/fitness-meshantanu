@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useExerciseStore } from '../store/exerciseStore';
@@ -16,6 +15,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useThemeStore } from '@/store/useThemeStore';
+import { showAlert } from '@/utils/alert';
 
 type FilterType = 'all' | 'workout' | 'warmup' | 'cooldown';
 
@@ -38,7 +38,7 @@ export default function FavoritesScreen() {
   };
 
   const handleRemoveFavorite = (exerciseId: string, exerciseName: string) => {
-    Alert.alert(
+    showAlert(
       'Remove Favorite',
       `Remove "${exerciseName}" from favorites?`,
       [
@@ -49,7 +49,7 @@ export default function FavoritesScreen() {
           onPress: async () => {
             const result = await removeFavorite(exerciseId);
             if (!result.success) {
-              Alert.alert('Error', 'Failed to remove favorite. Please try again.');
+              showAlert('Error', 'Failed to remove favorite. Please try again.');
             }
           },
         },

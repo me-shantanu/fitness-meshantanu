@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions, ScrollView } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '../../lib/supabase';
+import { showAlert } from '@/utils/alert';
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 interface EmailVerificationScreenProps {
   email: string;
@@ -10,6 +14,39 @@ interface EmailVerificationScreenProps {
 export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ email }) => {
   const router = useRouter();
   const { width } = useWindowDimensions();
+
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const resendingRef = useRef(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown > 0]);
+
+  const handleResend = async () => {
+    if (resendingRef.current || cooldown > 0) return;
+    resendingRef.current = true;
+    setResending(true);
+
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email });
+      if (error) {
+        showAlert('Error', error.message || 'Failed to resend verification email.');
+      } else {
+        showAlert('Email Sent', 'A new verification email has been sent. Please check your inbox.');
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+      }
+    } catch (error: any) {
+      showAlert('Error', error?.message || 'Failed to resend verification email.');
+    } finally {
+      resendingRef.current = false;
+      setResending(false);
+    }
+  };
 
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
@@ -72,11 +109,16 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
                 Didn't receive the email?{' '}
               </Text>
               <TouchableOpacity
-                onPress={() => {/* Handle resend logic */}}
+                onPress={handleResend}
+                disabled={resending || cooldown > 0}
                 activeOpacity={0.8}
               >
-                <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
-                  Resend
+                <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'} ${resending || cooldown > 0 ? 'opacity-50' : ''}`}>
+                  {resending
+                    ? 'Sending...'
+                    : cooldown > 0
+                      ? `Resend (${cooldown}s)`
+                      : 'Resend'}
                 </Text>
               </TouchableOpacity>
             </View>

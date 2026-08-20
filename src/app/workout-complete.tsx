@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { workoutService } from '../services/workoutService';
+import { useAuthStore } from '../store/authStore';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { WorkoutSession } from '@/types/workout';
@@ -22,19 +23,23 @@ export default function WorkoutCompleteScreen() {
     duration: string;
   }>();
   
+  const { user } = useAuthStore();
+
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (sessionId) {
+    if (sessionId && user?.id) {
       loadSession();
+    } else {
+      setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, user?.id]);
 
   const loadSession = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !user?.id) return;
     
-    const sessionData = await workoutService.getSessionDetails(sessionId);
+    const sessionData = await workoutService.getSessionDetails(sessionId, user.id);
     if (sessionData) {
       setSession(sessionData);
     }
@@ -181,7 +186,7 @@ export default function WorkoutCompleteScreen() {
           <View className="w-full space-y-3">
             <TouchableOpacity
               className="bg-blue-600 py-4 rounded-xl"
-              onPress={() => router.replace('/(tabs)/workouts' as any)}
+              onPress={() => router.replace('/(tabs)/workout' as any)}
             >
               <Text className="text-text text-center font-bold text-lg">
                 Back to Workouts

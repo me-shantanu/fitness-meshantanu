@@ -10,79 +10,45 @@ import {
   WorkoutDayForm,
   PlannedExercise
 } from '../types/workout';
+import { localDateString } from '../utils/date';
 
 class WorkoutService {
-  // Create workout plan with days and exercises
+  // Create workout plan with days and exercises (atomic server-side RPC)
   async createWeeklyPlan(
     userId: string,
     planData: CreatePlanData,
     days: WorkoutDayForm[]
   ): Promise<{ success: boolean; planId?: string; error?: any }> {
     try {
-      // Deactivate other active plans if this isn't a template
-      if (!planData.isTemplate) {
-        await supabase
-          .from('workout_plans')
-          .update({ is_active: false })
-          .eq('user_id', userId)
-          .eq('is_active', true);
-      }
+      const p_days = days.map(day => ({
+        day_of_week: day.dayOfWeek,
+        name: day.name,
+        is_rest_day: day.isRestDay,
+        exercises: day.isRestDay ? [] : day.exercises.map((exercise, index) => ({
+          exercise_id: exercise.id,
+          exercise_name: exercise.name,
+          exercise_type: exercise.type,
+          target_sets: exercise.sets,
+          target_reps: exercise.reps,
+          target_weight: exercise.weight,
+          target_duration: null,
+          notes: exercise.notes ?? null,
+          order_index: index
+        }))
+      }));
 
-      // Create the plan
-      const { data: plan, error: planError } = await supabase
-        .from('workout_plans')
-        .insert({
-          user_id: userId,
-          name: planData.name,
-          description: planData.description,
-          start_date: planData.startDate,
-          end_date: planData.endDate,
-          is_active: !planData.isTemplate,
-          is_template: planData.isTemplate
-        })
-        .select()
-        .single();
+      const { data: planId, error } = await supabase.rpc('create_weekly_plan', {
+        p_name: planData.name,
+        p_description: planData.description ?? null,
+        p_start_date: planData.startDate,
+        p_end_date: planData.endDate,
+        p_is_template: planData.isTemplate,
+        p_days
+      });
 
-      if (planError) throw planError;
+      if (error) throw error;
 
-      // Create workout days
-      for (const day of days) {
-        const { data: workoutDay, error: dayError } = await supabase
-          .from('workout_days')
-          .insert({
-            plan_id: plan.id,
-            day_of_week: day.dayOfWeek,
-            name: day.name,
-            is_rest_day: day.isRestDay
-          })
-          .select()
-          .single();
-
-        if (dayError) throw dayError;
-
-        // Add exercises if not a rest day
-        if (!day.isRestDay && day.exercises.length > 0) {
-          const exercisesToInsert = day.exercises.map((exercise, index) => ({
-            workout_day_id: workoutDay.id,
-            exercise_id: exercise.id,
-            exercise_name: exercise.name,
-            exercise_type: exercise.type,
-            target_sets: exercise.sets,
-            target_reps: exercise.reps,
-            target_weight: exercise.weight,
-            notes: exercise.notes,
-            order_index: index
-          }));
-
-          const { error: exercisesError } = await supabase
-            .from('planned_exercises')
-            .insert(exercisesToInsert);
-
-          if (exercisesError) throw exercisesError;
-        }
-      }
-
-      return { success: true, planId: plan.id };
+      return { success: true, planId: planId as string };
     } catch (error) {
       console.error('Error creating workout plan:', error);
       return { success: false, error };
@@ -140,243 +106,45 @@ class WorkoutService {
     }
   }
 
-  // Activate a template as current plan (keeps it as template)
+  // Activate a template: clones it into a fresh active plan (template untouched).
+  // Returns the NEW cloned plan's id. RPC scopes by auth.uid(); userId kept
+  // for caller compatibility.
   async activateTemplate(
     userId: string,
     templateId: string,
-    startDate: string,
-    endDate: string
+    startDate?: string,
+    endDate?: string
   ): Promise<{ success: boolean; planId?: string; error?: any }> {
     try {
-      // Deactivate all other active plans
-      await supabase
-        .from('workout_plans')
-        .update({ is_active: false })
-        .eq('user_id', userId)
-        .eq('is_active', true);
+      const { data: newPlanId, error } = await supabase.rpc('activate_template', {
+        p_template_id: templateId,
+        p_start_date: startDate || null,
+        p_end_date: endDate || null
+      });
 
-      // Activate this template (but keep it as a template!)
-      const { data: activatedPlan, error: updateError } = await supabase
-        .from('workout_plans')
-        .update({
-          is_active: true,
-          // is_template stays as it was (true or false)
-          start_date: startDate,
-          end_date: endDate
-        })
-        .eq('id', templateId)
-        .select()
-        .single();
+      if (error) throw error;
 
-      if (updateError) throw updateError;
-
-      return { success: true, planId: activatedPlan.id };
+      return { success: true, planId: newPlanId as string };
     } catch (error) {
       console.error('Error activating template:', error);
       return { success: false, error };
     }
   }
 
-  // Convert active plan back to template
-  async convertToTemplate(planId: string): Promise<boolean> {
+  // Delete plan: DB has ON DELETE CASCADE for days/exercises and
+  // ON DELETE SET NULL for sessions, so a single scoped delete suffices.
+  async deletePlan(userId: string, planId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('workout_plans')
-        .update({
-          is_active: false,
-          is_template: true
-        })
-        .eq('id', planId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error converting to template:', error);
-      return false;
-    }
-  }
-
-  // Deactivate current plan (archive it)
-  async deactivatePlan(planId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('workout_plans')
-        .update({ is_active: false })
-        .eq('id', planId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error deactivating plan:', error);
-      return false;
-    }
-  }
-
-  // Delete plan - PRODUCTION READY VERSION
-  async deletePlan(planId: string): Promise<boolean> {
-    try {
-      console.log('🗑️ Starting delete for plan:', planId);
-      
-      // Always use manual cascade delete for reliability
-      // This ensures we handle all foreign keys properly
-      return await this.manualCascadeDelete(planId);
-    } catch (error: any) {
-      console.error('❌ Fatal error in deletePlan:', error);
-      return false;
-    }
-  }
-
-  // Manual cascade delete - handles all foreign key relationships
-  private async manualCascadeDelete(planId: string): Promise<boolean> {
-    try {
-      console.log('📋 Step 1: Fetching plan details...');
-      
-      // Get plan details
-      const { data: plan, error: planFetchError } = await supabase
-        .from('workout_plans')
-        .select('name, is_active, is_template')
+        .delete()
         .eq('id', planId)
-        .single();
+        .eq('user_id', userId);
 
-      if (planFetchError) {
-        console.error('❌ Plan not found:', planFetchError);
-        return false;
-      }
-
-      console.log('✓ Found plan:', plan);
-
-      // Step 1: Get all workout days for this plan
-      console.log('📋 Step 2: Fetching workout days...');
-      const { data: workoutDays, error: daysError } = await supabase
-        .from('workout_days')
-        .select('id')
-        .eq('plan_id', planId);
-
-      if (daysError) {
-        console.error('❌ Error fetching workout days:', daysError);
-        throw daysError;
-      }
-
-      console.log(`✓ Found ${workoutDays?.length || 0} workout days`);
-
-      if (!workoutDays || workoutDays.length === 0) {
-        console.log('📋 No workout days, deleting plan directly...');
-        const { error: planDeleteError } = await supabase
-          .from('workout_plans')
-          .delete()
-          .eq('id', planId);
-        
-        if (planDeleteError) {
-          console.error('❌ Error deleting plan:', planDeleteError);
-          return false;
-        }
-        console.log('✅ Plan deleted successfully');
-        return true;
-      }
-
-      const dayIds = workoutDays.map(d => d.id);
-      console.log('Day IDs to process:', dayIds);
-
-      // Step 2: Handle workout sessions
-      console.log('📋 Step 3: Handling workout sessions...');
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .in('workout_day_id', dayIds);
-
-      if (sessionsError) {
-        console.error('⚠️ Error fetching sessions:', sessionsError);
-      } else {
-        console.log(`✓ Found ${sessions?.length || 0} workout sessions`);
-      }
-
-      // Step 3: Delete exercise sets from sessions
-      if (sessions && sessions.length > 0) {
-        const sessionIds = sessions.map(s => s.id);
-        console.log('📋 Step 4: Deleting exercise sets...');
-        
-        const { error: setsError } = await supabase
-          .from('exercise_sets')
-          .delete()
-          .in('session_id', sessionIds);
-        
-        if (setsError) {
-          console.error('❌ Error deleting exercise sets:', setsError);
-          // Continue anyway - not critical
-        } else {
-          console.log('✓ Exercise sets deleted');
-        }
-
-        // Step 4: Update sessions to remove workout_day_id reference
-        console.log('📋 Step 5: Updating workout sessions...');
-        const { error: updateSessionsError } = await supabase
-          .from('workout_sessions')
-          .update({ workout_day_id: null })
-          .in('workout_day_id', dayIds);
-        
-        if (updateSessionsError) {
-          console.error('❌ Error updating sessions:', updateSessionsError);
-          // Try to delete them instead
-          console.log('📋 Attempting to delete sessions...');
-          const { error: deleteSessionsError } = await supabase
-            .from('workout_sessions')
-            .delete()
-            .in('workout_day_id', dayIds);
-          
-          if (deleteSessionsError) {
-            console.error('❌ Error deleting sessions:', deleteSessionsError);
-            throw deleteSessionsError;
-          } else {
-            console.log('✓ Sessions deleted');
-          }
-        } else {
-          console.log('✓ Sessions updated (workout_day_id set to null)');
-        }
-      }
-
-      // Step 5: Delete planned exercises
-      console.log('📋 Step 6: Deleting planned exercises...');
-      const { error: plannedExError } = await supabase
-        .from('planned_exercises')
-        .delete()
-        .in('workout_day_id', dayIds);
-      
-      if (plannedExError) {
-        console.error('❌ Error deleting planned exercises:', plannedExError);
-        throw plannedExError;
-      }
-      console.log('✓ Planned exercises deleted');
-
-      // Step 6: Delete workout days
-      console.log('📋 Step 7: Deleting workout days...');
-      const { error: deleteDaysError } = await supabase
-        .from('workout_days')
-        .delete()
-        .eq('plan_id', planId);
-      
-      if (deleteDaysError) {
-        console.error('❌ Error deleting workout days:', deleteDaysError);
-        throw deleteDaysError;
-      }
-      console.log('✓ Workout days deleted');
-
-      // Step 7: Finally delete the plan
-      console.log('📋 Step 8: Deleting workout plan...');
-      const { error: finalDeleteError } = await supabase
-        .from('workout_plans')
-        .delete()
-        .eq('id', planId);
-
-      if (finalDeleteError) {
-        console.error('❌ Error deleting plan:', finalDeleteError);
-        throw finalDeleteError;
-      }
-
-      console.log('✅ PLAN DELETED SUCCESSFULLY');
+      if (error) throw error;
       return true;
-    } catch (error: any) {
-      console.error('❌ Fatal error in manual cascade delete:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+    } catch (error) {
+      console.error('Error deleting plan:', error);
       return false;
     }
   }
@@ -392,7 +160,7 @@ class WorkoutService {
         .insert({
           user_id: userId,
           workout_day_id: workoutDayId,
-          date: new Date().toISOString().split('T')[0],
+          date: localDateString(),
           started_at: new Date().toISOString()
         })
         .select(`
@@ -412,7 +180,7 @@ class WorkoutService {
     }
   }
 
-  // Log exercise set
+  // Log exercise set (atomic insert + race-free PR detection server-side)
   async logExerciseSet(setData: {
     sessionId: string;
     plannedExerciseId?: string;
@@ -426,151 +194,42 @@ class WorkoutService {
     userId: string;
   }): Promise<ExerciseSet | null> {
     try {
-      // Check for PR
-      const isPR = await this.checkPersonalRecord(
-        setData.userId,
-        setData.exerciseId,
-        setData.weight || 0,
-        setData.reps
-      );
-
-      const { data: set, error } = await supabase
-        .from('exercise_sets')
-        .insert({
-          session_id: setData.sessionId,
-          planned_exercise_id: setData.plannedExerciseId,
-          exercise_id: setData.exerciseId,
-          exercise_name: setData.exerciseName,
-          set_number: setData.setNumber,
-          reps: setData.reps,
-          weight: setData.weight,
-          duration: setData.duration,
-          notes: setData.notes,
-          is_pr: isPR
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('log_exercise_set', {
+        p_session_id: setData.sessionId,
+        p_planned_exercise_id: setData.plannedExerciseId ?? null,
+        p_exercise_id: setData.exerciseId,
+        p_exercise_name: setData.exerciseName,
+        p_set_number: setData.setNumber,
+        p_reps: setData.reps,
+        p_weight: setData.weight ?? null,
+        p_duration: setData.duration ?? null,
+        p_notes: setData.notes ?? null
+      });
 
       if (error) throw error;
-
-      // Update PR if needed
-      if (isPR) {
-        await this.updatePersonalRecord(
-          setData.userId,
-          setData.exerciseId,
-          setData.exerciseName,
-          setData.weight || 0,
-          setData.reps,
-          setData.sessionId
-        );
-      }
-
-      return set;
+      return (data as ExerciseSet) ?? null;
     } catch (error) {
       console.error('Error logging set:', error);
       return null;
     }
   }
 
-  // Check if this is a personal record
-  async checkPersonalRecord(
-    userId: string,
-    exerciseId: string,
-    weight: number,
-    reps: number
-  ): Promise<boolean> {
-    try {
-      const { data: existingPR } = await supabase
-        .from('personal_records')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('exercise_id', exerciseId)
-        .maybeSingle();
-
-      if (!existingPR) return true;
-
-      // PR if: higher weight OR same weight with more reps
-      return weight > existingPR.max_weight ||
-        (weight === existingPR.max_weight && reps > existingPR.max_reps);
-    } catch (error) {
-      console.error('Error checking PR:', error);
-      return false;
-    }
-  }
-
-  // Update personal record
-  async updatePersonalRecord(
-    userId: string,
-    exerciseId: string,
-    exerciseName: string,
-    weight: number,
-    reps: number,
-    sessionId: string
-  ): Promise<PersonalRecord | null> {
-    try {
-      const { data: existingPR } = await supabase
-        .from('personal_records')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('exercise_id', exerciseId)
-        .maybeSingle();
-
-      if (existingPR) {
-        const { data, error } = await supabase
-          .from('personal_records')
-          .update({
-            max_weight: weight,
-            max_reps: reps,
-            achieved_at: new Date().toISOString(),
-            session_id: sessionId
-          })
-          .eq('id', existingPR.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase
-          .from('personal_records')
-          .insert({
-            user_id: userId,
-            exercise_id: exerciseId,
-            exercise_name: exerciseName,
-            max_weight: weight,
-            max_reps: reps,
-            session_id: sessionId
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
-    } catch (error) {
-      console.error('Error updating PR:', error);
-      return null;
-    }
-  }
-
-  // Complete workout session
+  // Complete workout session (idempotent server-side RPC; also rolls
+  // burned calories into the day's nutrition row). RPC scopes by auth.uid();
+  // userId kept for caller compatibility.
   async completeWorkoutSession(
+    userId: string,
     sessionId: string,
     caloriesBurned: number
   ): Promise<WorkoutSession | null> {
     try {
-      const { data, error } = await supabase
-        .from('workout_sessions')
-        .update({
-          completed_at: new Date().toISOString(),
-          total_calories_burned: caloriesBurned
-        })
-        .eq('id', sessionId)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('complete_workout_session', {
+        p_session_id: sessionId,
+        p_calories_burned: caloriesBurned
+      });
 
       if (error) throw error;
-      return data;
+      return (data as WorkoutSession) ?? null;
     } catch (error) {
       console.error('Error completing session:', error);
       return null;
@@ -578,7 +237,7 @@ class WorkoutService {
   }
 
   // Get session details
-  async getSessionDetails(sessionId: string): Promise<WorkoutSession | null> {
+  async getSessionDetails(sessionId: string, userId: string): Promise<WorkoutSession | null> {
     try {
       const { data, error } = await supabase
         .from('workout_sessions')
@@ -591,6 +250,7 @@ class WorkoutService {
           exercise_sets (*)
         `)
         .eq('id', sessionId)
+        .eq('user_id', userId)
         .single();
 
       if (error) throw error;
@@ -611,6 +271,10 @@ class WorkoutService {
           workout_days (
             name,
             is_rest_day
+          ),
+          exercise_sets (
+            weight,
+            reps
           )
         `)
         .eq('user_id', userId)

@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -18,8 +17,11 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
 import { WorkoutDayForm, ExerciseForm, Exercise } from '@/types/workout';
+import { showAlert } from '@/utils/alert';
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 
 export default function CreatePlanScreen() {
   const router = useRouter();
@@ -134,23 +136,28 @@ export default function CreatePlanScreen() {
     if (!user?.id) return;
 
     if (!planName.trim()) {
-      Alert.alert('Error', 'Please enter a plan name');
+      showAlert('Error', 'Please enter a plan name');
       return;
     }
 
     if (!isTemplate && (!startDate || !endDate)) {
-      Alert.alert('Error', 'Please select start and end dates');
+      showAlert('Error', 'Please select start and end dates');
+      return;
+    }
+
+    if (!isTemplate && (!isValidDate(startDate) || !isValidDate(endDate))) {
+      showAlert('Error', 'Please enter valid dates in YYYY-MM-DD format');
       return;
     }
 
     if (!isTemplate && new Date(startDate) > new Date(endDate)) {
-      Alert.alert('Error', 'Start date must be before end date');
+      showAlert('Error', 'Start date must be on or before the end date');
       return;
     }
 
     const workoutDaysCount = workoutDays.filter(d => !d.isRestDay).length;
     if (workoutDaysCount === 0) {
-      Alert.alert('Error', 'Please add at least one workout day');
+      showAlert('Error', 'Please add at least one workout day');
       return;
     }
 
@@ -172,20 +179,20 @@ export default function CreatePlanScreen() {
       );
 
       if (result.success) {
-        Alert.alert(
+        showAlert(
           'Success',
           `${isTemplate ? 'Template' : 'Workout plan'} created successfully!`,
           [{
             text: 'OK',
-            onPress: () => router.replace(isTemplate ? '/browse-templates' : '/(tabs)/workouts' as any)
+            onPress: () => router.replace(isTemplate ? '/browse-templates' : '/(tabs)/workout' as any)
           }]
         );
       } else {
-        Alert.alert('Error', result.error?.message || 'Failed to create plan');
+        showAlert('Error', result.error?.message || 'Failed to create plan');
       }
     } catch (error) {
       console.error('Error creating plan:', error);
-      Alert.alert('Error', 'Failed to create workout plan');
+      showAlert('Error', 'Failed to create workout plan');
     }
 
     setLoading(false);

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -15,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { showAlert } from '@/utils/alert';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -41,6 +41,11 @@ export default function ProgressScreen() {
   }, [selectedPeriod]);
 
   const loadProgressData = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       // Calculate date range
@@ -318,10 +323,13 @@ export default function ProgressScreen() {
           <TouchableOpacity
             key={pr.id}
             className="bg-surface rounded-xl p-4 mb-3"
-            onPress={() => router.push({
-              pathname: '/workout-details',
-              params: { sessionId: pr.session_id }
-            })}
+            onPress={() => {
+              if (!pr.session_id) return;
+              router.push({
+                pathname: '/workout-details',
+                params: { sessionId: pr.session_id }
+              });
+            }}
           >
             <View className="flex-row justify-between items-center mb-2">
               <Text className="text-text font-bold text-lg">{pr.exercise_name}</Text>
@@ -370,7 +378,7 @@ export default function ProgressScreen() {
           className="bg-surface rounded-xl p-4 items-center mt-3"
           onPress={() => {
             // You can create a PR list screen later
-            Alert.alert('Coming Soon', 'Full PR list view coming soon!');
+            showAlert('Coming Soon', 'Full PR list view coming soon!');
           }}
         >
           <Text className="text-blue-400 font-bold">

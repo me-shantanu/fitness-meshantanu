@@ -257,12 +257,10 @@ export const nutritionService = {
    * @returns {number} Calories burned
    */
   calculateWorkoutCalories: (weight, duration, intensity = 'moderate') => {
-    if (!weight || weight <= 0) {
-      throw new Error('Invalid weight value');
-    }
-
-    if (!duration || duration <= 0) {
-      throw new Error('Invalid duration value');
+    // Called every timer tick from the workout screen — never throw here.
+    // Zero elapsed time (first tick) and missing weight both mean "0 calories so far".
+    if (!weight || weight <= 0 || !duration || duration <= 0) {
+      return 0;
     }
 
     // MET (Metabolic Equivalent of Task) values
@@ -283,146 +281,6 @@ export const nutritionService = {
     const totalCalories = caloriesPerMinute * duration;
 
     return Math.round(totalCalories);
-  },
-
-  /**
-   * Update daily nutrition log with workout calories
-   * @param {string} userId - User ID
-   * @param {number} caloriesBurned - Calories burned from workout
-   * @returns {Promise<Object|null>} Updated nutrition record
-   */
-  updateDailyNutrition: async (userId, caloriesBurned) => {
-    try {
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
-
-      if (!caloriesBurned || caloriesBurned < 0) {
-        throw new Error('Invalid calories burned value');
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-
-      // Try to get existing record
-      const { data: existing, error: fetchError } = await supabase
-        .from('daily_nutrition')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', today)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error when no record
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (existing) {
-        // Update existing record
-        const { data: updated, error: updateError } = await supabase
-          .from('daily_nutrition')
-          .update({
-            calories_burned: (existing.calories_burned || 0) + caloriesBurned,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-        return updated;
-      } else {
-        // Create new record with targets
-        const targets: any = await nutritionService.calculateDailyTargets(userId);
-
-        if (!targets || !targets.success) {
-          throw new Error('Failed to calculate nutrition targets');
-        }
-
-        const { data: newRecord, error: insertError } = await supabase
-          .from('daily_nutrition')
-          .insert({
-            user_id: userId,
-            date: today,
-            target_calories: targets.calories,
-            target_protein: targets.protein,
-            target_carbs: targets.carbs,
-            target_fats: targets.fats,
-            calories_burned: caloriesBurned,
-            calories_consumed: 0,
-            protein_consumed: 0,
-            carbs_consumed: 0,
-            fats_consumed: 0,
-            water_intake_ml: 0
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        return newRecord;
-      }
-    } catch (error) {
-      console.error('Error updating daily nutrition:', error);
-      return null;
-    }
-  },
-
-  /**
-   * Get or create today's nutrition log
-   * @param {string} userId - User ID
-   * @returns {Promise<Object|null>} Daily nutrition log
-   */
-  getTodayNutrition: async (userId) => {
-    try {
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-
-      const { data: existing, error: fetchError } = await supabase
-        .from('daily_nutrition')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (existing) {
-        return existing;
-      }
-
-      // Create new record if doesn't exist
-      const targets: any = await nutritionService.calculateDailyTargets(userId);
-
-      if (!targets || !targets.success) {
-        return null;
-      }
-
-      const { data: newRecord, error: insertError } = await supabase
-        .from('daily_nutrition')
-        .insert({
-          user_id: userId,
-          date: today,
-          target_calories: targets.calories,
-          target_protein: targets.protein,
-          target_carbs: targets.carbs,
-          target_fats: targets.fats,
-          calories_burned: 0,
-          calories_consumed: 0,
-          protein_consumed: 0,
-          carbs_consumed: 0,
-          fats_consumed: 0,
-          water_intake_ml: 0
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-      return newRecord;
-    } catch (error) {
-      console.error('Error getting today nutrition:', error);
-      return null;
-    }
   },
 
   /**

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, useWindowDimensions, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, useWindowDimensions, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import LottieView from 'lottie-react-native';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { NavigationProgressBar } from '../../components/NavigationProgressBar';
 import { EmailVerificationScreen } from '../../components/auth/EmailVerificationScreen';
+import { showAlert } from '@/utils/alert';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
@@ -26,31 +29,38 @@ export default function SignUpScreen() {
   const lottieSize = isMobile ? Math.min(width * 0.7, 250) : isTablet ? 300 : 350;
 
   const handleSignUp = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+    const trimmedEmail = email.trim();
+
+    if (!fullName || !trimmedEmail || !password || !confirmPassword) {
+      showAlert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      showAlert('Error', 'Please enter a valid email address');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showAlert('Error', 'Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     setShowProgress(true);
     
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(trimmedEmail, password, fullName);
     
     setLoading(false);
     setShowProgress(false);
 
     if (error) {
-      Alert.alert('Sign Up Failed', error.message);
+      showAlert('Sign Up Failed', error.message);
     } else {
       setShowVerification(true);
     }

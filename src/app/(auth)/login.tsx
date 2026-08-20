@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, useWindowDimensions, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, useWindowDimensions, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import LottieView from 'lottie-react-native';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { NavigationProgressBar } from '../../components/NavigationProgressBar';
+import { showAlert } from '@/utils/alert';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -21,21 +24,28 @@ export default function LoginScreen() {
   const lottieSize = isMobile ? Math.min(width * 0.7, 250) : isTablet ? 300 : 350;
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
+      showAlert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      showAlert('Error', 'Please enter a valid email address');
       return;
     }
 
     setLoading(true);
     setShowProgress(true);
     
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(trimmedEmail, password);
     
     setLoading(false);
     setShowProgress(false);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      showAlert('Login Failed', error.message);
     }
   };
 
@@ -105,6 +115,16 @@ export default function LoginScreen() {
                   secureTextEntry
                   editable={!loading}
                 />
+              </View>
+
+              <View className="flex-row justify-end mb-4">
+                <Link href="/(auth)/forgot-password" asChild>
+                  <TouchableOpacity disabled={loading}>
+                    <Text className={`text-text-light ${isMobile ? 'text-sm' : 'text-base'}`}>
+                      Forgot password?
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
               </View>
 
               <View className='flex-row justify-center items-center'>

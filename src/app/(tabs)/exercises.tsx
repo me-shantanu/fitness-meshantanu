@@ -20,6 +20,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
+import { showAlert } from '@/utils/alert';
 
 type ExerciseType = 'workout' | 'warmup' | 'cooldown';
 
@@ -222,7 +223,7 @@ export default function ExercisesScreen() {
       if (!result.success) {
         console.error('❌ [Component] Failed to toggle favorite:', result.error);
         // Show error to user
-        alert(`Failed to ${isFavorite(exercise.id) ? 'remove' : 'add'} favorite: ${result.error}`);
+        showAlert(`Failed to ${isFavorite(exercise.id) ? 'remove' : 'add'} favorite: ${result.error}`);
       } else {
         console.log('✅ [Component] Successfully toggled favorite');
       }

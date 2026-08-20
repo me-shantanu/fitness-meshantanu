@@ -1,8 +1,9 @@
 // app/profile-setup.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { showAlert } from '@/utils/alert';
 
 interface FormData {
   height: string;
@@ -35,7 +36,7 @@ export default function ProfileSetupScreen() {
 
   const handleSave = async () => {
     if (!formData.height || !formData.weight || !formData.age || !formData.bmr) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -51,7 +52,7 @@ export default function ProfileSetupScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message);
     } else {
       router.replace('/(tabs)');
     }

@@ -19,9 +19,7 @@ interface WorkoutStore {
   loadActivePlan: (userId: string) => Promise<void>;
   loadTemplates: (userId: string) => Promise<void>;
   activateTemplate: (userId: string, templateId: string, startDate: string, endDate: string) => Promise<boolean>;
-  convertToTemplate: (planId: string) => Promise<boolean>;
-  deactivatePlan: (planId: string) => Promise<boolean>;
-  deletePlan: (planId: string) => Promise<boolean>;
+  deletePlan: (userId: string, planId: string) => Promise<boolean>;
   startSession: (userId: string, workoutDayId: string) => Promise<WorkoutSession | null>;
   completeSession: (sessionId: string, caloriesBurned: number, userId: string) => Promise<boolean>;
   loadWorkoutHistory: (userId: string, limit?: number) => Promise<void>;
@@ -73,8 +71,11 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       );
       
       if (result.success) {
+        // The RPC clones the template into a NEW active plan (result.planId);
+        // loadActivePlan fetches the active plan, so it picks up the clone.
         await get().loadActivePlan(userId);
         await get().loadTemplates(userId); // Refresh templates list
+        set({ loading: false });
         return true;
       }
       set({ loading: false });
@@ -86,38 +87,18 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     }
   },
 
-  convertToTemplate: async (planId: string) => {
-    try {
-      const success = await workoutService.convertToTemplate(planId);
-      if (success) {
-        set({ activePlan: null });
-      }
-      return success;
-    } catch (error) {
-      console.error('Error converting to template:', error);
-      return false;
-    }
-  },
-
-  deactivatePlan: async (planId: string) => {
-    try {
-      const success = await workoutService.deactivatePlan(planId);
-      if (success) {
-        set({ activePlan: null });
-      }
-      return success;
-    } catch (error) {
-      console.error('Error deactivating plan:', error);
-      return false;
-    }
-  },
-
-  deletePlan: async (planId: string) => {
+  deletePlan: async (userId: string, planId: string) => {
     try {
       set({ loading: true });
-      const success = await workoutService.deletePlan(planId);
+      const success = await workoutService.deletePlan(userId, planId);
       if (success) {
-        set({ activePlan: null, loading: false });
+        if (get().activePlan?.id === planId) {
+          set({ activePlan: null });
+        }
+        set({
+          templates: get().templates.filter(t => t.id !== planId),
+          loading: false
+        });
         return true;
       }
       set({ loading: false });
@@ -145,6 +126,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   completeSession: async (sessionId: string, caloriesBurned: number, userId: string) => {
     try {
       const session = await workoutService.completeWorkoutSession(
+        userId,
         sessionId,
         caloriesBurned
       );

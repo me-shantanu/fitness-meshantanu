@@ -30,6 +30,11 @@ export default function HistoryScreen() {
   }, [selectedPeriod, selectedFilter]);
 
   const loadWorkoutHistory = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       let query = supabase
@@ -50,9 +55,9 @@ export default function HistoryScreen() {
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      // Apply date filter
+      // Apply date filter ('all' applies no lower bound)
       const now = new Date();
-      let startDate = new Date();
+      let startDate: Date | null = new Date();
 
       switch (selectedPeriod) {
         case 'week':
@@ -64,11 +69,16 @@ export default function HistoryScreen() {
         case 'year':
           startDate.setFullYear(now.getFullYear() - 1);
           break;
+        case 'all':
+          startDate = null;
+          break;
         default:
           startDate.setDate(now.getDate() - 30);
       }
 
-      query = query.gte('date', startDate.toISOString().split('T')[0]);
+      if (startDate) {
+        query = query.gte('date', startDate.toISOString().split('T')[0]);
+      }
 
       // Apply status filter
       if (selectedFilter === 'completed') {
@@ -163,7 +173,7 @@ export default function HistoryScreen() {
 
           <View className="items-end">
             <Text className="text-text font-bold">
-              {session.start_time ? new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              {session.started_at ? new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
             </Text>
             {duration && (
               <Text className="text-text-light text-sm">{duration} min</Text>

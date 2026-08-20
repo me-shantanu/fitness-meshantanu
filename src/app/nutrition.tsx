@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  Alert,
   Modal,
   RefreshControl,
 } from 'react-native';
@@ -20,6 +19,7 @@ import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useThemeStore } from '@/store/useThemeStore';
+import { showAlert } from '@/utils/alert';
 
 const INITIAL_FOOD_FORM = {
   name: '',
@@ -43,12 +43,14 @@ export default function NutritionScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddFood, setShowAddFood] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [addingWater, setAddingWater] = useState(false);
   const [foodForm, setFoodForm] = useState(INITIAL_FOOD_FORM);
 
   // Load nutrition data on mount and date change
   useEffect(() => {
+    if (!user?.id) return;
     loadNutritionData();
-  }, [selectedDate, user.id]);
+  }, [selectedDate, user?.id]);
 
   // Memoized date string
   const dateString = useMemo(() => 
@@ -57,6 +59,8 @@ export default function NutritionScreen() {
   );
 
   const loadNutritionData = async () => {
+    if (!user?.id) return;
+
     try {
       setLoading(true);
 
@@ -73,7 +77,7 @@ export default function NutritionScreen() {
 
       // Handle incomplete profile
       if (nutritionData && nutritionData.error === 'incomplete_profile') {
-        Alert.alert(
+        showAlert(
           'Complete Your Profile',
           'Please complete your profile (weight, height, age, gender) to calculate nutrition targets.',
           [
@@ -104,7 +108,7 @@ export default function NutritionScreen() {
       }
     } catch (error) {
       console.error('Error loading nutrition data:', error);
-      Alert.alert('Error', 'Failed to load nutrition data. Please try again.');
+      showAlert('Error', 'Failed to load nutrition data. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,6 +121,8 @@ export default function NutritionScreen() {
   }, []);
 
   const addFood = async () => {
+    if (!user?.id) return;
+
     // Prevent double submission
     if (submitting) return;
 
@@ -126,57 +132,25 @@ export default function NutritionScreen() {
       // Validate input
       const validatedFood = nutritionService.validateFoodInput(foodForm);
 
-      // Check if daily log exists
-      const { data: existingLog, error: fetchError } = await supabase
-        .from('daily_nutrition')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', dateString)
-        .maybeSingle();
+      // Atomic get-or-create + accumulate (targets only apply on the day's
+      // first insert; the RPC keeps existing targets otherwise)
+      const targets: any = nutrition;
+      const { data: updatedLog, error: rpcError } = await supabase.rpc('increment_daily_nutrition', {
+        p_date: dateString,
+        p_calories: validatedFood.calories,
+        p_protein: validatedFood.protein,
+        p_carbs: validatedFood.carbs,
+        p_fats: validatedFood.fats,
+        p_water_ml: 0,
+        p_calories_burned: 0,
+        p_target_calories: targets?.calories ?? null,
+        p_target_protein: targets?.protein ?? null,
+        p_target_carbs: targets?.carbs ?? null,
+        p_target_fats: targets?.fats ?? null
+      });
 
-      if (fetchError) throw fetchError;
-
-      if (existingLog) {
-        // Update existing log
-        const { error: updateError } = await supabase
-          .from('daily_nutrition')
-          .update({
-            calories_consumed: existingLog.calories_consumed + validatedFood.calories,
-            protein_consumed: existingLog.protein_consumed + validatedFood.protein,
-            carbs_consumed: existingLog.carbs_consumed + validatedFood.carbs,
-            fats_consumed: existingLog.fats_consumed + validatedFood.fats,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingLog.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new log with nutrition targets
-        const targets = nutrition || await nutritionService.calculateDailyTargets(user.id);
-        
-        if (!targets || !targets.success) {
-          throw new Error('Unable to calculate nutrition targets');
-        }
-
-        const { error: insertError } = await supabase
-          .from('daily_nutrition')
-          .insert({
-            user_id: user.id,
-            date: dateString,
-            target_calories: targets.calories,
-            target_protein: targets.protein,
-            target_carbs: targets.carbs,
-            target_fats: targets.fats,
-            calories_consumed: validatedFood.calories,
-            protein_consumed: validatedFood.protein,
-            carbs_consumed: validatedFood.carbs,
-            fats_consumed: validatedFood.fats,
-            water_intake_ml: 0,
-            calories_burned: 0
-          });
-
-        if (insertError) throw insertError;
-      }
+      if (rpcError) throw rpcError;
+      if (updatedLog) setDailyLog(updatedLog);
 
       // Add to food log history
       const { error: foodError } = await supabase
@@ -197,13 +171,13 @@ export default function NutritionScreen() {
       if (foodError) throw foodError;
 
       // Success
-      Alert.alert('Success', `${validatedFood.name} added successfully!`);
+      showAlert('Success', `${validatedFood.name} added successfully!`);
       setShowAddFood(false);
       setFoodForm(INITIAL_FOOD_FORM);
       loadNutritionData();
     } catch (error) {
       console.error('Error adding food:', error);
-      Alert.alert(
+      showAlert(
         'Error',
         error.message || 'Failed to add food. Please check your input and try again.'
       );
@@ -213,56 +187,38 @@ export default function NutritionScreen() {
   };
 
   const addWater = async (amount) => {
+    if (!user?.id) return;
+
+    // Prevent overlapping read-modify-writes from double-taps
+    if (addingWater) return;
+    setAddingWater(true);
+
     try {
-      const { data: existingLog, error: fetchError } = await supabase
-        .from('daily_nutrition')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', dateString)
-        .maybeSingle();
+      // Atomic get-or-create + accumulate (only water changes here)
+      const targets: any = nutrition;
+      const { data: updatedLog, error } = await supabase.rpc('increment_daily_nutrition', {
+        p_date: dateString,
+        p_calories: 0,
+        p_protein: 0,
+        p_carbs: 0,
+        p_fats: 0,
+        p_water_ml: amount,
+        p_calories_burned: 0,
+        p_target_calories: targets?.calories ?? null,
+        p_target_protein: targets?.protein ?? null,
+        p_target_carbs: targets?.carbs ?? null,
+        p_target_fats: targets?.fats ?? null
+      });
 
-      if (fetchError) throw fetchError;
-
-      if (existingLog) {
-        const { error: updateError } = await supabase
-          .from('daily_nutrition')
-          .update({
-            water_intake_ml: (existingLog.water_intake_ml || 0) + amount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingLog.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new log if doesn't exist
-        const targets = nutrition || await nutritionService.calculateDailyTargets(user.id);
-        
-        if (targets && targets.success) {
-          const { error: insertError } = await supabase
-            .from('daily_nutrition')
-            .insert({
-              user_id: user.id,
-              date: dateString,
-              target_calories: targets.calories,
-              target_protein: targets.protein,
-              target_carbs: targets.carbs,
-              target_fats: targets.fats,
-              water_intake_ml: amount,
-              calories_consumed: 0,
-              protein_consumed: 0,
-              carbs_consumed: 0,
-              fats_consumed: 0,
-              calories_burned: 0
-            });
-
-          if (insertError) throw insertError;
-        }
-      }
+      if (error) throw error;
+      if (updatedLog) setDailyLog(updatedLog);
 
       loadNutritionData();
     } catch (error) {
       console.error('Error adding water:', error);
-      Alert.alert('Error', 'Failed to add water intake');
+      showAlert('Error', 'Failed to add water intake');
+    } finally {
+      setAddingWater(false);
     }
   };
 
@@ -360,8 +316,8 @@ export default function NutritionScreen() {
     );
   }
 
-  // Calculate net calories (consumed - burned)
-  const netCalories = (dailyLog?.calories_consumed || 0) - (dailyLog?.calories_burned || 0);
+  // Calories consumed today; the target is already adjusted upward by calories burned
+  const netCalories = dailyLog?.calories_consumed || 0;
   const adjustedTarget = nutrition.calories + (dailyLog?.calories_burned || 0);
 
   return (

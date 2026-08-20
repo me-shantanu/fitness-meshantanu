@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -18,11 +17,12 @@ import { useWorkoutStore } from '../store/workoutStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import { WorkoutSession, ExerciseSet, PlannedExercise } from '@/types/workout';
+import { showAlert } from '@/utils/alert';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const { user }: { user: any } = useAuthStore();
+  const { user, profile }: { user: any; profile: any } = useAuthStore();
   const { completeSession } = useWorkoutStore();
 
   const [session, setSession] = useState<WorkoutSession | null>(null);
@@ -39,43 +39,58 @@ export default function WorkoutSessionScreen() {
   const [workoutDuration, setWorkoutDuration] = useState(0);
   const [caloriesBurned, setCaloriesBurned] = useState(0);
 
+  // In-flight guards
+  const [logging, setLogging] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
   useEffect(() => {
-    if (sessionId) {
+    if (sessionId && user?.id) {
       loadSession();
     }
-  }, [sessionId]);
+  }, [sessionId, user?.id]);
 
+  // Derive the timer from session.started_at so refresh/resume shows real duration
   useEffect(() => {
-    const interval = setInterval(() => {
-      setWorkoutDuration(prev => {
-        const newDuration = prev + 1;
-        if (newDuration % 60 === 0 && user?.weight) {
-          const newCalories = nutritionService.calculateWorkoutCalories(
-            user.weight,
-            newDuration / 60,
-            'moderate'
-          );
-          setCaloriesBurned(newCalories);
-        }
-        return newDuration;
-      });
-    }, 1000);
+    if (!session?.started_at) return;
+
+    const startedAt = new Date(session.started_at).getTime();
+    const tick = () => {
+      const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      setWorkoutDuration(elapsed);
+      if (profile?.weight) {
+        const newCalories = nutritionService.calculateWorkoutCalories(
+          profile.weight,
+          elapsed / 60,
+          'moderate'
+        );
+        setCaloriesBurned(newCalories);
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
 
     return () => clearInterval(interval);
-  }, [user?.weight]);
+  }, [session?.started_at, profile?.weight]);
 
   const loadSession = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !user?.id) return;
 
     setLoading(true);
-    const sessionData = await workoutService.getSessionDetails(sessionId);
+    const sessionData = await workoutService.getSessionDetails(sessionId, user.id);
     if (sessionData) {
       setSession(sessionData);
-      setSets(sessionData.exercise_sets || []);
+      const loadedSets = sessionData.exercise_sets || [];
+      setSets(loadedSets);
 
       // Set default values from planned exercise
       if (sessionData.workout_days?.planned_exercises?.[0]) {
         const firstExercise = sessionData.workout_days.planned_exercises[0];
+        // Resume the set counter from the sets already logged for this exercise
+        const loggedSets = loadedSets.filter(
+          s => s.planned_exercise_id === firstExercise.id
+        ).length;
+        setCurrentSet(loggedSets + 1);
         setRepsInput(firstExercise.target_reps.toString());
         if (firstExercise.target_weight) {
           setWeightInput(firstExercise.target_weight.toString());
@@ -98,12 +113,13 @@ export default function WorkoutSessionScreen() {
 
   const logSet = async () => {
     if (!user?.id || !sessionId || !currentExercise) return;
+    if (logging) return;
 
     const reps = parseInt(repsInput) || 0;
     const weight = parseFloat(weightInput) || 0;
 
     if (reps <= 0) {
-      Alert.alert('Error', 'Please enter valid reps');
+      showAlert('Error', 'Please enter valid reps');
       return;
     }
 
@@ -118,14 +134,21 @@ export default function WorkoutSessionScreen() {
       userId: user.id
     };
 
-    const savedSet = await workoutService.logExerciseSet(setData);
-    if (savedSet) {
-      setSets([...sets, savedSet]);
-      setCurrentSet(currentSet + 1);
+    setLogging(true);
+    try {
+      const savedSet = await workoutService.logExerciseSet(setData);
+      if (savedSet) {
+        setSets([...sets, savedSet]);
+        setCurrentSet(currentSet + 1);
 
-      if (savedSet.is_pr) {
-        Alert.alert('🏆 Personal Record!', `New PR for ${currentExercise.exercise_name}!`);
+        if (savedSet.is_pr) {
+          showAlert('🏆 Personal Record!', `New PR for ${currentExercise.exercise_name}!`);
+        }
+      } else {
+        showAlert('Error', 'Set could not be saved. Check your connection and try again.');
       }
+    } finally {
+      setLogging(false);
     }
   };
 
@@ -142,13 +165,13 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
+    const nextEx = session.workout_days.planned_exercises[nextIndex];
     setCurrentExerciseIndex(nextIndex);
-    setCurrentSet(1);
+    setCurrentSet(sets.filter(s => s.planned_exercise_id === nextEx.id).length + 1);
     setRepsInput('');
     setWeightInput('');
 
     // Set default values for next exercise
-    const nextEx = session.workout_days.planned_exercises[nextIndex];
     setRepsInput(nextEx.target_reps.toString());
     if (nextEx.target_weight) {
       setWeightInput(nextEx.target_weight.toString());
@@ -160,42 +183,61 @@ export default function WorkoutSessionScreen() {
 
     const prevIndex = currentExerciseIndex - 1;
     setCurrentExerciseIndex(prevIndex);
-    setCurrentSet(1);
     setRepsInput('');
     setWeightInput('');
 
     if (session?.workout_days?.planned_exercises) {
       const prevEx = session.workout_days.planned_exercises[prevIndex];
+      setCurrentSet(sets.filter(s => s.planned_exercise_id === prevEx.id).length + 1);
       setRepsInput(prevEx.target_reps.toString());
       if (prevEx.target_weight) {
         setWeightInput(prevEx.target_weight.toString());
       }
+    } else {
+      setCurrentSet(1);
     }
   };
 
   const handleCompleteWorkout = () => {
-    Alert.alert(
+    if (completing) return;
+
+    // Compute elapsed time and calories from started_at (not the 60s display boundary)
+    const startedAt = session?.started_at
+      ? new Date(session.started_at).getTime()
+      : Date.now();
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    const finalCalories = profile?.weight
+      ? nutritionService.calculateWorkoutCalories(profile.weight, elapsedSeconds / 60, 'moderate')
+      : caloriesBurned;
+
+    showAlert(
       'Complete Workout',
-      `Duration: ${formatTime(workoutDuration)}\nCalories burned: ${caloriesBurned} cal\n\nAre you sure you want to finish?`,
+      `Duration: ${formatTime(elapsedSeconds)}\nCalories burned: ${finalCalories} cal\n\nAre you sure you want to finish?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Complete',
           onPress: async () => {
             if (!user?.id) return;
+            if (completing) return;
 
-            const success = await completeSession(sessionId, caloriesBurned, user.id);
-            if (success) {
-              router.push({
-                pathname: '/workout-complete' as any,
-                params: {
-                  calories: caloriesBurned.toString(),
-                  duration: workoutDuration.toString(),
-                  sessionId
-                }
-              });
-            } else {
-              Alert.alert('Error', 'Failed to complete workout');
+            setCompleting(true);
+            try {
+              const success = await completeSession(sessionId, finalCalories, user.id);
+              if (success) {
+                router.replace({
+                  pathname: '/workout-complete' as any,
+                  params: {
+                    calories: finalCalories.toString(),
+                    duration: elapsedSeconds.toString(),
+                    sessionId
+                  }
+                });
+              } else {
+                showAlert('Error', 'Failed to complete workout');
+              }
+            } finally {
+              setCompleting(false);
             }
           }
         }
@@ -213,7 +255,7 @@ export default function WorkoutSessionScreen() {
     );
   }
 
-  if (!session || !currentExercise) {
+  if (!session) {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center px-4">
@@ -223,6 +265,28 @@ export default function WorkoutSessionScreen() {
             onPress={() => router.back()}
           >
             <Text className="text-text font-bold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentExercise) {
+    return (
+      <SafeAreaView className="flex-1 bg-bg">
+        <View className="flex-1 justify-center items-center px-4">
+          <Text className="text-text text-xl font-bold">No exercises in this workout</Text>
+          <Text className="text-text-light text-center mt-2">
+            Add exercises to this day in your plan before starting the workout.
+          </Text>
+          <TouchableOpacity
+            className="bg-blue-600 px-6 py-3 rounded-lg mt-4"
+            onPress={() => router.push('/edit-plan' as any)}
+          >
+            <Text className="text-text font-bold">Edit Plan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity className="mt-3" onPress={() => router.back()}>
+            <Text className="text-text-light">Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -242,8 +306,8 @@ export default function WorkoutSessionScreen() {
           <Text className="text-text-light text-sm">{caloriesBurned} cal</Text>
         </View>
 
-        <TouchableOpacity onPress={handleCompleteWorkout}>
-          <Text className="text-blue-400 font-bold">Finish</Text>
+        <TouchableOpacity onPress={handleCompleteWorkout} disabled={completing}>
+          <Text className={`text-blue-400 font-bold ${completing ? 'opacity-50' : ''}`}>Finish</Text>
         </TouchableOpacity>
       </View>
 
@@ -321,7 +385,8 @@ export default function WorkoutSessionScreen() {
             </View>
 
             <TouchableOpacity
-              className="bg-blue-600 py-4 rounded-lg mb-3"
+              className={`bg-blue-600 py-4 rounded-lg mb-3 ${logging ? 'opacity-50' : ''}`}
+              disabled={logging}
               onPress={logSet}
             >
               <Text className="text-text text-center font-bold text-lg">Log Set</Text>

@@ -10,7 +10,6 @@ import {
   Linking,
   Dimensions,
   Modal,
-  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
@@ -24,6 +23,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { showAlert } from '@/utils/alert';
 
 const { width } = Dimensions.get('window');
 
@@ -122,12 +122,12 @@ export default function ExerciseDetailScreen() {
 
   const handleAddToPlan = async () => {
     if (!selectedPlan || !selectedDay || !exercise) {
-      Alert.alert('Error', 'Please select a plan and day');
+      showAlert('Error', 'Please select a plan and day');
       return;
     }
 
     if (selectedDay.is_rest_day) {
-      Alert.alert('Error', 'Cannot add exercises to rest days');
+      showAlert('Error', 'Cannot add exercises to rest days');
       return;
     }
 
@@ -164,13 +164,13 @@ export default function ExerciseDetailScreen() {
 
       if (insertError) throw insertError;
 
-      Alert.alert('Success', `"${exercise.name}" added to workout plan!`, [
+      showAlert('Success', `"${exercise.name}" added to workout plan!`, [
         {
           text: 'View Plan',
           style: 'default',
           onPress: () => {
             setShowAddToPlanModal(false);
-            router.push('/(tabs)/workouts');
+            router.push('/(tabs)/workout');
           }
         },
         {
@@ -183,7 +183,7 @@ export default function ExerciseDetailScreen() {
       ]);
     } catch (error: any) {
       console.error('Error adding exercise to plan:', error);
-      Alert.alert('Error', error.message || 'Failed to add exercise to plan');
+      showAlert('Error', error.message || 'Failed to add exercise to plan');
     }
     setAddingToPlan(false);
   };

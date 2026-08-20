@@ -4,8 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const supabaseUrl = 'https://ttoauublnprcdgvumrpj.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0b2F1dWJsbnByY2RndnVtcnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2OTA0OTIsImV4cCI6MjA4MjI2NjQ5Mn0.v0CfzTkEGkfZQ6Ng4IFWe4Yyc2piPVNJfss0DiyrkE8';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.local (see .env.example), then restart the dev server.'
+  );
+}
 
 // Use localStorage for web, AsyncStorage for native
 const storage = Platform.OS === 'web' 

@@ -1,5 +1,5 @@
 // app/(tabs)/workouts.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
-  Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { useWorkoutStore } from '../../store/workoutStore';
 import { workoutService } from '../../services/workoutService';
@@ -19,6 +18,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
 import { WorkoutDay } from '@/types/workout';
+import { showAlert } from '@/utils/alert';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -29,59 +29,69 @@ export default function WorkoutsScreen() {
 
   const [showDayModal, setShowDayModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadActivePlan(user.id);
-    }
-  }, [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        loadActivePlan(user.id);
+      }
+    }, [user?.id])
+  );
 
   const startWorkout = async (workoutDay: WorkoutDay) => {
     if (!user?.id || !workoutDay.id) return;
 
     if (workoutDay.is_rest_day) {
-      Alert.alert('Rest Day', 'Today is a rest day! Take it easy and recover.');
+      showAlert('Rest Day', 'Today is a rest day! Take it easy and recover.');
       return;
     }
 
-    const session = await workoutService.startWorkoutSession(user.id, workoutDay.id);
-    if (session) {
-      router.push({
-        pathname: '/workout-session' as any,
-        params: { sessionId: session.id }
-      });
+    if (startingRef.current) return;
+    startingRef.current = true;
+    setStarting(true);
+
+    try {
+      const session = await workoutService.startWorkoutSession(user.id, workoutDay.id);
+      if (session) {
+        router.push({
+          pathname: '/workout-session' as any,
+          params: { sessionId: session.id }
+        });
+      } else {
+        showAlert('Error', 'Could not start workout. Please try again.');
+      }
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
     }
   };
 
-  const deletePlan = async () => {
-    console.log('Delete plan triggered', activePlan?.id);
-    if (!activePlan?.id) return;
-    const success = await storeDeletePlan(activePlan.id);
-    if (success) {
-      console.log('Success', 'Workout plan deleted successfully');
-    } else {
-      console.log('Error', 'Failed to delete workout plan');
-    }
-    console.log('Active plan id:', activePlan.id);
-    // Alert.alert(
-    //   'Delete Workout Plan',
-    //   'Are you sure you want to delete this workout plan?',
-    //   [
-    //     { text: 'Cancel', style: 'cancel' },
-    //     {
-    //       text: 'Delete',
-    //       style: 'destructive',
-    //       onPress: async () => {
-    //         const success = await storeDeletePlan(activePlan.id);
-    //         if (success) {
-    //           Alert.alert('Success', 'Workout plan deleted successfully');
-    //         } else {
-    //           Alert.alert('Error', 'Failed to delete workout plan');
-    //         }
-    //       }
-    //     }
-    //   ]
-    // );
+  const deletePlan = () => {
+    if (!user?.id || !activePlan?.id) return;
+    const userId = user.id;
+    const planId = activePlan.id;
+
+    showAlert(
+      'Delete Plan',
+      'This permanently deletes the plan, its schedule and exercises. Workout history is kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await storeDeletePlan(userId, planId);
+            if (success) {
+              showAlert('Success', 'Workout plan deleted successfully');
+            } else {
+              showAlert('Error', 'Failed to delete workout plan');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const editWorkoutDay = (day: WorkoutDay) => {
@@ -119,7 +129,8 @@ export default function WorkoutsScreen() {
 
           {!day.is_rest_day && (
             <TouchableOpacity
-              className="bg-blue-600 px-4 py-2 rounded-lg"
+              className={`bg-blue-600 px-4 py-2 rounded-lg ${starting ? 'opacity-50' : ''}`}
+              disabled={starting}
               onPress={(e) => {
                 e.stopPropagation();
                 startWorkout(day);
@@ -308,7 +319,7 @@ export default function WorkoutsScreen() {
           <Text className="text-text text-xl font-bold mb-4">Weekly Schedule</Text>
 
           {activePlan.workout_days && activePlan.workout_days.length > 0 ? (
-            activePlan.workout_days
+            [...activePlan.workout_days]
               .sort((a, b) => a.day_of_week - b.day_of_week)
               .map((day, index) => renderWorkoutDay(day, index))
           ) : (
@@ -383,6 +394,7 @@ export default function WorkoutsScreen() {
         {selectedDay && (
           <WorkoutDayModal
             day={selectedDay}
+            starting={starting}
             onClose={() => setShowDayModal(false)}
             onStartWorkout={() => {
               setShowDayModal(false);
@@ -397,11 +409,12 @@ export default function WorkoutsScreen() {
 
 interface WorkoutDayModalProps {
   day: WorkoutDay;
+  starting: boolean;
   onClose: () => void;
   onStartWorkout: () => void;
 }
 
-function WorkoutDayModal({ day, onClose, onStartWorkout }: WorkoutDayModalProps) {
+function WorkoutDayModal({ day, starting, onClose, onStartWorkout }: WorkoutDayModalProps) {
   const { vars, mode } = useThemeStore();
 
   return (
@@ -478,7 +491,8 @@ function WorkoutDayModal({ day, onClose, onStartWorkout }: WorkoutDayModalProps)
               </View>
 
               <TouchableOpacity
-                className="bg-blue-600 py-4 rounded-xl mb-3"
+                className={`bg-blue-600 py-4 rounded-xl mb-3 ${starting ? 'opacity-50' : ''}`}
+                disabled={starting}
                 onPress={onStartWorkout}
               >
                 <Text className="text-text text-center font-bold text-lg">

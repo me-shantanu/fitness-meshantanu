@@ -7,7 +7,6 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
-    Alert,
     ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,6 +19,7 @@ import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useThemeStore } from '@/store/useThemeStore';
 import { WorkoutDay, PlannedExercise, Exercise } from '@/types/workout';
+import { showAlert } from '@/utils/alert';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -119,15 +119,15 @@ export default function EditPlanScreen() {
             setShowAddExercise(false);
             setSearchQuery('');
             setSearchResults([]);
-            Alert.alert('Success', 'Exercise added successfully');
+            showAlert('Success', 'Exercise added successfully');
         } catch (error) {
             console.error('Error adding exercise:', error);
-            Alert.alert('Error', 'Failed to add exercise');
+            showAlert('Error', 'Failed to add exercise');
         }
     };
 
     const removeExercise = async (exerciseId: string, dayId: string) => {
-        Alert.alert(
+        showAlert(
             'Remove Exercise',
             'Are you sure you want to remove this exercise?',
             [
@@ -156,10 +156,10 @@ export default function EditPlanScreen() {
                             });
 
                             setWorkoutDays(updatedDays);
-                            Alert.alert('Success', 'Exercise removed successfully');
+                            showAlert('Success', 'Exercise removed successfully');
                         } catch (error) {
                             console.error('Error removing exercise:', error);
-                            Alert.alert('Error', 'Failed to remove exercise');
+                            showAlert('Error', 'Failed to remove exercise');
                         }
                     }
                 }
@@ -167,7 +167,23 @@ export default function EditPlanScreen() {
         );
     };
 
-    const updateExercise = async (
+    // Local-only update while typing (no network per keystroke)
+    const updateExerciseLocal = (
+        exerciseId: string,
+        field: 'target_sets' | 'target_reps' | 'target_weight',
+        value: number | null
+    ) => {
+        setWorkoutDays(prev => prev.map(day => ({
+            ...day,
+            planned_exercises: day.planned_exercises?.map(ex =>
+                ex.id === exerciseId ? { ...ex, [field]: value } : ex
+            )
+        })));
+    };
+
+    // Persist once when editing ends (onEndEditing / onBlur). Silent on
+    // success; alert only on failure.
+    const persistExercise = async (
         exerciseId: string,
         field: 'target_sets' | 'target_reps' | 'target_weight',
         value: number | null
@@ -179,19 +195,9 @@ export default function EditPlanScreen() {
                 .eq('id', exerciseId);
 
             if (error) throw error;
-
-            // Update local state
-            const updatedDays = workoutDays.map(day => ({
-                ...day,
-                planned_exercises: day.planned_exercises?.map(ex =>
-                    ex.id === exerciseId ? { ...ex, [field]: value } : ex
-                )
-            }));
-
-            setWorkoutDays(updatedDays);
         } catch (error) {
             console.error('Error updating exercise:', error);
-            Alert.alert('Error', 'Failed to update exercise');
+            showAlert('Error', 'Failed to save exercise changes');
         }
     };
 
@@ -201,7 +207,7 @@ export default function EditPlanScreen() {
 
         const newRestDayStatus = !day.is_rest_day;
 
-        Alert.alert(
+        showAlert(
             newRestDayStatus ? 'Make Rest Day' : 'Make Workout Day',
             newRestDayStatus
                 ? 'This will remove all exercises from this day. Continue?'
@@ -247,10 +253,10 @@ export default function EditPlanScreen() {
                             });
 
                             setWorkoutDays(updatedDays);
-                            Alert.alert('Success', `Day updated to ${newRestDayStatus ? 'rest day' : 'workout day'}`);
+                            showAlert('Success', `Day updated to ${newRestDayStatus ? 'rest day' : 'workout day'}`);
                         } catch (error) {
                             console.error('Error toggling rest day:', error);
-                            Alert.alert('Error', 'Failed to update day');
+                            showAlert('Error', 'Failed to update day');
                         }
                     }
                 }
@@ -258,7 +264,16 @@ export default function EditPlanScreen() {
         );
     };
 
-    const updateDayName = async (dayId: string, name: string) => {
+    // Local-only update while typing (no network per keystroke)
+    const updateDayNameLocal = (dayId: string, name: string) => {
+        setWorkoutDays(prev => prev.map(d =>
+            d.id === dayId ? { ...d, name } : d
+        ));
+    };
+
+    // Persist once when editing ends (onEndEditing / onBlur). Silent on
+    // success; alert only on failure.
+    const persistDayName = async (dayId: string, name: string) => {
         try {
             const { error } = await supabase
                 .from('workout_days')
@@ -266,14 +281,9 @@ export default function EditPlanScreen() {
                 .eq('id', dayId);
 
             if (error) throw error;
-
-            // Update local state
-            const updatedDays = workoutDays.map(d =>
-                d.id === dayId ? { ...d, name } : d
-            );
-            setWorkoutDays(updatedDays);
         } catch (error) {
             console.error('Error updating day name:', error);
+            showAlert('Error', 'Failed to save workout name');
         }
     };
 
@@ -281,17 +291,23 @@ export default function EditPlanScreen() {
         if (!activePlan?.id || !user?.id) return;
 
         if (!planName.trim()) {
-            Alert.alert('Error', 'Please enter a plan name');
+            showAlert('Error', 'Please enter a plan name');
             return;
         }
 
         if (!startDate || !endDate) {
-            Alert.alert('Error', 'Please select start and end dates');
+            showAlert('Error', 'Please select start and end dates');
+            return;
+        }
+
+        const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
+        if (!isValidDate(startDate) || !isValidDate(endDate)) {
+            showAlert('Error', 'Please enter valid dates in YYYY-MM-DD format');
             return;
         }
 
         if (new Date(startDate) > new Date(endDate)) {
-            Alert.alert('Error', 'Start date must be before end date');
+            showAlert('Error', 'Start date must be before end date');
             return;
         }
 
@@ -310,10 +326,10 @@ export default function EditPlanScreen() {
             if (error) throw error;
 
             await loadActivePlan(user.id);
-            Alert.alert('Success', 'Plan details updated successfully');
+            showAlert('Success', 'Plan details updated successfully');
         } catch (error) {
             console.error('Error updating plan:', error);
-            Alert.alert('Error', 'Failed to update plan details');
+            showAlert('Error', 'Failed to update plan details');
         }
         setSaving(false);
     };
@@ -332,7 +348,7 @@ export default function EditPlanScreen() {
         }
 
         if (usedDays.length >= 7) {
-            Alert.alert('Error', 'All days of the week are already used');
+            showAlert('Error', 'All days of the week are already used');
             return;
         }
 
@@ -351,15 +367,15 @@ export default function EditPlanScreen() {
             if (error) throw error;
 
             setWorkoutDays([...workoutDays, { ...data, planned_exercises: [] }]);
-            Alert.alert('Success', 'New workout day added');
+            showAlert('Success', 'New workout day added');
         } catch (error) {
             console.error('Error adding workout day:', error);
-            Alert.alert('Error', 'Failed to add workout day');
+            showAlert('Error', 'Failed to add workout day');
         }
     };
 
     const removeWorkoutDay = async (dayId: string) => {
-        Alert.alert(
+        showAlert(
             'Remove Day',
             'Are you sure you want to remove this workout day?',
             [
@@ -377,10 +393,10 @@ export default function EditPlanScreen() {
                             if (error) throw error;
 
                             setWorkoutDays(workoutDays.filter(d => d.id !== dayId));
-                            Alert.alert('Success', 'Workout day removed');
+                            showAlert('Success', 'Workout day removed');
                         } catch (error) {
                             console.error('Error removing day:', error);
-                            Alert.alert('Error', 'Failed to remove workout day');
+                            showAlert('Error', 'Failed to remove workout day');
                         }
                     }
                 }
@@ -584,7 +600,9 @@ export default function EditPlanScreen() {
                                                 placeholder="Workout name (e.g., Chest Day)"
                                                 placeholderTextColor="#6B7280"
                                                 value={day.name}
-                                                onChangeText={(text) => day.id && updateDayName(day.id, text)}
+                                                onChangeText={(text) => day.id && updateDayNameLocal(day.id, text)}
+                                                onEndEditing={() => day.id && persistDayName(day.id, day.name)}
+                                                onBlur={() => day.id && persistDayName(day.id, day.name)}
                                             />
 
                                             <TouchableOpacity
@@ -621,7 +639,13 @@ export default function EditPlanScreen() {
                                                                         className="bg-surface text-text rounded p-2 text-center"
                                                                         value={exercise.target_sets.toString()}
                                                                         onChangeText={(text) =>
-                                                                            exercise.id && updateExercise(exercise.id, 'target_sets', parseInt(text) || 0)
+                                                                            exercise.id && updateExerciseLocal(exercise.id, 'target_sets', parseInt(text) || 0)
+                                                                        }
+                                                                        onEndEditing={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_sets', exercise.target_sets)
+                                                                        }
+                                                                        onBlur={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_sets', exercise.target_sets)
                                                                         }
                                                                         keyboardType="numeric"
                                                                     />
@@ -633,7 +657,13 @@ export default function EditPlanScreen() {
                                                                         className="bg-surface text-text rounded p-2 text-center"
                                                                         value={exercise.target_reps.toString()}
                                                                         onChangeText={(text) =>
-                                                                            exercise.id && updateExercise(exercise.id, 'target_reps', parseInt(text) || 0)
+                                                                            exercise.id && updateExerciseLocal(exercise.id, 'target_reps', parseInt(text) || 0)
+                                                                        }
+                                                                        onEndEditing={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_reps', exercise.target_reps)
+                                                                        }
+                                                                        onBlur={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_reps', exercise.target_reps)
                                                                         }
                                                                         keyboardType="numeric"
                                                                     />
@@ -647,7 +677,13 @@ export default function EditPlanScreen() {
                                                                         placeholderTextColor="#6B7280"
                                                                         value={exercise.target_weight ? exercise.target_weight.toString() : ''}
                                                                         onChangeText={(text) =>
-                                                                            exercise.id && updateExercise(exercise.id, 'target_weight', text ? parseFloat(text) : null)
+                                                                            exercise.id && updateExerciseLocal(exercise.id, 'target_weight', text ? parseFloat(text) : null)
+                                                                        }
+                                                                        onEndEditing={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_weight', exercise.target_weight ?? null)
+                                                                        }
+                                                                        onBlur={() =>
+                                                                            exercise.id && persistExercise(exercise.id, 'target_weight', exercise.target_weight ?? null)
                                                                         }
                                                                         keyboardType="numeric"
                                                                     />

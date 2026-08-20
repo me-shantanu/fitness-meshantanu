@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
 } from 'react-native';
@@ -19,8 +18,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
 import { useThemeStore } from '@/store/useThemeStore';
 import { WorkoutPlan } from '@/types/workout';
+import { showAlert } from '@/utils/alert';
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 
 export default function BrowseTemplatesScreen() {
   const router = useRouter();
@@ -63,12 +65,17 @@ export default function BrowseTemplatesScreen() {
     if (!user?.id || !selectedTemplate?.id) return;
 
     if (!startDate || !endDate) {
-      Alert.alert('Error', 'Please select start and end dates');
+      showAlert('Error', 'Please select start and end dates');
+      return;
+    }
+
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      showAlert('Error', 'Please enter valid dates in YYYY-MM-DD format');
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      Alert.alert('Error', 'Start date must be before end date');
+      showAlert('Error', 'Start date must be on or before the end date');
       return;
     }
 
@@ -84,20 +91,20 @@ export default function BrowseTemplatesScreen() {
 
     if (success) {
       console.log('✅ Template activated successfully');
-      Alert.alert(
+      showAlert(
         'Success',
         'Template activated as your workout plan!',
         [{ 
           text: 'OK', 
           onPress: () => {
             loadActivePlan(user.id);
-            router.replace('/workouts' as any);
+            router.replace('/(tabs)/workout' as any);
           }
         }]
       );
     } else {
       console.error('❌ Failed to activate template');
-      Alert.alert('Error', 'Failed to activate template. Please try again.');
+      showAlert('Error', 'Failed to activate template. Please try again.');
     }
   };
 
