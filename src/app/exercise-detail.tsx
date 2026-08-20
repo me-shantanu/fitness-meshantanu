@@ -28,7 +28,7 @@ export default function ExerciseDetailScreen() {
   const router = useRouter();
   const { id, type } = useLocalSearchParams();
   const { addFavorite, removeFavorite, isFavorite } = useExerciseStore();
-  const { vars, mode } = useThemeStore();
+  const { colors } = useThemeStore();
 
   const [exercise, setExercise] = useState(null);
   const [images, setImages] = useState([]);
@@ -159,7 +159,7 @@ export default function ExerciseDetailScreen() {
               <TouchableOpacity
                 key={img.id}
                 onPress={() => setSelectedImageIndex(index)}
-                className={`mr-2 ${selectedImageIndex === index ? 'border-2 border-primary' : 'border border-surface'} rounded-lg overflow-hidden`}
+                className={`mr-2 ${selectedImageIndex === index ? 'border-2 border-primary' : 'border border-border'} rounded-lg overflow-hidden`}
               >
                 <Image
                   source={{ uri: img.image }}
@@ -202,13 +202,12 @@ export default function ExerciseDetailScreen() {
 
   const renderYoutubeRow = () => (
     <TouchableOpacity
-      className="mb-6 rounded-xl p-4 flex-row items-center"
-      style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+      className="mb-6 rounded-xl p-4 flex-row items-center bg-danger/15"
       onPress={openYoutubeTutorial}
       activeOpacity={0.7}
     >
-      <View className="bg-red-600 w-10 h-10 rounded-full items-center justify-center mr-3">
-        <Ionicons name="logo-youtube" size={20} color="white" />
+      <View className="bg-danger w-10 h-10 rounded-full items-center justify-center mr-3">
+        <Ionicons name="logo-youtube" size={20} color={colors.onBrand} />
       </View>
       <View className="flex-1">
         <Text className="text-text font-bold">Watch tutorial on YouTube</Text>
@@ -216,7 +215,7 @@ export default function ExerciseDetailScreen() {
           Search "{exercise?.name} proper form"
         </Text>
       </View>
-      <Feather name="external-link" size={18} color={vars['--text-light'] as string} />
+      <Feather name="external-link" size={18} color={colors.textLight} />
     </TouchableOpacity>
   );
 
@@ -238,7 +237,7 @@ export default function ExerciseDetailScreen() {
 
             <View className="flex-row items-center flex-wrap mb-4">
               <View className={`px-3 py-2 rounded-full mr-2 mb-2 bg-brand`}>
-                <Text className="text-text text-sm font-bold">{exercise.category}</Text>
+                <Text className="text-on-brand text-sm font-bold">{exercise.category}</Text>
               </View>
 
               {exercise.difficulty && (
@@ -249,7 +248,7 @@ export default function ExerciseDetailScreen() {
 
               {exercise.duration && (
                 <View className="flex-row items-center bg-surface px-3 py-2 rounded-full mr-2 mb-2">
-                  <MaterialIcons name="timer" size={16} color="var(--text)" />
+                  <MaterialIcons name="timer" size={16} color={colors.text} />
                   <Text className="text-text text-sm font-medium ml-1">{exercise.duration}</Text>
                 </View>
               )}
@@ -269,7 +268,7 @@ export default function ExerciseDetailScreen() {
           {exercise.description && (
             <View className="mb-6">
               <Text className="text-text font-bold text-lg mb-3">Description</Text>
-              <View className="bg-surface rounded-xl p-4">
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 <Text className="text-text leading-6 text-base">
                   {exercise.description}
                 </Text>
@@ -296,7 +295,7 @@ export default function ExerciseDetailScreen() {
             <View className="mb-6">
               <Text className="text-text font-bold text-lg mb-3">Muscles Targeted</Text>
 
-              <View className="bg-surface rounded-xl p-4">
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 {exercise.muscles?.length > 0 && (
                   <View className="mb-3">
                     <Text className="text-text font-bold mb-2 text-base">Primary Muscles:</Text>
@@ -330,10 +329,10 @@ export default function ExerciseDetailScreen() {
           {exercise.benefits && exercise.benefits.length > 0 && (
             <View className="mb-6">
               <Text className="text-text font-bold text-lg mb-3">Benefits</Text>
-              <View className="bg-surface rounded-xl p-4">
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 {exercise.benefits.map((benefit, index) => (
                   <View key={index} className="flex-row items-start mb-3">
-                    <AntDesign name="star" size={20} color="#F59E0B" />
+                    <AntDesign name="star" size={20} color={colors.accent} />
                     <Text className="text-text ml-3 flex-1 leading-6">{benefit}</Text>
                   </View>
                 ))}
@@ -345,9 +344,9 @@ export default function ExerciseDetailScreen() {
           {exercise.calories && (
             <View className="mb-6">
               <Text className="text-text font-bold text-lg mb-3">Calories Burned</Text>
-              <View className="bg-surface rounded-xl p-4">
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 <View className="flex-row items-center">
-                  <MaterialIcons name="local-fire-department" size={24} color="#F59E0B" />
+                  <MaterialIcons name="local-fire-department" size={24} color={colors.accent} />
                   <Text className="text-text ml-3 text-lg font-medium">{exercise.calories}</Text>
                 </View>
               </View>
@@ -361,23 +360,23 @@ export default function ExerciseDetailScreen() {
                 {type === 'warmup' ? 'Warmup Guidelines' : 'Cooldown Guidelines'}
               </Text>
 
-              <View className="bg-surface rounded-xl p-4">
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 {type === 'warmup' ? (
                   <>
                     <View className="flex-row items-start mb-3">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Perform before your main workout to prevent injury
                       </Text>
                     </View>
                     <View className="flex-row items-start mb-3">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Focus on dynamic movements, not static stretching
                       </Text>
                     </View>
                     <View className="flex-row items-start">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Gradually increase intensity to raise heart rate
                       </Text>
@@ -386,19 +385,19 @@ export default function ExerciseDetailScreen() {
                 ) : (
                   <>
                     <View className="flex-row items-start mb-3">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Perform after your workout to aid recovery
                       </Text>
                     </View>
                     <View className="flex-row items-start mb-3">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Focus on static stretching, holding each stretch for 30 seconds
                       </Text>
                     </View>
                     <View className="flex-row items-start">
-                      <Feather name="check-circle" size={20} color="#10B981" />
+                      <Feather name="check-circle" size={20} color={colors.brand} />
                       <Text className="text-text ml-3 flex-1 leading-6">
                         Breathe deeply and relax into each stretch
                       </Text>
@@ -417,7 +416,7 @@ export default function ExerciseDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="var(--primary)" />
+          <ActivityIndicator size="large" color={colors.brand} />
           <Text className="text-text mt-4">Loading exercise details...</Text>
         </View>
       </SafeAreaView>
@@ -428,7 +427,7 @@ export default function ExerciseDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center px-4">
-          <AntDesign name="warning" size={48} color="#EF4444" />
+          <AntDesign name="warning" size={48} color={colors.danger} />
           <Text className="text-text text-xl mt-4 text-center">Exercise not found</Text>
           <Text className="text-text-light text-center mt-2">
             This exercise may have been removed or doesn't exist
@@ -437,7 +436,7 @@ export default function ExerciseDetailScreen() {
             className="bg-primary px-8 py-4 rounded-lg mt-6"
             onPress={() => router.back()}
           >
-            <Text className="text-text font-bold text-base">Go Back</Text>
+            <Text className="text-on-brand font-bold text-base">Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -447,9 +446,9 @@ export default function ExerciseDetailScreen() {
   return (
     <SafeAreaView className="flex-1 !bg-bg">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 bg-bg border-b border-surface">
+      <View className="flex-row items-center justify-between px-4 py-4 bg-bg border-b border-border">
         <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <AntDesign name="arrow-left" size={24} color="var(--text)" />
+          <AntDesign name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
 
         <View className="flex-1 items-center">
@@ -461,47 +460,35 @@ export default function ExerciseDetailScreen() {
             <AntDesign
               name={'heart'}
               size={24}
-              color={'#EF4444'}
+              color={colors.danger}
             /> :
-            <FontAwesome name="heart-o" size={24} color={vars['--text-light'] as string} />
+            <FontAwesome name="heart-o" size={24} color={colors.textLight} />
           }
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <View className="flex-row px-4 py-3 bg-bg border-b border-surface">
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === 'details' ? 'bg-brand' : 'bg-surface'
-            }`}
-          onPress={() => setActiveTab('details')}
-        >
-          <Text className={`text-center font-bold ${activeTab === 'details' ? 'text-text' : 'text-text-light'
-            }`}>
-            Details
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === 'variations' ? 'bg-brand' : 'bg-surface'
-            }`}
-          onPress={() => setActiveTab('variations')}
-        >
-          <Text className={`text-center font-bold ${activeTab === 'variations' ? 'text-text' : 'text-text-light'
-            }`}>
-            Variations
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-3 rounded-r-lg ${activeTab === 'tips' ? 'bg-brand' : 'bg-surface'
-            }`}
-          onPress={() => setActiveTab('tips')}
-        >
-          <Text className={`text-center font-bold ${activeTab === 'tips' ? 'text-text' : 'text-text-light'
-            }`}>
-            Pro Tips
-          </Text>
-        </TouchableOpacity>
+      <View className="flex-row px-4 py-3 bg-bg border-b border-border">
+        {([
+          { id: 'details', label: 'Details' },
+          { id: 'variations', label: 'Variations' },
+          { id: 'tips', label: 'Pro Tips' },
+        ] as const).map((tab) => {
+          const selected = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              className={`flex-1 py-3 rounded-xl mx-0.5 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
+                }`}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text className={`text-center font-bold ${selected ? 'text-on-brand' : 'text-text-light'
+                }`}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Content */}
@@ -511,7 +498,7 @@ export default function ExerciseDetailScreen() {
         {activeTab === 'variations' && (
           <View className="px-4 pt-4">
             <Text className="text-text font-bold text-2xl mb-4">Exercise Variations</Text>
-            <View className="bg-surface rounded-xl p-5">
+            <View className="bg-surface rounded-2xl border border-border p-5">
               <Text className="text-text mb-5 leading-6 text-base">
                 Try these variations to target different muscle groups or adjust difficulty level:
               </Text>
@@ -582,7 +569,7 @@ export default function ExerciseDetailScreen() {
         {activeTab === 'tips' && (
           <View className="px-4 pt-4">
             <Text className="text-text font-bold text-2xl mb-4">Pro Tips & Safety</Text>
-            <View className="bg-surface rounded-xl p-5">
+            <View className="bg-surface rounded-2xl border border-border p-5">
               <View className="mb-5">
                 <Text className="text-text font-bold mb-3 text-lg">💡 Form & Technique</Text>
                 <Text className="text-text mb-2">• Maintain neutral spine alignment</Text>
@@ -629,11 +616,11 @@ export default function ExerciseDetailScreen() {
       {/* Add to Workout Button */}
       <View className="px-4 pb-4 pt-3 bg-bg border-t border-surface">
         <TouchableOpacity
-          className="bg-brand py-4 rounded-xl flex-row items-center justify-center"
+          className="bg-primary py-4 rounded-xl flex-row items-center justify-center"
           onPress={() => setShowAddToPlanModal(true)}
         >
-          <MaterialIcons name="add-circle-outline" size={24} color="var(--text)" />
-          <Text className="text-text text-center font-bold text-lg ml-2">
+          <MaterialIcons name="add-circle-outline" size={24} color={colors.onBrand} />
+          <Text className="text-on-brand text-center font-bold text-lg ml-2">
             Add to Workout Plan
           </Text>
         </TouchableOpacity>

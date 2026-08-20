@@ -1,22 +1,23 @@
+import { vars } from "nativewind";
 import { lightTheme, darkTheme } from "./colors";
 
+const toVars = (t: typeof lightTheme) =>
+  vars({
+    "--bg": t.bg,
+    "--surface": t.surface,
+    "--surface-2": t.surface2,
+    "--text": t.text,
+    "--text-light": t.textLight,
+    "--border": t.border,
+    "--brand": t.brand,
+    "--brand-active": t.brandActive,
+    "--on-brand": t.onBrand,
+    "--accent": t.accent,
+    "--danger": t.danger,
+    "--hover": t.hover,
+  });
+
 export const themes = {
-  light: {
-    "--bg": lightTheme.background,
-    "--surface": lightTheme.surface,
-    "--text": lightTheme.text,
-    "--text-light": lightTheme.textLight,
-    "--hover": lightTheme.hover,
-    "--brand": lightTheme.brand,
-    "--brand-active": lightTheme.brandActive,
-  },
-  dark: {
-    "--bg": darkTheme.background,
-    "--surface": darkTheme.surface,
-    "--text": darkTheme.text,
-    "--text-light": darkTheme.textLight,
-    "--hover": darkTheme.hover,
-    "--brand": darkTheme.brand,
-    "--brand-active": darkTheme.brandActive,
-  },
+  light: toVars(lightTheme),
+  dark: toVars(darkTheme),
 };

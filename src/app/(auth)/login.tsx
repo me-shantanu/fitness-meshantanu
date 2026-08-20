@@ -6,6 +6,7 @@ import LottieView from 'lottie-react-native';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { NavigationProgressBar } from '../../components/NavigationProgressBar';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,6 +16,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const signIn = useAuthStore((state) => state.signIn);
+  const { colors } = useThemeStore();
   const { width } = useWindowDimensions();
 
   const isMobile = width < 768;
@@ -91,9 +93,9 @@ export default function LoginScreen() {
                   Email
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="your@email.com"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
@@ -107,9 +109,9 @@ export default function LoginScreen() {
                   Password
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="••••••••"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -129,12 +131,12 @@ export default function LoginScreen() {
 
               <View className='flex-row justify-center items-center'>
                 <TouchableOpacity
-                  className={`bg-brand py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
+                  className={`bg-primary py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
                   onPress={handleLogin}
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <Text className={`text-white text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                     Sign In
                   </Text>
                 </TouchableOpacity>
@@ -146,7 +148,7 @@ export default function LoginScreen() {
                 </Text>
                 <Link href="/(auth)/signup" asChild>
                   <TouchableOpacity disabled={loading}>
-                    <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Sign Up
                     </Text>
                   </TouchableOpacity>

@@ -13,11 +13,11 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar, Platform, Appearance } from 'react-native';
 
 export default function RootLayout() {
   const { user, profile, loading, initialize } = useAuthStore();
-  const { vars, mode } = useThemeStore();
+  const { vars, mode, colors, syncWithSystem } = useThemeStore();
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
@@ -33,6 +33,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     initialize().then(() => setIsReady(true));
+  }, []);
+
+  // Follow OS light/dark changes while the preference is "system".
+  useEffect(() => {
+    const sub = Appearance.addChangeListener(() => syncWithSystem());
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {
@@ -53,14 +59,14 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar
-        barStyle="dark-content"
+        barStyle={mode === "dark" ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
-      <View key={mode} style={vars} className="flex-1 bg-bg">
+      <View style={vars} className="flex-1 bg-bg">
         {(!isReady || loading || !loaded) ? (
           <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="var(--text)" />
+            <ActivityIndicator size="large" color={colors.brand} />
           </View>
         ) : (
           <SafeAreaView

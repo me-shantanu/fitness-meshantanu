@@ -16,9 +16,11 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Icon from '@/components/Icon';
 import { User } from '@supabase/supabase-js';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { user, profile } = useAuthStore();
   const [activePlan, setActivePlan] = useState(null);
   const [todayWorkout, setTodayWorkout] = useState(null);
@@ -124,7 +126,7 @@ export default function HomeScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -141,24 +143,24 @@ export default function HomeScreen() {
 
         {/* Today's Workout Card */}
         <View className="px-4 mt-4">
-          <View className="bg-blue-600 rounded-2xl p-6">
-            <Text className="text-text text-lg font-bold mb-2">Today's Workout</Text>
+          <View className="bg-primary rounded-2xl p-6">
+            <Text className="text-on-brand text-lg font-bold mb-2">Today's Workout</Text>
             {todayWorkout ? (
               <>
-                <Text className="text-text text-2xl font-bold mb-2">
+                <Text className="text-on-brand text-2xl font-bold mb-2">
                   {todayWorkout.is_rest_day ? 'Rest Day' : todayWorkout.name}
                 </Text>
                 {!todayWorkout.is_rest_day && (
                   <>
-                    <Text className="text-text opacity-90 mb-4">
+                    <Text className="text-on-brand opacity-90 mb-4">
                       {todayWorkout.planned_exercises?.length || 0} exercises
                     </Text>
                     <TouchableOpacity
-                      className={`bg-white py-3 rounded-lg ${starting ? 'opacity-50' : ''}`}
+                      className={`bg-surface py-3 rounded-lg ${starting ? 'opacity-50' : ''}`}
                       disabled={starting}
                       onPress={startWorkout}
                     >
-                      <Text className="text-blue-600 text-center font-bold text-lg">
+                      <Text className="text-primary text-center font-bold text-lg">
                         START WORKOUT
                       </Text>
                     </TouchableOpacity>
@@ -167,12 +169,12 @@ export default function HomeScreen() {
               </>
             ) : (
               <>
-                <Text className="text-text text-xl mb-4">No workout scheduled</Text>
+                <Text className="text-on-brand text-xl mb-4">No workout scheduled</Text>
                 <TouchableOpacity
-                  className="bg-white py-3 rounded-lg"
+                  className="bg-surface py-3 rounded-lg"
                   onPress={() => router.push('/create-plan')}
                 >
-                  <Text className="text-blue-600 text-center font-bold text-lg">
+                  <Text className="text-primary text-center font-bold text-lg">
                     CREATE WORKOUT PLAN
                   </Text>
                 </TouchableOpacity>
@@ -184,21 +186,21 @@ export default function HomeScreen() {
         {/* Nutrition Summary */}
         {nutrition?.error === 'incomplete_profile' && (
           <View className="px-4 mt-6">
-            <View className="bg-surface rounded-xl p-4">
+            <View className="bg-surface rounded-2xl border border-border p-4">
               <Text className="text-text font-bold mb-1">Complete your profile</Text>
               <Text className="text-text-light text-sm mb-3">
                 Add your weight, height, age and gender to see nutrition targets.
               </Text>
               <TouchableOpacity onPress={() => router.push('/profile-setup')}>
-                <Text className="text-blue-400 font-bold">Complete Profile →</Text>
+                <Text className="text-primary font-bold">Complete Profile →</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
         {nutrition?.success && (
           <View className="px-4 mt-6">
-            <Text className="text-text text-xl font-bold mb-4">Nutrition Today</Text>
-            <View className="bg-surface rounded-xl p-4">
+            <Text className="text-text text-lg font-bold mb-3">Nutrition Today</Text>
+            <View className="bg-surface rounded-2xl border border-border p-4">
               <View className="flex-row justify-between mb-4">
                 <View className="items-center">
                   <Text className="text-text text-2xl font-bold">{nutrition.calories}</Text>
@@ -218,7 +220,7 @@ export default function HomeScreen() {
                 </View>
               </View>
               <TouchableOpacity onPress={() => router.push('/nutrition')}>
-                <Text className="text-blue-400 text-center">View Details →</Text>
+                <Text className="text-primary text-center">View Details →</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -226,30 +228,30 @@ export default function HomeScreen() {
 
         {/* Stats Grid */}
         <View className="px-4 mt-6">
-          <Text className="text-text text-xl font-bold mb-4">Your Stats</Text>
+          <Text className="text-text text-lg font-bold mb-3">Your Stats</Text>
           <View className="flex-row flex-wrap justify-between">
-            <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
-              <FontAwesome name="calendar-check-o" size={24} color="#3B82F6" />
+            <View className="bg-surface w-[48%] rounded-2xl border border-border p-4 mb-4">
+              <FontAwesome name="calendar-check-o" size={24} color={colors.brand} />
               <Text className="text-text text-2xl font-bold mt-2">{stats.workoutsThisWeek}</Text>
               <Text className="text-text-light">Workouts this week</Text>
             </View>
 
-            <View className="bg-surface w-[48%] rounded-xl p-4 mb-4">
-              <FontAwesome name="line-chart" size={24} color="#10B981" />
+            <View className="bg-surface w-[48%] rounded-2xl border border-border p-4 mb-4">
+              <FontAwesome name="line-chart" size={24} color={colors.brand} />
               <Text className="text-text text-2xl font-bold mt-2">
                 {Math.round(stats.totalVolume)}kg
               </Text>
               <Text className="text-text-light">Total volume</Text>
             </View>
 
-            <View className="bg-surface w-[48%] rounded-xl p-4">
-              <FontAwesome name="trophy" size={24} color="#F59E0B" />
+            <View className="bg-surface w-[48%] rounded-2xl border border-border p-4">
+              <FontAwesome name="trophy" size={24} color={colors.accent} />
               <Text className="text-text text-2xl font-bold mt-2">{stats.prsThisMonth}</Text>
               <Text className="text-text-light">PRs this month</Text>
             </View>
 
-            <View className="bg-surface w-[48%] rounded-xl p-4">
-              <FontAwesome name="fire" size={24} color="#EF4444" />
+            <View className="bg-surface w-[48%] rounded-2xl border border-border p-4">
+              <FontAwesome name="fire" size={24} color={colors.danger} />
               <Text className="text-text text-2xl font-bold mt-2">
                 {nutrition?.tdee || 0}
               </Text>
@@ -260,37 +262,37 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View className="px-4 mt-6 mb-8">
-          <Text className="text-text text-xl font-bold mb-4">Quick Actions</Text>
+          <Text className="text-text text-lg font-bold mb-3">Quick Actions</Text>
           <View className="flex-row flex-wrap justify-between">
             <TouchableOpacity
-              className="bg-surface w-[48%] rounded-xl p-4 items-center mb-4"
+              className="bg-surface w-[48%] rounded-2xl border border-border p-4 items-center mb-4"
               onPress={() => router.push('/exercises')}
             >
-              <Icon name="CirclePlus" size={24} color="#3B82F6" />
+              <Icon name="CirclePlus" size={24} color={colors.brand} />
               <Text className="text-text mt-2 text-center">Add Exercise</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface w-[48%] rounded-xl p-4 items-center mb-4"
+              className="bg-surface w-[48%] rounded-2xl border border-border p-4 items-center mb-4"
               onPress={() => router.push('/history')}
             >
-              <Icon name="Calendars" size={24} color="#10B981" />
+              <Icon name="Calendars" size={24} color={colors.brand} />
               <Text className="text-text mt-2 text-center">History</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface w-[48%] rounded-xl p-4 items-center"
+              className="bg-surface w-[48%] rounded-2xl border border-border p-4 items-center"
               onPress={() => router.push('/progress')}
             >
-              <Icon name="ChartColumnIncreasing" size={24} color="#F59E0B" />
+              <Icon name="ChartColumnIncreasing" size={24} color={colors.accent} />
               <Text className="text-text mt-2 text-center">Progress</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface w-[48%] rounded-xl p-4 items-center"
+              className="bg-surface w-[48%] rounded-2xl border border-border p-4 items-center"
               onPress={() => router.push('/(tabs)/coach' as any)}
             >
-              <Icon name="Bot" size={24} color="#8B5CF6" />
+              <Icon name="Bot" size={24} color={colors.brand} />
               <Text className="text-text mt-2 text-center">AI Coach</Text>
             </TouchableOpacity>
           </View>

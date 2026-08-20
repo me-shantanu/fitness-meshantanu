@@ -4,11 +4,11 @@ import { View } from "react-native";
 import Icon from "@/components/Icon";
 
 export default function TabsLayout() {
-  const { vars, mode } = useThemeStore();
+  const { vars, colors } = useThemeStore();
 
   return (
     <View
-      key={mode}
+
       style={vars}
       className="flex-1 bg-bg"
     >
@@ -16,11 +16,11 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: vars["--surface"],
-            borderTopColor: vars["--hover"],
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
           },
-          tabBarActiveTintColor: vars["--text"],
-          tabBarInactiveTintColor: vars["--text-light"],
+          tabBarActiveTintColor: colors.brand,
+          tabBarInactiveTintColor: colors.textLight,
         }}
       >
         <Tabs.Screen

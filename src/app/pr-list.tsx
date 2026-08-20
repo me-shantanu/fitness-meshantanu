@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
+import { useThemeStore } from '@/store/useThemeStore';
 
 interface PersonalRecord {
   id: string;
@@ -25,6 +26,7 @@ interface PersonalRecord {
 
 export default function PRListScreen() {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { user } = useAuthStore();
 
   const [records, setRecords] = useState<PersonalRecord[]>([]);
@@ -69,7 +71,7 @@ export default function PRListScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -81,7 +83,7 @@ export default function PRListScreen() {
         {/* Header */}
         <View className="px-4 pt-4 pb-2 flex-row items-center">
           <TouchableOpacity onPress={() => router.back()}>
-            <AntDesign name="arrow-left" size={24} color="white" />
+            <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Personal Records</Text>
         </View>
@@ -93,7 +95,7 @@ export default function PRListScreen() {
               return (
                 <TouchableOpacity
                   key={pr.id}
-                  className="bg-surface rounded-xl p-4 mb-3"
+                  className="bg-surface rounded-2xl border border-border p-4 mb-3"
                   disabled={!tappable}
                   onPress={() => {
                     if (!pr.session_id) return;
@@ -107,8 +109,8 @@ export default function PRListScreen() {
                     <Text className="text-text font-bold text-lg flex-1">
                       {pr.exercise_name}
                     </Text>
-                    <View className="bg-yellow-500/20 px-3 py-1 rounded-full">
-                      <Text className="text-yellow-400 font-bold">PR 🏆</Text>
+                    <View className="bg-accent/15 px-3 py-1 rounded-full">
+                      <Text className="text-accent font-bold">PR 🏆</Text>
                     </View>
                   </View>
 
@@ -126,15 +128,15 @@ export default function PRListScreen() {
                     </View>
 
                     {tappable && (
-                      <Feather name="chevron-right" size={20} color="#6B7280" />
+                      <Feather name="chevron-right" size={20} color={colors.textLight} />
                     )}
                   </View>
                 </TouchableOpacity>
               );
             })
           ) : (
-            <View className="bg-surface rounded-xl p-8 items-center mt-4">
-              <Feather name="award" size={48} color="#6B7280" />
+            <View className="bg-surface rounded-2xl border border-border p-8 items-center mt-4">
+              <Feather name="award" size={48} color={colors.textLight} />
               <Text className="text-text text-lg font-bold mt-4 mb-2">
                 No Personal Records Yet
               </Text>

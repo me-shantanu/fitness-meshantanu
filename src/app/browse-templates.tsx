@@ -26,6 +26,7 @@ const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.
 
 export default function BrowseTemplatesScreen() {
   const router = useRouter();
+  const { vars, mode, colors } = useThemeStore();
   const { user } = useAuthStore();
   const { templates, loadTemplates, activateTemplate, loadActivePlan } = useWorkoutStore();
   
@@ -119,7 +120,7 @@ export default function BrowseTemplatesScreen() {
     return (
       <TouchableOpacity
         key={template.id}
-        className="bg-surface rounded-xl p-4 mb-4"
+        className="bg-surface rounded-2xl border border-border p-4 mb-4"
         onPress={() => handleActivateTemplate(template)}
       >
         <View className="flex-row justify-between items-start mb-3">
@@ -129,26 +130,26 @@ export default function BrowseTemplatesScreen() {
               <Text className="text-text-light text-sm mb-2">{template.description}</Text>
             )}
           </View>
-          <View className="bg-blue-500/20 px-3 py-1 rounded">
-            <Text className="text-blue-400 font-bold text-sm">Template</Text>
+          <View className="bg-primary/15 px-3 py-1 rounded">
+            <Text className="text-primary font-bold text-sm">Template</Text>
           </View>
         </View>
 
         <View className="flex-row justify-between mb-3">
           <View className="flex-row items-center">
-            <Feather name="calendar" size={16} color="#10B981" />
+            <Feather name="calendar" size={16} color={colors.brand} />
             <Text className="text-text-light text-sm ml-2">
               {workoutDaysCount} workout days
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Feather name="moon" size={16} color="#8B5CF6" />
+            <Feather name="moon" size={16} color={colors.textLight} />
             <Text className="text-text-light text-sm ml-2">
               {restDaysCount} rest days
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Feather name="activity" size={16} color="#3B82F6" />
+            <Feather name="activity" size={16} color={colors.brand} />
             <Text className="text-text-light text-sm ml-2">
               {totalExercises} exercises
             </Text>
@@ -165,12 +166,12 @@ export default function BrowseTemplatesScreen() {
                   <View
                     key={day.id}
                     className={`px-2 py-1 rounded mr-2 mb-2 ${
-                      day.is_rest_day ? 'bg-purple-500/20' : 'bg-blue-500/20'
+                      day.is_rest_day ? 'bg-surface-2 border border-border' : 'bg-primary/15'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        day.is_rest_day ? 'text-purple-400' : 'text-blue-400'
+                        day.is_rest_day ? 'text-text-light' : 'text-primary'
                       }`}
                     >
                       {DAYS_OF_WEEK[day.day_of_week]}
@@ -182,16 +183,14 @@ export default function BrowseTemplatesScreen() {
         )}
 
         <TouchableOpacity
-          className="bg-blue-600 py-3 rounded-lg mt-3"
+          className="bg-primary py-3 rounded-lg mt-3"
           onPress={() => handleActivateTemplate(template)}
         >
-          <Text className="text-text text-center font-bold">Activate Template</Text>
+          <Text className="text-on-brand text-center font-bold">Activate Template</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
   };
-
-  const { vars, mode } = useThemeStore();
 
   const renderActivateModal = () => (
     <Modal
@@ -205,7 +204,7 @@ export default function BrowseTemplatesScreen() {
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-text text-2xl font-bold">Activate Template</Text>
             <TouchableOpacity onPress={() => setShowActivateModal(false)}>
-              <AntDesign name="close" size={24} color="var(--text)" />
+              <AntDesign name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -220,7 +219,7 @@ export default function BrowseTemplatesScreen() {
                 </Text>
               )}
 
-              <View className="bg-surface rounded-xl p-4 mb-4">
+              <View className="bg-surface rounded-2xl border border-border p-4 mb-4">
                 <Text className="text-text-light text-sm mb-3">
                   This will deactivate any current workout plan and activate this template as your new plan.
                 </Text>
@@ -230,35 +229,35 @@ export default function BrowseTemplatesScreen() {
                 <View>
                   <Text className="text-text-light mb-2">Start Date</Text>
                   <TextInput
-                    className="bg-surface text-text rounded-xl p-4"
+                    className="bg-surface-2 border border-border text-text rounded-xl p-4"
                     value={startDate}
                     onChangeText={setStartDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#6B7280"
+                    placeholderTextColor={colors.textLight}
                   />
                 </View>
                 
                 <View>
                   <Text className="text-text-light mb-2">End Date</Text>
                   <TextInput
-                    className="bg-surface text-text rounded-xl p-4"
+                    className="bg-surface-2 border border-border text-text rounded-xl p-4"
                     value={endDate}
                     onChangeText={setEndDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#6B7280"
+                    placeholderTextColor={colors.textLight}
                   />
                 </View>
               </View>
 
               <TouchableOpacity
-                className="bg-blue-600 py-4 rounded-xl mt-6"
+                className="bg-primary py-4 rounded-xl mt-6"
                 onPress={confirmActivation}
                 disabled={activating}
               >
                 {activating ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.onBrand} />
                 ) : (
-                  <Text className="text-text text-center font-bold text-lg">
+                  <Text className="text-on-brand text-center font-bold text-lg">
                     Activate Plan
                   </Text>
                 )}
@@ -274,7 +273,7 @@ export default function BrowseTemplatesScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -285,13 +284,13 @@ export default function BrowseTemplatesScreen() {
       <View className="px-4 pt-4 pb-2">
         <View className="flex-row items-center mb-4">
           <TouchableOpacity onPress={() => router.back()}>
-            <AntDesign name="arrow-left" size={24} color="white" />
+            <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Templates</Text>
         </View>
 
-        <View className="flex-row items-center bg-surface rounded-xl px-4 py-3 mb-4">
-          <Feather name="info" size={20} color="#3B82F6" />
+        <View className="flex-row items-center bg-surface rounded-2xl border border-border px-4 py-3 mb-4">
+          <Feather name="info" size={20} color={colors.brand} />
           <Text className="text-text-light text-sm ml-3 flex-1">
             Templates are reusable workout plans. Create templates to use them multiple times.
           </Text>
@@ -301,8 +300,8 @@ export default function BrowseTemplatesScreen() {
       <ScrollView className="flex-1 px-4">
         {templates.length === 0 ? (
           <View className="flex-1 justify-center items-center mt-20">
-            <View className="bg-surface rounded-2xl p-8 items-center">
-              <MaterialIcons name="fitness-center" size={64} color="#6B7280" />
+            <View className="bg-surface rounded-2xl border border-border p-8 items-center">
+              <MaterialIcons name="fitness-center" size={64} color={colors.textLight} />
               <Text className="text-text text-xl font-bold mt-6 mb-3">
                 No Templates Yet
               </Text>
@@ -311,10 +310,10 @@ export default function BrowseTemplatesScreen() {
               </Text>
 
               <TouchableOpacity
-                className="bg-blue-600 py-4 rounded-xl w-full items-center"
+                className="bg-primary py-4 rounded-xl w-full items-center"
                 onPress={() => router.push('/create-plan' as any)}
               >
-                <Text className="text-text font-bold text-lg">Create Template</Text>
+                <Text className="text-on-brand font-bold text-lg">Create Template</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -323,11 +322,11 @@ export default function BrowseTemplatesScreen() {
             {templates.map(template => renderTemplateCard(template))}
             
             <TouchableOpacity
-              className="bg-surface py-4 rounded-xl mb-8 flex-row items-center justify-center border border-blue-500/30"
+              className="bg-surface py-4 rounded-xl mb-8 flex-row items-center justify-center border border-primary/30"
               onPress={() => router.push('/create-plan' as any)}
             >
-              <AntDesign name="plus" size={20} color="#3B82F6" />
-              <Text className="text-blue-400 font-bold ml-2">Create New Template</Text>
+              <AntDesign name="plus" size={20} color={colors.brand} />
+              <Text className="text-primary font-bold ml-2">Create New Template</Text>
             </TouchableOpacity>
           </>
         )}

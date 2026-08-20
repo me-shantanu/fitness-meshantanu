@@ -7,6 +7,7 @@ import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { NavigationProgressBar } from '../../components/NavigationProgressBar';
 import { EmailVerificationScreen } from '../../components/auth/EmailVerificationScreen';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,6 +20,7 @@ export default function SignUpScreen() {
   const [showProgress, setShowProgress] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const signUp = useAuthStore((state) => state.signUp);
+  const { colors } = useThemeStore();
   const router = useRouter();
   const { width } = useWindowDimensions();
 
@@ -112,9 +114,9 @@ export default function SignUpScreen() {
                   Full Name
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="John Doe"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={fullName}
                   onChangeText={setFullName}
                   editable={!loading}
@@ -126,9 +128,9 @@ export default function SignUpScreen() {
                   Email
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="your@email.com"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
@@ -142,9 +144,9 @@ export default function SignUpScreen() {
                   Password
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="••••••••"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -157,9 +159,9 @@ export default function SignUpScreen() {
                   Confirm Password
                 </Text>
                 <TextInput
-                  className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                  className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                   placeholder="••••••••"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry
@@ -169,12 +171,12 @@ export default function SignUpScreen() {
 
               <View className='flex-row justify-center items-center'>
                 <TouchableOpacity
-                  className={`bg-brand py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
+                  className={`bg-primary py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
                   onPress={handleSignUp}
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <Text className={`text-white text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                     Create Account
                   </Text>
                 </TouchableOpacity>
@@ -186,7 +188,7 @@ export default function SignUpScreen() {
                 </Text>
                 <Link href="/(auth)/login" asChild>
                   <TouchableOpacity disabled={loading}>
-                    <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Sign In
                     </Text>
                   </TouchableOpacity>

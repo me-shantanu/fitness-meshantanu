@@ -29,6 +29,7 @@ interface WeightEntry {
 
 export default function ProgressScreen() {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { user, profile } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
@@ -239,8 +240,8 @@ export default function ProgressScreen() {
   const renderProgressBars = () => {
     if (progressData.length === 0) {
       return (
-        <View className="bg-surface rounded-xl p-8 items-center">
-          <Feather name="trending-up" size={48} color="#6B7280" />
+        <View className="bg-surface rounded-2xl border border-border p-8 items-center">
+          <Feather name="trending-up" size={48} color={colors.textLight} />
           <Text className="text-text text-lg font-bold mt-4 mb-2">
             No Data Available
           </Text>
@@ -255,7 +256,7 @@ export default function ProgressScreen() {
     const maxValue = Math.max(...progressData.map(item => item[selectedMetric]));
 
     return (
-      <View className="bg-surface rounded-xl p-4">
+      <View className="bg-surface rounded-2xl border border-border p-4">
         <View className="flex-row justify-between mb-2">
           <Text className="text-text font-bold">
             {selectedMetric === 'volume' && 'Training Volume (kg)'}
@@ -273,10 +274,8 @@ export default function ProgressScreen() {
             const value = week[selectedMetric];
             const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
 
-            let barColor = '#3B82F6'; // Blue for volume
-            if (selectedMetric === 'workouts') barColor = '#10B981'; // Green
-            if (selectedMetric === 'calories') barColor = '#EF4444'; // Red
-            if (selectedMetric === 'sets') barColor = '#8B5CF6'; // Purple
+            let barColor = colors.brand;
+            if (selectedMetric === 'calories') barColor = colors.accent;
 
             return (
               <View key={index} className="items-center flex-1">
@@ -320,9 +319,9 @@ export default function ProgressScreen() {
 
     return (
       <View className="px-4 mb-6">
-        <Text className="text-text text-xl font-bold mb-4">Body Weight</Text>
+        <Text className="text-text text-lg font-bold mb-3">Body Weight</Text>
 
-        <View className="bg-surface rounded-xl p-4">
+        <View className="bg-surface rounded-2xl border border-border p-4">
           <View className="flex-row justify-between items-center">
             <View>
               <Text className="text-text-light text-sm">Current Weight</Text>
@@ -332,15 +331,15 @@ export default function ProgressScreen() {
             </View>
 
             <TouchableOpacity
-              className="bg-blue-600 px-4 py-2 rounded-lg"
+              className="bg-primary px-4 py-2 rounded-lg"
               onPress={() => setShowWeightModal(true)}
             >
-              <Text className="text-text font-bold">Log Weight</Text>
+              <Text className="text-on-brand font-bold">Log Weight</Text>
             </TouchableOpacity>
           </View>
 
           {recentEntries.length > 0 && (
-            <View className="mt-4 pt-3 border-t border-gray-700">
+            <View className="mt-4 pt-3 border-t border-border">
               {recentEntries.map((entry, index) => {
                 const previous = recentEntries[index + 1];
                 const delta = previous ? entry.weight - previous.weight : null;
@@ -357,10 +356,10 @@ export default function ProgressScreen() {
                           <Feather
                             name={delta > 0 ? 'arrow-up' : 'arrow-down'}
                             size={14}
-                            color={delta > 0 ? '#EF4444' : '#10B981'}
+                            color={delta > 0 ? colors.danger : colors.brand}
                           />
                           <Text
-                            className={`text-xs ml-1 ${delta > 0 ? 'text-red-400' : 'text-green-400'}`}
+                            className={`text-xs ml-1 ${delta > 0 ? 'text-danger' : 'text-primary'}`}
                           >
                             {Math.abs(delta).toFixed(1)}
                           </Text>
@@ -388,31 +387,31 @@ export default function ProgressScreen() {
     <View className="px-4 mb-6">
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row">
-          <View className="bg-blue-600/20 rounded-xl p-4 mr-3 w-40">
+          <View className="bg-primary/15 border border-primary/30 rounded-2xl p-4 mr-3 w-40">
             <View className="flex-row items-center mb-2">
-              <Feather name="activity" size={20} color="#3B82F6" />
+              <Feather name="activity" size={20} color={colors.brand} />
               <Text className="text-text font-bold ml-2">Workout Streak</Text>
             </View>
             <Text className="text-text text-2xl font-bold">{stats.currentStreak} days</Text>
-            <Text className="text-blue-300 text-sm">Best: {stats.bestStreak} days</Text>
+            <Text className="text-primary text-sm">Best: {stats.bestStreak} days</Text>
           </View>
 
-          <View className="bg-green-600/20 rounded-xl p-4 mr-3 w-40">
+          <View className="bg-primary/15 border border-primary/30 rounded-2xl p-4 mr-3 w-40">
             <View className="flex-row items-center mb-2">
-              <Feather name="calendar" size={20} color="#10B981" />
+              <Feather name="calendar" size={20} color={colors.brand} />
               <Text className="text-text font-bold ml-2">This Month</Text>
             </View>
             <Text className="text-text text-2xl font-bold">{stats.workoutDaysThisMonth} days</Text>
-            <Text className="text-green-300 text-sm">Workout days</Text>
+            <Text className="text-primary text-sm">Workout days</Text>
           </View>
 
-          <View className="bg-purple-600/20 rounded-xl p-4 w-40">
+          <View className="bg-accent/15 border border-accent/30 rounded-2xl p-4 w-40">
             <View className="flex-row items-center mb-2">
-              <Feather name="award" size={20} color="#8B5CF6" />
+              <Feather name="award" size={20} color={colors.accent} />
               <Text className="text-text font-bold ml-2">Personal Records</Text>
             </View>
             <Text className="text-text text-2xl font-bold">{personalRecords.length}</Text>
-            <Text className="text-purple-300 text-sm">Achievements</Text>
+            <Text className="text-accent text-sm">Achievements</Text>
           </View>
         </View>
       </ScrollView>
@@ -421,13 +420,13 @@ export default function ProgressScreen() {
 
   const renderPersonalRecords = () => (
     <View className="px-4 mb-8">
-      <Text className="text-text text-xl font-bold mb-4">Personal Records</Text>
+      <Text className="text-text text-lg font-bold mb-3">Personal Records</Text>
 
       {personalRecords.length > 0 ? (
         personalRecords.slice(0, 5).map((pr, index) => (
           <TouchableOpacity
             key={pr.id}
-            className="bg-surface rounded-xl p-4 mb-3"
+            className="bg-surface rounded-2xl border border-border p-4 mb-3"
             onPress={() => {
               if (!pr.session_id) return;
               router.push({
@@ -438,8 +437,8 @@ export default function ProgressScreen() {
           >
             <View className="flex-row justify-between items-center mb-2">
               <Text className="text-text font-bold text-lg">{pr.exercise_name}</Text>
-              <View className="bg-yellow-500/20 px-3 py-1 rounded-full">
-                <Text className="text-yellow-400 font-bold">PR 🏆</Text>
+              <View className="bg-accent/15 px-3 py-1 rounded-full">
+                <Text className="text-accent font-bold">PR 🏆</Text>
               </View>
             </View>
 
@@ -467,8 +466,8 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         ))
       ) : (
-        <View className="bg-surface rounded-xl p-6 items-center">
-          <Feather name="award" size={48} color="#6B7280" />
+        <View className="bg-surface rounded-2xl border border-border p-6 items-center">
+          <Feather name="award" size={48} color={colors.textLight} />
           <Text className="text-text text-lg font-bold mt-4 mb-2">
             No Personal Records Yet
           </Text>
@@ -480,10 +479,10 @@ export default function ProgressScreen() {
 
       {personalRecords.length > 5 && (
         <TouchableOpacity
-          className="bg-surface rounded-xl p-4 items-center mt-3"
+          className="bg-surface rounded-2xl border border-border p-4 items-center mt-3"
           onPress={() => router.push('/pr-list' as any)}
         >
-          <Text className="text-blue-400 font-bold">
+          <Text className="text-primary font-bold">
             View All {personalRecords.length} Records →
           </Text>
         </TouchableOpacity>
@@ -495,7 +494,7 @@ export default function ProgressScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -515,20 +514,24 @@ export default function ProgressScreen() {
               { id: 'workouts', label: 'Workouts', icon: 'activity' },
               { id: 'calories', label: 'Calories', icon: 'fire' },
               { id: 'sets', label: 'Sets', icon: 'list' }
-            ].map((metric) => (
-              <TouchableOpacity
-                key={metric.id}
-                className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${selectedMetric === metric.id ? 'bg-blue-600' : 'bg-surface'
-                  }`}
-                onPress={() => setSelectedMetric(metric.id)}
-              >
-                {metric.icon === 'fire' ?
-                  <AntDesign name={metric.icon} size={16} color="white" /> :
-                  <Feather name={metric.icon as any} size={16} color="white" />
-                }
-                <Text className="text-text font-medium ml-2">{metric.label}</Text>
-              </TouchableOpacity>
-            ))}
+            ].map((metric) => {
+              const selected = selectedMetric === metric.id;
+              const iconColor = selected ? colors.onBrand : colors.textLight;
+              return (
+                <TouchableOpacity
+                  key={metric.id}
+                  className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
+                    }`}
+                  onPress={() => setSelectedMetric(metric.id)}
+                >
+                  {metric.icon === 'fire' ?
+                    <AntDesign name={metric.icon} size={16} color={iconColor} /> :
+                    <Feather name={metric.icon as any} size={16} color={iconColor} />
+                  }
+                  <Text className={`font-medium ml-2 ${selected ? 'text-on-brand' : 'text-text-light'}`}>{metric.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
 
           {/* Period Selector */}
@@ -538,16 +541,19 @@ export default function ProgressScreen() {
               { id: 'month', label: '1 Month' },
               { id: '3months', label: '3 Months' },
               { id: 'year', label: '1 Year' }
-            ].map((period) => (
-              <TouchableOpacity
-                key={period.id}
-                className={`px-4 py-2 rounded-full mr-2 ${selectedPeriod === period.id ? 'bg-green-600' : 'bg-surface'
-                  }`}
-                onPress={() => setSelectedPeriod(period.id)}
-              >
-                <Text className="text-text font-medium">{period.label}</Text>
-              </TouchableOpacity>
-            ))}
+            ].map((period) => {
+              const selected = selectedPeriod === period.id;
+              return (
+                <TouchableOpacity
+                  key={period.id}
+                  className={`px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
+                    }`}
+                  onPress={() => setSelectedPeriod(period.id)}
+                >
+                  <Text className={`font-medium ${selected ? 'text-on-brand' : 'text-text-light'}`}>{period.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -559,7 +565,7 @@ export default function ProgressScreen() {
 
         {/* Progress Visualization */}
         <View className="px-4 mb-6">
-          <Text className="text-text text-xl font-bold mb-4">
+          <Text className="text-text text-lg font-bold mb-3">
             {selectedMetric === 'volume' && 'Training Volume Progress'}
             {selectedMetric === 'workouts' && 'Workout Frequency'}
             {selectedMetric === 'calories' && 'Calories Burned'}
@@ -571,9 +577,9 @@ export default function ProgressScreen() {
 
         {/* Stats Summary */}
         <View className="px-4 mb-6">
-          <Text className="text-text text-xl font-bold mb-4">Statistics</Text>
+          <Text className="text-text text-lg font-bold mb-3">Statistics</Text>
 
-          <View className="bg-surface rounded-xl p-4">
+          <View className="bg-surface rounded-2xl border border-border p-4">
             <View className="flex-row justify-between mb-4">
               <View className="items-center flex-1">
                 <Text className="text-text text-2xl font-bold">{stats.totalWorkouts}</Text>
@@ -593,19 +599,19 @@ export default function ProgressScreen() {
 
             <View className="flex-row justify-between">
               <View className="items-center flex-1">
-                <Feather name="trending-up" size={20} color="#10B981" />
+                <Feather name="trending-up" size={20} color={colors.brand} />
                 <Text className="text-text font-bold mt-1">{stats.currentStreak}</Text>
                 <Text className="text-text-light text-xs">Current Streak</Text>
               </View>
 
               <View className="items-center flex-1">
-                <Feather name="target" size={20} color="#3B82F6" />
+                <Feather name="target" size={20} color={colors.brand} />
                 <Text className="text-text font-bold mt-1">{stats.bestStreak}</Text>
                 <Text className="text-text-light text-xs">Best Streak</Text>
               </View>
 
               <View className="items-center flex-1">
-                <Feather name="calendar" size={20} color="#8B5CF6" />
+                <Feather name="calendar" size={20} color={colors.accent} />
                 <Text className="text-text font-bold mt-1">{stats.workoutDaysThisMonth}</Text>
                 <Text className="text-text-light text-xs">Days This Month</Text>
               </View>
@@ -640,7 +646,7 @@ interface LogWeightModalProps {
 }
 
 function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps) {
-  const { vars, mode } = useThemeStore();
+  const { vars, mode, colors } = useThemeStore();
   const [weightInput, setWeightInput] = useState(
     initialWeight !== null ? String(initialWeight) : ''
   );
@@ -686,16 +692,16 @@ function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">Log Weight</Text>
           <TouchableOpacity onPress={onClose}>
-            <AntDesign name="close" size={24} color="var(--text)" />
+            <AntDesign name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
         <View className="mb-4">
           <Text className="text-text mb-2 font-medium">Weight (kg)</Text>
           <TextInput
-            className="bg-surface text-text px-4 py-3 rounded-lg"
+            className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
             placeholder="70"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textLight}
             value={weightInput}
             onChangeText={setWeightInput}
             keyboardType="numeric"
@@ -705,20 +711,20 @@ function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps
 
         <View className="mb-6">
           <Text className="text-text mb-2 font-medium">Date</Text>
-          <View className="bg-surface px-4 py-3 rounded-lg">
+          <View className="bg-surface-2 border border-border px-4 py-3 rounded-xl">
             <Text className="text-text-light">{today} (today)</Text>
           </View>
         </View>
 
         <TouchableOpacity
-          className={`bg-blue-600 py-4 rounded-xl mb-3 ${saving ? 'opacity-50' : ''}`}
+          className={`bg-primary py-4 rounded-xl mb-3 ${saving ? 'opacity-50' : ''}`}
           disabled={saving}
           onPress={handleSave}
         >
           {saving ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={colors.onBrand} />
           ) : (
-            <Text className="text-text text-center font-bold text-lg">Save</Text>
+            <Text className="text-on-brand text-center font-bold text-lg">Save</Text>
           )}
         </TouchableOpacity>
       </View>

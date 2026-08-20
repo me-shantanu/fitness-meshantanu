@@ -29,7 +29,7 @@ type ListState = 'loading' | 'error' | 'ready';
 export default function ExercisesScreen() {
   const router = useRouter();
   const { favorites, loadFavorites, isFavorite } = useExerciseStore();
-  const { vars, mode } = useThemeStore();
+  const { vars, mode, colors } = useThemeStore();
 
   const [activeTab, setActiveTab] = useState<ExerciseType>('workout');
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -210,7 +210,7 @@ export default function ExercisesScreen() {
 
     return (
       <TouchableOpacity
-        className="bg-surface p-4 rounded-xl mb-3 mx-4"
+        className="bg-surface p-4 rounded-2xl border border-border mb-3 mx-4"
         onPress={() => router.push({
           pathname: '/exercise-detail',
           params: {
@@ -227,14 +227,14 @@ export default function ExercisesScreen() {
               source={{ uri: thumb }}
               style={{ width: 56, height: 56, borderRadius: 12 }}
               resizeMode="cover"
-              className="bg-surface-light mr-3"
+              className="bg-surface-2 mr-3"
             />
           ) : (
             <View
-              className="bg-surface-light mr-3 items-center justify-center"
+              className="bg-surface-2 mr-3 items-center justify-center"
               style={{ width: 56, height: 56, borderRadius: 12 }}
             >
-              <MaterialIcons name="fitness-center" size={26} color={vars['--text-light'] as string} />
+              <MaterialIcons name="fitness-center" size={26} color={colors.textLight} />
             </View>
           )}
 
@@ -249,14 +249,14 @@ export default function ExercisesScreen() {
               )}
 
               {item.duration && (
-                <View className="flex-row items-center bg-surface-light px-2.5 py-1 rounded-full mr-2 mb-1">
-                  <MaterialIcons name="timer" size={12} color={vars['--text'] as string} />
+                <View className="flex-row items-center bg-surface-2 px-2.5 py-1 rounded-full mr-2 mb-1">
+                  <MaterialIcons name="timer" size={12} color={colors.text} />
                   <Text className="text-text text-xs font-medium ml-1">{item.duration}</Text>
                 </View>
               )}
 
               {item.difficulty && (
-                <View className="bg-surface-light px-2.5 py-1 rounded-full mb-1">
+                <View className="bg-surface-2 px-2.5 py-1 rounded-full mb-1">
                   <Text className="text-text text-xs font-medium">{item.difficulty}</Text>
                 </View>
               )}
@@ -283,9 +283,9 @@ export default function ExercisesScreen() {
                 <AntDesign
                   name={'heart'}
                   size={22}
-                  color={'#EF4444'}
+                  color={colors.danger}
                 /> :
-                <FontAwesome name="heart-o" size={22} color={vars['--text-light'] as string} />
+                <FontAwesome name="heart-o" size={22} color={colors.textLight} />
               }
             </TouchableOpacity>
 
@@ -298,7 +298,7 @@ export default function ExercisesScreen() {
                 className="p-2"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <MaterialIcons name="add-circle-outline" size={24} color={vars['--text-light'] as string} />
+                <MaterialIcons name="add-circle-outline" size={24} color={colors.textLight} />
               </TouchableOpacity>
             )}
           </View>
@@ -319,7 +319,7 @@ export default function ExercisesScreen() {
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-text text-2xl font-bold">Filters</Text>
             <TouchableOpacity onPress={() => setShowFilters(false)} className="p-2">
-              <AntDesign name="close" size={24} color={vars['--text'] as string} />
+              <AntDesign name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -329,21 +329,21 @@ export default function ExercisesScreen() {
               <Text className="text-text text-lg font-bold mb-3">Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <TouchableOpacity
-                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === null ? 'bg-primary' : 'bg-surface'
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedCategory(null)}
                 >
-                  <Text className={`font-medium ${selectedCategory === null ? 'text-white' : 'text-text'
+                  <Text className={`font-medium ${selectedCategory === null ? 'text-on-brand' : 'text-text-light'
                     }`}>All Categories</Text>
                 </TouchableOpacity>
                 {categories.map((category) => (
                   <TouchableOpacity
                     key={category.id}
-                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === category.id ? 'bg-primary' : 'bg-surface'
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === category.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedCategory(category.id)}
                   >
-                    <Text className={`font-medium ${selectedCategory === category.id ? 'text-white' : 'text-text'
+                    <Text className={`font-medium ${selectedCategory === category.id ? 'text-on-brand' : 'text-text-light'
                       }`}>{category.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -355,21 +355,21 @@ export default function ExercisesScreen() {
               <Text className="text-text text-lg font-bold mb-3">Target Muscle</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <TouchableOpacity
-                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === null ? 'bg-primary' : 'bg-surface'
+                  className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedMuscle(null)}
                 >
-                  <Text className={`font-medium ${selectedMuscle === null ? 'text-white' : 'text-text'
+                  <Text className={`font-medium ${selectedMuscle === null ? 'text-on-brand' : 'text-text-light'
                     }`}>All Muscles</Text>
                 </TouchableOpacity>
                 {muscles.map((muscle) => (
                   <TouchableOpacity
                     key={muscle.id}
-                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === muscle.id ? 'bg-primary' : 'bg-surface'
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === muscle.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedMuscle(muscle.id)}
                   >
-                    <Text className={`font-medium ${selectedMuscle === muscle.id ? 'text-white' : 'text-text'
+                    <Text className={`font-medium ${selectedMuscle === muscle.id ? 'text-on-brand' : 'text-text-light'
                       }`}>{muscle.name_en || muscle.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -382,21 +382,21 @@ export default function ExercisesScreen() {
                 <Text className="text-text text-lg font-bold mb-3">Equipment</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <TouchableOpacity
-                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === null ? 'bg-primary' : 'bg-surface'
+                    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedEquipment(null)}
                   >
-                    <Text className={`font-medium ${selectedEquipment === null ? 'text-white' : 'text-text'
+                    <Text className={`font-medium ${selectedEquipment === null ? 'text-on-brand' : 'text-text-light'
                       }`}>All Equipment</Text>
                   </TouchableOpacity>
                   {equipment.map((eq) => (
                     <TouchableOpacity
                       key={eq.id}
-                      className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === eq.id ? 'bg-primary' : 'bg-surface'
+                      className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === eq.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                         }`}
                       onPress={() => setSelectedEquipment(eq.id)}
                     >
-                      <Text className={`font-medium ${selectedEquipment === eq.id ? 'text-white' : 'text-text'
+                      <Text className={`font-medium ${selectedEquipment === eq.id ? 'text-on-brand' : 'text-text-light'
                         }`}>{eq.name}</Text>
                     </TouchableOpacity>
                   ))}
@@ -408,17 +408,17 @@ export default function ExercisesScreen() {
           {/* Filters apply on select; just offer a reset + done */}
           <View className="flex-row justify-between mt-4 pt-4 border-t border-border">
             <TouchableOpacity
-              className="bg-surface flex-1 mr-2 py-4 rounded-xl"
+              className="bg-surface-2 border border-border flex-1 mr-2 py-4 rounded-xl"
               onPress={clearFilters}
             >
               <Text className="text-text text-center font-bold">Clear All</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-blue-600 flex-1 ml-2 py-4 rounded-xl"
+              className="bg-primary flex-1 ml-2 py-4 rounded-xl"
               onPress={() => setShowFilters(false)}
             >
-              <Text className="text-white text-center font-bold">Done</Text>
+              <Text className="text-on-brand text-center font-bold">Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -428,44 +428,24 @@ export default function ExercisesScreen() {
 
   const renderTabs = () => (
     <View className="flex-row px-4 mb-4">
-      <TouchableOpacity
-        className={`flex-1 py-3.5  ${activeTab === 'workout'
-          ? 'bg-brand'
-          : 'bg-surface'
-          }`}
-        onPress={() => setActiveTab('workout')}
-        activeOpacity={0.7}
-      >
-        <Text className={`text-center font-bold text-text`}>
-          Workout
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        className={`flex-1 py-3.5  ${activeTab === 'warmup'
-          ? 'bg-brand'
-          : 'bg-surface'
-          }`}
-        onPress={() => setActiveTab('warmup')}
-        activeOpacity={0.7}
-      >
-        <Text className={`text-center font-bold text-text`}>
-          Warmup
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        className={`flex-1 py-3.5  ${activeTab === 'cooldown'
-          ? 'bg-brand'
-          : 'bg-surface'
-          }`}
-        onPress={() => setActiveTab('cooldown')}
-        activeOpacity={0.7}
-      >
-        <Text className={`text-center font-bold text-text`}>
-          Cooldown
-        </Text>
-      </TouchableOpacity>
+      {(['workout', 'warmup', 'cooldown'] as ExerciseType[]).map((tab) => {
+        const selected = activeTab === tab;
+        return (
+          <TouchableOpacity
+            key={tab}
+            className={`flex-1 py-3.5 rounded-xl mx-1 ${selected
+              ? 'bg-primary'
+              : 'bg-surface-2 border border-border'
+              }`}
+            onPress={() => setActiveTab(tab)}
+            activeOpacity={0.7}
+          >
+            <Text className={`text-center font-bold capitalize ${selected ? 'text-on-brand' : 'text-text-light'}`}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
@@ -511,8 +491,8 @@ export default function ExercisesScreen() {
               className="bg-primary px-3 py-1.5 rounded-full mr-2 mb-2 flex-row items-center"
               activeOpacity={0.7}
             >
-              <Text className="text-white text-sm font-medium mr-1">{filter.label}</Text>
-              <AntDesign name="close" size={12} color="white" />
+              <Text className="text-on-brand text-sm font-medium mr-1">{filter.label}</Text>
+              <AntDesign name="close" size={12} color={colors.onBrand} />
             </TouchableOpacity>
           ))}
         </View>
@@ -524,7 +504,7 @@ export default function ExercisesScreen() {
     if (listState === 'loading' && !refreshing) {
       return (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={vars['--primary'] as string} />
+          <ActivityIndicator size="large" color={colors.brand} />
           <Text className="text-text mt-4 font-medium">Loading exercises...</Text>
         </View>
       );
@@ -534,7 +514,7 @@ export default function ExercisesScreen() {
       return (
         <View className="flex-1 justify-center items-center px-8">
           <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
-            <Feather name="wifi-off" size={40} color={vars['--text-light'] as string} />
+            <Feather name="wifi-off" size={40} color={colors.textLight} />
           </View>
           <Text className="text-text text-center text-lg font-bold">
             Couldn't load exercises
@@ -543,11 +523,11 @@ export default function ExercisesScreen() {
             Check your connection.
           </Text>
           <TouchableOpacity
-            className="bg-blue-600 px-8 py-3 rounded-xl mt-6"
+            className="bg-primary px-8 py-3 rounded-xl mt-6"
             onPress={retry}
             activeOpacity={0.7}
           >
-            <Text className="text-white font-bold">Retry</Text>
+            <Text className="text-on-brand font-bold">Retry</Text>
           </TouchableOpacity>
         </View>
       );
@@ -562,8 +542,8 @@ export default function ExercisesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={vars['--primary'] as string}
-            colors={[vars['--primary'] as string]}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
           />
         }
         onEndReached={loadMore}
@@ -571,7 +551,7 @@ export default function ExercisesScreen() {
         ListFooterComponent={
           loadingMore ? (
             <View className="py-6">
-              <ActivityIndicator size="small" color={vars['--primary'] as string} />
+              <ActivityIndicator size="small" color={colors.brand} />
             </View>
           ) : null
         }
@@ -579,9 +559,9 @@ export default function ExercisesScreen() {
           <View className="flex-1 justify-center items-center py-20 px-4">
             <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
               {searchQuery ? (
-                <AntDesign name="search" size={48} color={vars['--text-light'] as string} />
+                <AntDesign name="search" size={48} color={colors.textLight} />
               ) : (
-                <MaterialIcons name="fitness-center" size={48} color={vars['--text-light'] as string} />
+                <MaterialIcons name="fitness-center" size={48} color={colors.textLight} />
               )}
             </View>
             <Text className="text-text mt-4 text-center text-lg font-bold">
@@ -612,13 +592,13 @@ export default function ExercisesScreen() {
           {/* Favorites Button */}
           <TouchableOpacity
             onPress={() => router.push('/favorites')}
-            className="bg-surface px-4 py-2 rounded-xl flex-row items-center"
+            className="bg-surface-2 border border-border px-4 py-2 rounded-xl flex-row items-center"
             activeOpacity={0.7}
           >
-            <AntDesign name="heart" size={20} color="#EF4444" />
+            <AntDesign name="heart" size={20} color={colors.danger} />
             {favorites.length > 0 && (
               <View className="bg-primary px-2 py-0.5 rounded-full ml-2">
-                <Text className="text-white text-xs font-bold">{favorites.length}</Text>
+                <Text className="text-on-brand text-xs font-bold">{favorites.length}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -626,19 +606,19 @@ export default function ExercisesScreen() {
 
         {/* Search Bar */}
         <View className="flex-row items-center mb-3">
-          <View className="flex-1 bg-surface flex-row items-center px-4 py-3 rounded-xl mr-2">
-            <FontAwesome name="search" size={20} color={vars['--text-light'] as string} />
+          <View className="flex-1 bg-surface-2 border border-border flex-row items-center px-4 py-3 rounded-xl mr-2">
+            <FontAwesome name="search" size={20} color={colors.textLight} />
             <TextInput
               className="flex-1 text-text ml-3 text-base"
               placeholder={`Search ${activeTab} exercises...`}
-              placeholderTextColor={vars['--text-light'] as string}
+              placeholderTextColor={colors.textLight}
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
             />
             {searchQuery ? (
               <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
-                <AntDesign name="close" size={20} color={vars['--text-light'] as string} />
+                <AntDesign name="close" size={20} color={colors.textLight} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -646,10 +626,10 @@ export default function ExercisesScreen() {
           {activeTab === 'workout' && (
             <TouchableOpacity
               onPress={() => setShowFilters(true)}
-              className="bg-surface p-3 rounded-xl"
+              className="bg-surface-2 border border-border p-3 rounded-xl"
               activeOpacity={0.7}
             >
-              <FontAwesome name="filter" size={20} color={vars['--text-light'] as string} />
+              <FontAwesome name="filter" size={20} color={colors.textLight} />
             </TouchableOpacity>
           )}
         </View>

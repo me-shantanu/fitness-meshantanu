@@ -88,18 +88,18 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
               {email}
             </Text>
             
-            <View className="bg-surface rounded-lg p-4 mb-8">
+            <View className="bg-surface rounded-2xl border border-border p-4 mb-8">
               <Text className={`text-text-light text-center ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Please check your inbox and click the verification link to activate your account.
               </Text>
             </View>
 
             <TouchableOpacity
-              className="bg-brand py-3 px-8 rounded-full w-full mb-4"
+              className="bg-primary py-3 px-8 rounded-full w-full mb-4"
               onPress={() => router.replace('/(auth)/login')}
               activeOpacity={0.8}
             >
-              <Text className={`text-white text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
+              <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Go to Login
               </Text>
             </TouchableOpacity>
@@ -113,7 +113,7 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
                 disabled={resending || cooldown > 0}
                 activeOpacity={0.8}
               >
-                <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'} ${resending || cooldown > 0 ? 'opacity-50' : ''}`}>
+                <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'} ${resending || cooldown > 0 ? 'opacity-50' : ''}`}>
                   {resending
                     ? 'Sending...'
                     : cooldown > 0

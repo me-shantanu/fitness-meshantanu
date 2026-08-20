@@ -22,7 +22,7 @@ type FilterType = 'all' | 'workout' | 'warmup' | 'cooldown';
 export default function FavoritesScreen() {
   const router = useRouter();
   const { favorites, loadFavorites, removeFavorite, loading } = useExerciseStore();
-  const { vars } = useThemeStore();
+  const { colors } = useThemeStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -74,24 +74,24 @@ export default function FavoritesScreen() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'workout':
-        return 'bg-blue-500';
+        return 'bg-primary';
       case 'warmup':
-        return 'bg-orange-500';
+        return 'bg-accent';
       case 'cooldown':
-        return 'bg-green-500';
+        return 'bg-brand-active';
       default:
-        return 'bg-gray-500';
+        return 'bg-text-light';
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'workout':
-        return <MaterialIcons name="fitness-center" size={16} color="white" />;
+        return <MaterialIcons name="fitness-center" size={16} color={colors.onBrand} />;
       case 'warmup':
-        return <Ionicons name="flame" size={16} color="white" />;
+        return <Ionicons name="flame" size={16} color={colors.onBrand} />;
       case 'cooldown':
-        return <Ionicons name="snow" size={16} color="white" />;
+        return <Ionicons name="snow" size={16} color={colors.onBrand} />;
       default:
         return null;
     }
@@ -99,7 +99,7 @@ export default function FavoritesScreen() {
 
   const renderFavorite = ({ item }: { item: any }) => (
     <TouchableOpacity
-      className="bg-surface p-4 rounded-xl mb-3 mx-4"
+      className="bg-surface p-4 rounded-2xl border border-border mb-3 mx-4"
       onPress={() => handleExercisePress(item.exercise_id, item.exercise_type)}
       activeOpacity={0.7}
     >
@@ -112,7 +112,7 @@ export default function FavoritesScreen() {
           <View className="flex-row items-center">
             <View className={`${getTypeColor(item.exercise_type)} px-3 py-1.5 rounded-full flex-row items-center`}>
               {getTypeIcon(item.exercise_type)}
-              <Text className="text-white text-xs font-bold ml-1 capitalize">
+              <Text className="text-on-brand text-xs font-bold ml-1 capitalize">
                 {item.exercise_type}
               </Text>
             </View>
@@ -131,7 +131,7 @@ export default function FavoritesScreen() {
           className="p-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AntDesign name="heart" size={24} color="#EF4444" />
+          <AntDesign name="heart" size={24} color={colors.danger} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -143,11 +143,11 @@ export default function FavoritesScreen() {
       <View className="mx-4 mb-4 bg-primary p-6 rounded-2xl">
         <View className="flex-row justify-between items-center">
           <View>
-            <Text className="text-white text-4xl font-bold">{favorites.length}</Text>
-            <Text className="text-white/80 text-sm mt-1">Favorite Exercises</Text>
+            <Text className="text-on-brand text-4xl font-bold">{favorites.length}</Text>
+            <Text className="text-on-brand/80 text-sm mt-1">Favorite Exercises</Text>
           </View>
-          <View className="bg-white/20 w-16 h-16 rounded-full items-center justify-center">
-            <AntDesign name="heart" size={32} color="white" />
+          <View className="bg-on-brand/20 w-16 h-16 rounded-full items-center justify-center">
+            <AntDesign name="heart" size={32} color={colors.onBrand} />
           </View>
         </View>
       </View>
@@ -156,61 +156,28 @@ export default function FavoritesScreen() {
       <View className="px-4 mb-4">
         <Text className="text-text text-sm font-medium mb-3">Filter by type</Text>
         <View className="flex-row">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg mr-2 ${
-              filterType === 'all' ? 'bg-primary' : 'bg-surface'
-            }`}
-            onPress={() => setFilterType('all')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-center font-bold ${
-              filterType === 'all' ? 'text-white' : 'text-text'
-            }`}>
-              All ({favorites.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg mx-1 ${
-              filterType === 'workout' ? 'bg-blue-500' : 'bg-surface'
-            }`}
-            onPress={() => setFilterType('workout')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-center font-bold ${
-              filterType === 'workout' ? 'text-white' : 'text-text'
-            }`}>
-              Workout ({favorites.filter(f => f.exercise_type === 'workout').length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg mx-1 ${
-              filterType === 'warmup' ? 'bg-orange-500' : 'bg-surface'
-            }`}
-            onPress={() => setFilterType('warmup')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-center font-bold ${
-              filterType === 'warmup' ? 'text-white' : 'text-text'
-            }`}>
-              Warmup ({favorites.filter(f => f.exercise_type === 'warmup').length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg ml-2 ${
-              filterType === 'cooldown' ? 'bg-green-500' : 'bg-surface'
-            }`}
-            onPress={() => setFilterType('cooldown')}
-            activeOpacity={0.7}
-          >
-            <Text className={`text-center font-bold ${
-              filterType === 'cooldown' ? 'text-white' : 'text-text'
-            }`}>
-              Cooldown ({favorites.filter(f => f.exercise_type === 'cooldown').length})
-            </Text>
-          </TouchableOpacity>
+          {(['all', 'workout', 'warmup', 'cooldown'] as FilterType[]).map((type, i) => {
+            const selected = filterType === type;
+            const count = type === 'all'
+              ? favorites.length
+              : favorites.filter(f => f.exercise_type === type).length;
+            return (
+              <TouchableOpacity
+                key={type}
+                className={`flex-1 py-3 rounded-lg ${i === 0 ? 'mr-1' : i === 3 ? 'ml-1' : 'mx-1'} ${
+                  selected ? 'bg-primary' : 'bg-surface-2 border border-border'
+                }`}
+                onPress={() => setFilterType(type)}
+                activeOpacity={0.7}
+              >
+                <Text className={`text-center font-bold capitalize ${
+                  selected ? 'text-on-brand' : 'text-text-light'
+                }`}>
+                  {type} ({count})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -226,8 +193,8 @@ export default function FavoritesScreen() {
 
   const renderEmpty = () => (
     <View className="flex-1 justify-center items-center py-20 px-4">
-      <View className="bg-surface w-24 h-24 rounded-full items-center justify-center mb-4">
-        <FontAwesome name="heart-o" size={48} color={vars['--text-light'] as string} />
+      <View className="bg-surface-2 w-24 h-24 rounded-full items-center justify-center mb-4">
+        <FontAwesome name="heart-o" size={48} color={colors.textLight} />
       </View>
       <Text className="text-text mt-4 text-center text-lg font-bold">
         {filterType === 'all' 
@@ -244,7 +211,7 @@ export default function FavoritesScreen() {
         onPress={() => router.back()}
         activeOpacity={0.7}
       >
-        <Text className="text-white font-bold">Browse Exercises</Text>
+        <Text className="text-on-brand font-bold">Browse Exercises</Text>
       </TouchableOpacity>
     </View>
   );
@@ -253,7 +220,7 @@ export default function FavoritesScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={vars['--primary'] as string} />
+          <ActivityIndicator size="large" color={colors.brand} />
           <Text className="text-text mt-4 font-medium">Loading favorites...</Text>
         </View>
       </SafeAreaView>
@@ -270,7 +237,7 @@ export default function FavoritesScreen() {
             className="mr-3 p-2"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <AntDesign name="arrow-left" size={24} color={vars['--text'] as string} />
+            <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-3xl font-bold">My Favorites</Text>
         </View>
@@ -287,8 +254,8 @@ export default function FavoritesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={vars['--primary'] as string}
-            colors={[vars['--primary'] as string]}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
           />
         }
         showsVerticalScrollIndicator={false}

@@ -425,7 +425,7 @@ export default function EditPlanScreen() {
         );
     };
 
-    const { vars, mode } = useThemeStore();
+    const { vars, mode, colors } = useThemeStore();
 
     const renderAddExerciseModal = () => (
         <View style={vars} key={mode} className="absolute inset-0 bg-black/50 justify-end">
@@ -433,27 +433,27 @@ export default function EditPlanScreen() {
                 <View className="flex-row justify-between items-center mb-6">
                     <Text className="text-text text-2xl font-bold">Add Exercise</Text>
                     <TouchableOpacity onPress={() => setShowAddExercise(false)}>
-                        <AntDesign name="close" size={24} color="var(--text)" />
+                        <AntDesign name="close" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
                 <TextInput
-                    className="bg-surface text-text rounded-xl p-4 mb-4"
+                    className="bg-surface-2 border border-border text-text rounded-xl p-4 mb-4"
                     placeholder="Search exercises..."
-                    placeholderTextColor="#6B7280"
+                    placeholderTextColor={colors.textLight}
                     value={searchQuery}
                     onChangeText={handleSearch}
                     autoFocus
                 />
 
                 {searching ? (
-                    <ActivityIndicator size="large" color="#3B82F6" />
+                    <ActivityIndicator size="large" color={colors.brand} />
                 ) : (
                     <ScrollView className="flex-1">
                         {searchResults.map((exercise) => (
                             <TouchableOpacity
                                 key={exercise.id}
-                                className="bg-surface rounded-xl p-4 mb-3"
+                                className="bg-surface rounded-2xl border border-border p-4 mb-3"
                                 onPress={() => addExerciseToDay(exercise)}
                             >
                                 <Text className="text-text font-bold text-lg mb-1">
@@ -467,7 +467,7 @@ export default function EditPlanScreen() {
 
                         {searchQuery && searchResults.length === 0 && !searching && (
                             <View className="items-center py-8">
-                                <Feather name="search" size={48} color="#6B7280" />
+                                <Feather name="search" size={48} color={colors.textLight} />
                                 <Text className="text-text-light mt-4">
                                     No exercises found for "{searchQuery}"
                                 </Text>
@@ -485,10 +485,10 @@ export default function EditPlanScreen() {
                 <View className="flex-1 justify-center items-center">
                     <Text className="text-text text-xl">No active plan to edit</Text>
                     <TouchableOpacity
-                        className="bg-blue-600 px-6 py-3 rounded-lg mt-4"
+                        className="bg-primary px-6 py-3 rounded-lg mt-4"
                         onPress={() => router.back()}
                     >
-                        <Text className="text-text font-bold">Go Back</Text>
+                        <Text className="text-on-brand font-bold">Go Back</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -501,7 +501,7 @@ export default function EditPlanScreen() {
                 <View className="px-4 pt-4">
                     <View className="flex-row items-center mb-6">
                         <TouchableOpacity onPress={() => router.back()}>
-                            <AntDesign name="arrow-left" size={24} color="white" />
+                            <AntDesign name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                         <Text className="text-text text-2xl font-bold ml-4">Edit Plan</Text>
                     </View>
@@ -514,9 +514,9 @@ export default function EditPlanScreen() {
                             <View>
                                 <Text className="text-text-light mb-2">Plan Name</Text>
                                 <TextInput
-                                    className="bg-surface text-text rounded-xl p-4"
+                                    className="bg-surface-2 border border-border text-text rounded-xl p-4"
                                     placeholder="e.g., Beginner Strength Program"
-                                    placeholderTextColor="#6B7280"
+                                    placeholderTextColor={colors.textLight}
                                     value={planName}
                                     onChangeText={setPlanName}
                                 />
@@ -525,9 +525,9 @@ export default function EditPlanScreen() {
                             <View>
                                 <Text className="text-text-light mb-2">Description (Optional)</Text>
                                 <TextInput
-                                    className="bg-surface text-text rounded-xl p-4"
+                                    className="bg-surface-2 border border-border text-text rounded-xl p-4"
                                     placeholder="Brief description of your plan"
-                                    placeholderTextColor="#6B7280"
+                                    placeholderTextColor={colors.textLight}
                                     value={planDescription}
                                     onChangeText={setPlanDescription}
                                     multiline
@@ -539,7 +539,7 @@ export default function EditPlanScreen() {
                                 <View className="flex-1 mr-2">
                                     <Text className="text-text-light mb-2">Start Date</Text>
                                     <TextInput
-                                        className="bg-surface text-text rounded-xl p-4"
+                                        className="bg-surface-2 border border-border text-text rounded-xl p-4"
                                         value={startDate}
                                         onChangeText={setStartDate}
                                         placeholder="YYYY-MM-DD"
@@ -549,7 +549,7 @@ export default function EditPlanScreen() {
                                 <View className="flex-1 ml-2">
                                     <Text className="text-text-light mb-2">End Date</Text>
                                     <TextInput
-                                        className="bg-surface text-text rounded-xl p-4"
+                                        className="bg-surface-2 border border-border text-text rounded-xl p-4"
                                         value={endDate}
                                         onChangeText={setEndDate}
                                         placeholder="YYYY-MM-DD"
@@ -558,14 +558,14 @@ export default function EditPlanScreen() {
                             </View>
 
                             <TouchableOpacity
-                                className="bg-blue-600 py-4 rounded-xl"
+                                className="bg-primary py-4 rounded-xl"
                                 onPress={savePlanDetails}
                                 disabled={saving}
                             >
                                 {saving ? (
-                                    <ActivityIndicator color="white" />
+                                    <ActivityIndicator color={colors.onBrand} />
                                 ) : (
-                                    <Text className="text-text text-center font-bold text-lg">
+                                    <Text className="text-on-brand text-center font-bold text-lg">
                                         Save Plan Details
                                     </Text>
                                 )}
@@ -578,18 +578,18 @@ export default function EditPlanScreen() {
                         <View className="flex-row justify-between items-center mb-4">
                             <Text className="text-text text-xl font-bold">Workout Days</Text>
                             <TouchableOpacity
-                                className="bg-blue-600 px-4 py-2 rounded-lg flex-row items-center"
+                                className="bg-primary px-4 py-2 rounded-lg flex-row items-center"
                                 onPress={addNewWorkoutDay}
                             >
-                                <AntDesign name="plus" size={18} color="white" />
-                                <Text className="text-text font-bold ml-2">Add Day</Text>
+                                <AntDesign name="plus" size={18} color={colors.onBrand} />
+                                <Text className="text-on-brand font-bold ml-2">Add Day</Text>
                             </TouchableOpacity>
                         </View>
 
                         {workoutDays
                             .sort((a, b) => a.day_of_week - b.day_of_week)
                             .map((day) => (
-                                <View key={day.id} className="mb-4 bg-surface rounded-xl p-4">
+                                <View key={day.id} className="mb-4 bg-surface rounded-2xl border border-border p-4">
                                     <View className="flex-row justify-between items-center mb-4">
                                         <Text className="text-text font-bold text-lg">
                                             {DAYS_OF_WEEK[day.day_of_week]}
@@ -597,11 +597,11 @@ export default function EditPlanScreen() {
 
                                         <View className="flex-row items-center">
                                             <TouchableOpacity
-                                                className={`px-4 py-2 rounded mr-2 ${day.is_rest_day ? 'bg-purple-600' : 'bg-blue-600'
+                                                className={`px-4 py-2 rounded mr-2 ${day.is_rest_day ? 'bg-surface-2 border border-border' : 'bg-primary'
                                                     }`}
                                                 onPress={() => day.id && toggleRestDay(day.id)}
                                             >
-                                                <Text className="text-text font-bold text-sm">
+                                                <Text className={`font-bold text-sm ${day.is_rest_day ? 'text-text-light' : 'text-on-brand'}`}>
                                                     {day.is_rest_day ? 'Rest Day' : 'Workout'}
                                                 </Text>
                                             </TouchableOpacity>
@@ -609,7 +609,7 @@ export default function EditPlanScreen() {
                                             <TouchableOpacity
                                                 onPress={() => day.id && removeWorkoutDay(day.id)}
                                             >
-                                                <MaterialIcons name="delete" size={24} color="#EF4444" />
+                                                <MaterialIcons name="delete" size={24} color={colors.danger} />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -617,9 +617,9 @@ export default function EditPlanScreen() {
                                     {!day.is_rest_day && (
                                         <>
                                             <TextInput
-                                                className="bg-gray-700 text-text rounded-lg p-3 mb-4"
+                                                className="bg-surface-2 border border-border text-text rounded-xl p-3 mb-4"
                                                 placeholder="Workout name (e.g., Chest Day)"
-                                                placeholderTextColor="#6B7280"
+                                                placeholderTextColor={colors.textLight}
                                                 value={day.name}
                                                 onChangeText={(text) => day.id && updateDayNameLocal(day.id, text)}
                                                 onEndEditing={() => day.id && persistDayName(day.id, day.name)}
@@ -627,21 +627,21 @@ export default function EditPlanScreen() {
                                             />
 
                                             <TouchableOpacity
-                                                className="flex-row items-center justify-center bg-gray-700 py-3 rounded-lg mb-4"
+                                                className="flex-row items-center justify-center bg-primary/15 border border-primary/30 py-3 rounded-lg mb-4"
                                                 onPress={() => {
                                                     setSelectedDayId(day.id || null);
                                                     setShowAddExercise(true);
                                                 }}
                                             >
-                                                <AntDesign name="plus" size={20} color="#3B82F6" />
-                                                <Text className="text-blue-400 font-bold ml-2">Add Exercise</Text>
+                                                <AntDesign name="plus" size={20} color={colors.brand} />
+                                                <Text className="text-primary font-bold ml-2">Add Exercise</Text>
                                             </TouchableOpacity>
 
                                             {day.planned_exercises && day.planned_exercises.length > 0 && (
                                                 <View>
                                                     <Text className="text-text-light mb-2">Exercises:</Text>
                                                     {day.planned_exercises.map((exercise) => (
-                                                        <View key={exercise.id} className="bg-gray-700 rounded-lg p-3 mb-2">
+                                                        <View key={exercise.id} className="bg-surface-2 border border-border rounded-xl p-3 mb-2">
                                                             <View className="flex-row justify-between items-center mb-2">
                                                                 <Text className="text-text font-bold flex-1">
                                                                     {exercise.exercise_name}
@@ -649,7 +649,7 @@ export default function EditPlanScreen() {
                                                                 <TouchableOpacity
                                                                     onPress={() => exercise.id && day.id && removeExercise(exercise.id, day.id)}
                                                                 >
-                                                                    <AntDesign name="close" size={20} color="#EF4444" />
+                                                                    <AntDesign name="close" size={20} color={colors.danger} />
                                                                 </TouchableOpacity>
                                                             </View>
 
@@ -657,7 +657,7 @@ export default function EditPlanScreen() {
                                                                 <View className="flex-1 mr-2">
                                                                     <Text className="text-text-light text-xs mb-1">Sets</Text>
                                                                     <TextInput
-                                                                        className="bg-surface text-text rounded p-2 text-center"
+                                                                        className="bg-surface border border-border text-text rounded p-2 text-center"
                                                                         value={exercise.target_sets.toString()}
                                                                         onChangeText={(text) =>
                                                                             exercise.id && updateExerciseLocal(exercise.id, 'target_sets', parseInt(text) || 0)
@@ -675,7 +675,7 @@ export default function EditPlanScreen() {
                                                                 <View className="flex-1 mx-2">
                                                                     <Text className="text-text-light text-xs mb-1">Reps</Text>
                                                                     <TextInput
-                                                                        className="bg-surface text-text rounded p-2 text-center"
+                                                                        className="bg-surface border border-border text-text rounded p-2 text-center"
                                                                         value={exercise.target_reps.toString()}
                                                                         onChangeText={(text) =>
                                                                             exercise.id && updateExerciseLocal(exercise.id, 'target_reps', parseInt(text) || 0)
@@ -693,9 +693,9 @@ export default function EditPlanScreen() {
                                                                 <View className="flex-1 ml-2">
                                                                     <Text className="text-text-light text-xs mb-1">Weight (kg)</Text>
                                                                     <TextInput
-                                                                        className="bg-surface text-text rounded p-2 text-center"
+                                                                        className="bg-surface border border-border text-text rounded p-2 text-center"
                                                                         placeholder="Optional"
-                                                                        placeholderTextColor="#6B7280"
+                                                                        placeholderTextColor={colors.textLight}
                                                                         value={exercise.target_weight ? exercise.target_weight.toString() : ''}
                                                                         onChangeText={(text) =>
                                                                             exercise.id && updateExerciseLocal(exercise.id, 'target_weight', text ? parseFloat(text) : null)

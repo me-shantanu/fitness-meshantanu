@@ -18,9 +18,11 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import { WorkoutSession, ExerciseSet, PlannedExercise } from '@/types/workout';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { user, profile }: { user: any; profile: any } = useAuthStore();
   const { completeSession } = useWorkoutStore();
@@ -249,7 +251,7 @@ export default function WorkoutSessionScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -261,10 +263,10 @@ export default function WorkoutSessionScreen() {
         <View className="flex-1 justify-center items-center px-4">
           <Text className="text-text text-xl">Session not found</Text>
           <TouchableOpacity
-            className="bg-blue-600 px-6 py-3 rounded-lg mt-4"
+            className="bg-primary px-6 py-3 rounded-lg mt-4"
             onPress={() => router.back()}
           >
-            <Text className="text-text font-bold">Go Back</Text>
+            <Text className="text-on-brand font-bold">Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -280,10 +282,10 @@ export default function WorkoutSessionScreen() {
             Add exercises to this day in your plan before starting the workout.
           </Text>
           <TouchableOpacity
-            className="bg-blue-600 px-6 py-3 rounded-lg mt-4"
+            className="bg-primary px-6 py-3 rounded-lg mt-4"
             onPress={() => router.push('/edit-plan' as any)}
           >
-            <Text className="text-text font-bold">Edit Plan</Text>
+            <Text className="text-on-brand font-bold">Edit Plan</Text>
           </TouchableOpacity>
           <TouchableOpacity className="mt-3" onPress={() => router.back()}>
             <Text className="text-text-light">Go Back</Text>
@@ -296,9 +298,9 @@ export default function WorkoutSessionScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       {/* Header */}
-      <View className="px-4 py-4 flex-row justify-between items-center border-b border-gray-800">
+      <View className="px-4 py-4 flex-row justify-between items-center border-b border-border">
         <TouchableOpacity onPress={() => router.back()}>
-          <AntDesign name="close" size={24} color="white" />
+          <AntDesign name="close" size={24} color={colors.text} />
         </TouchableOpacity>
 
         <View className="items-center">
@@ -307,14 +309,14 @@ export default function WorkoutSessionScreen() {
         </View>
 
         <TouchableOpacity onPress={handleCompleteWorkout} disabled={completing}>
-          <Text className={`text-blue-400 font-bold ${completing ? 'opacity-50' : ''}`}>Finish</Text>
+          <Text className={`text-primary font-bold ${completing ? 'opacity-50' : ''}`}>Finish</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1">
         {/* Current Exercise */}
         <View className="px-4 py-6">
-          <View className="bg-surface rounded-xl p-6">
+          <View className="bg-surface rounded-2xl border border-border p-6">
             <View className="flex-row justify-between items-center mb-4">
               <View className="flex-1">
                 <Text className="text-text-light text-sm mb-1">
@@ -325,14 +327,14 @@ export default function WorkoutSessionScreen() {
                 </Text>
               </View>
 
-              <View className="bg-blue-500/20 px-4 py-2 rounded-lg">
-                <Text className="text-blue-400 font-bold text-lg">
+              <View className="bg-primary/15 px-4 py-2 rounded-lg">
+                <Text className="text-primary font-bold text-lg">
                   Set {currentSet}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row justify-between mt-4 pt-4 border-t border-gray-700">
+            <View className="flex-row justify-between mt-4 pt-4 border-t border-border">
               <View className="items-center">
                 <Text className="text-text-light text-sm">Target Sets</Text>
                 <Text className="text-text text-xl font-bold mt-1">
@@ -357,15 +359,15 @@ export default function WorkoutSessionScreen() {
 
         {/* Log Set */}
         <View className="px-4 mb-6">
-          <Text className="text-text text-xl font-bold mb-4">Log Set #{currentSet}</Text>
-          <View className="bg-surface rounded-xl p-6">
+          <Text className="text-text text-lg font-bold mb-3">Log Set #{currentSet}</Text>
+          <View className="bg-surface rounded-2xl border border-border p-6">
             <View className="flex-row justify-between mb-6">
               <View className="flex-1 mr-2">
                 <Text className="text-text-light mb-2">Weight (kg)</Text>
                 <TextInput
-                  className="bg-gray-700 text-text text-center py-3 rounded-lg text-xl"
+                  className="bg-surface-2 border border-border text-text text-center py-3 rounded-xl text-xl"
                   placeholder="0"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={weightInput}
                   onChangeText={setWeightInput}
                   keyboardType="numeric"
@@ -374,9 +376,9 @@ export default function WorkoutSessionScreen() {
               <View className="flex-1 ml-2">
                 <Text className="text-text-light mb-2">Reps</Text>
                 <TextInput
-                  className="bg-gray-700 text-text text-center py-3 rounded-lg text-xl"
+                  className="bg-surface-2 border border-border text-text text-center py-3 rounded-xl text-xl"
                   placeholder="0"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.textLight}
                   value={repsInput}
                   onChangeText={setRepsInput}
                   keyboardType="numeric"
@@ -385,15 +387,15 @@ export default function WorkoutSessionScreen() {
             </View>
 
             <TouchableOpacity
-              className={`bg-blue-600 py-4 rounded-lg mb-3 ${logging ? 'opacity-50' : ''}`}
+              className={`bg-primary py-4 rounded-lg mb-3 ${logging ? 'opacity-50' : ''}`}
               disabled={logging}
               onPress={logSet}
             >
-              <Text className="text-text text-center font-bold text-lg">Log Set</Text>
+              <Text className="text-on-brand text-center font-bold text-lg">Log Set</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-gray-700 py-4 rounded-lg"
+              className="bg-surface-2 border border-border py-4 rounded-lg"
               onPress={skipSet}
             >
               <Text className="text-text-light text-center font-bold text-lg">Skip Set</Text>
@@ -404,17 +406,17 @@ export default function WorkoutSessionScreen() {
         {/* Previous Sets */}
         {currentExerciseSets.length > 0 && (
           <View className="px-4 mb-6">
-            <Text className="text-text text-xl font-bold mb-4">
+            <Text className="text-text text-lg font-bold mb-3">
               Previous Sets ({currentExerciseSets.length})
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {currentExerciseSets.map((set, index) => (
-                <View key={set.id} className="bg-surface rounded-lg p-4 mr-3 min-w-[120px]">
+                <View key={set.id} className="bg-surface rounded-2xl border border-border p-4 mr-3 min-w-[120px]">
                   <View className="flex-row items-center justify-between mb-2">
                     <Text className="text-text font-bold">Set {set.set_number}</Text>
-                    {set.is_pr && <Text className="text-yellow-400">🏆</Text>}
+                    {set.is_pr && <Text className="text-accent">🏆</Text>}
                   </View>
-                  <Text className="text-blue-400 text-lg font-bold">
+                  <Text className="text-primary text-lg font-bold">
                     {set.weight ? `${set.weight}kg` : 'BW'}
                   </Text>
                   <Text className="text-text-light">
@@ -430,22 +432,22 @@ export default function WorkoutSessionScreen() {
         <View className="px-4 pb-6">
           <View className="flex-row justify-between">
             <TouchableOpacity
-              className={`py-3 px-6 rounded-lg ${currentExerciseIndex === 0 ? 'bg-gray-800' : 'bg-surface'
+              className={`py-3 px-6 rounded-lg border border-border ${currentExerciseIndex === 0 ? 'bg-surface-2 opacity-50' : 'bg-surface'
                 }`}
               onPress={previousExercise}
               disabled={currentExerciseIndex === 0}
             >
-              <Text className={`${currentExerciseIndex === 0 ? 'text-gray-600' : 'text-text'
+              <Text className={`${currentExerciseIndex === 0 ? 'text-text-light' : 'text-text'
                 } font-bold`}>
                 ← Previous
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-blue-600 py-3 px-6 rounded-lg"
+              className="bg-primary py-3 px-6 rounded-lg"
               onPress={nextExercise}
             >
-              <Text className="text-text font-bold">
+              <Text className="text-on-brand font-bold">
                 {currentExerciseIndex === (session.workout_days?.planned_exercises?.length || 0) - 1
                   ? 'Finish →'
                   : 'Next Exercise →'}
@@ -456,7 +458,7 @@ export default function WorkoutSessionScreen() {
 
         {/* Exercise List */}
         <View className="px-4 pb-8">
-          <Text className="text-text text-xl font-bold mb-4">Exercise List</Text>
+          <Text className="text-text text-lg font-bold mb-3">Exercise List</Text>
           {session.workout_days?.planned_exercises?.map((exercise, index) => {
             const exerciseSets = sets.filter(s => s.planned_exercise_id === exercise.id);
             const isCompleted = exerciseSets.length >= exercise.target_sets;
@@ -465,7 +467,7 @@ export default function WorkoutSessionScreen() {
             return (
               <TouchableOpacity
                 key={exercise.id}
-                className={`bg-surface rounded-lg p-4 mb-3 ${isCurrent ? 'border-2 border-blue-500' : ''
+                className={`bg-surface rounded-2xl p-4 mb-3 border ${isCurrent ? 'border-2 border-primary' : 'border-border'
                   }`}
                 onPress={() => {
                   setCurrentExerciseIndex(index);
@@ -486,14 +488,14 @@ export default function WorkoutSessionScreen() {
                       {exercise.target_weight && ` @ ${exercise.target_weight}kg`}
                     </Text>
                     {exerciseSets.length > 0 && (
-                      <Text className="text-blue-400 text-sm mt-1">
+                      <Text className="text-primary text-sm mt-1">
                         {exerciseSets.length} / {exercise.target_sets} sets completed
                       </Text>
                     )}
                   </View>
 
                   {isCompleted && (
-                    <Feather name="check-circle" size={24} color="#10B981" />
+                    <Feather name="check-circle" size={24} color={colors.brand} />
                   )}
                 </View>
               </TouchableOpacity>

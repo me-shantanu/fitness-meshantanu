@@ -19,7 +19,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, message
           loop
           style={{ width: 150, height: 150 }}
         />
-        <Text className="text-text text-lg font-medium">{message}</Text>
+        <Text className="text-white text-lg font-medium">{message}</Text>
       </View>
     </View>
   );

@@ -12,7 +12,20 @@ import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import { nutritionService } from '../../services/nutritionService';
 import { Feather } from '@expo/vector-icons';
+import {
+  Sun,
+  Moon,
+  MonitorSmartphone,
+  Ruler,
+  Weight,
+  Cake,
+  User,
+  Activity,
+  Flame,
+  Target,
+} from 'lucide-react-native';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore, ThemePreference } from '@/store/useThemeStore';
 
 const GENDERS = [
   { value: 'male', label: 'Male' },
@@ -28,8 +41,15 @@ const ACTIVITY_LEVELS = [
   { value: 'very_active', label: 'Very Active' },
 ];
 
+const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+  { value: 'light', label: 'Light', Icon: Sun },
+  { value: 'dark', label: 'Dark', Icon: Moon },
+  { value: 'system', label: 'System', Icon: MonitorSmartphone },
+];
+
 export default function ProfileScreen() {
   const { profile, signOut, updateProfile } = useAuthStore();
+  const { preference, setPreference, colors } = useThemeStore();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -141,11 +161,11 @@ export default function ProfileScreen() {
     setIsEditing(false);
   };
 
-  const InfoCard = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
-    <View className="bg-surface rounded-xl p-4 mb-3">
+  const InfoCard = ({ Icon, label, value }: { Icon: typeof Sun; label: string; value: string }) => (
+    <View className="bg-surface rounded-2xl border border-border p-4 mb-3">
       <View className="flex-row items-center">
-        <Text className="text-2xl mr-3">{icon}</Text>
-        <View className="flex-1">
+        <Icon size={22} color={colors.textLight} />
+        <View className="flex-1 ml-3">
           <Text className="text-text-light text-xs mb-1">{label}</Text>
           <Text className="text-text text-base font-semibold">{value || 'Not set'}</Text>
         </View>
@@ -165,7 +185,7 @@ export default function ProfileScreen() {
                 onPress={() => setIsEditing(true)}
                 className="bg-brand rounded-full p-2"
               >
-                <Feather name="edit-2" size={20} color="white" />
+                <Feather name="edit-2" size={20} color={colors.onBrand} />
               </TouchableOpacity>
             )}
           </View>
@@ -173,7 +193,7 @@ export default function ProfileScreen() {
           {/* Profile Picture Placeholder */}
           <View className="items-center mb-6">
             <View className="w-24 h-24 rounded-full bg-brand items-center justify-center mb-3">
-              <Text className="text-white text-4xl font-bold">
+              <Text className="text-on-brand text-4xl font-bold">
                 {profile?.full_name?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
@@ -185,14 +205,14 @@ export default function ProfileScreen() {
         {isEditing ? (
           // Edit Mode
           <View className="px-6 pb-6">
-            <Text className="text-text text-xl font-bold mb-4">Edit Profile</Text>
+            <Text className="text-text text-lg font-bold mb-3">Edit Profile</Text>
 
             <View className="mb-4">
               <Text className="text-text mb-2 font-medium">Full Name</Text>
               <TextInput
-                className="bg-surface text-text px-4 py-3 rounded-lg"
+                className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
                 placeholder="John Doe"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textLight}
                 value={formData.full_name}
                 onChangeText={(text) => setFormData({ ...formData, full_name: text })}
               />
@@ -201,9 +221,9 @@ export default function ProfileScreen() {
             <View className="mb-4">
               <Text className="text-text mb-2 font-medium">Height (cm)</Text>
               <TextInput
-                className="bg-surface text-text px-4 py-3 rounded-lg"
+                className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
                 placeholder="175"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textLight}
                 value={formData.height}
                 onChangeText={(text) => setFormData({ ...formData, height: text })}
                 keyboardType="numeric"
@@ -213,9 +233,9 @@ export default function ProfileScreen() {
             <View className="mb-4">
               <Text className="text-text mb-2 font-medium">Weight (kg)</Text>
               <TextInput
-                className="bg-surface text-text px-4 py-3 rounded-lg"
+                className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
                 placeholder="70"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textLight}
                 value={formData.weight}
                 onChangeText={(text) => setFormData({ ...formData, weight: text })}
                 keyboardType="numeric"
@@ -225,9 +245,9 @@ export default function ProfileScreen() {
             <View className="mb-4">
               <Text className="text-text mb-2 font-medium">Age</Text>
               <TextInput
-                className="bg-surface text-text px-4 py-3 rounded-lg"
+                className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
                 placeholder="25"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.textLight}
                 value={formData.age}
                 onChangeText={(text) => setFormData({ ...formData, age: text })}
                 keyboardType="numeric"
@@ -240,10 +260,10 @@ export default function ProfileScreen() {
                 {GENDERS.map((gender) => (
                   <TouchableOpacity
                     key={gender.value}
-                    className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-brand' : 'bg-surface'}`}
+                    className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                     onPress={() => setFormData({ ...formData, gender: gender.value })}
                   >
-                    <Text className="text-text text-center font-bold">{gender.label}</Text>
+                    <Text className={`text-center font-bold ${formData.gender === gender.value ? 'text-on-brand' : 'text-text-light'}`}>{gender.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -255,17 +275,17 @@ export default function ProfileScreen() {
                 {ACTIVITY_LEVELS.map((level) => (
                   <TouchableOpacity
                     key={level.value}
-                    className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-brand' : 'bg-surface'}`}
+                    className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                     onPress={() => setFormData({ ...formData, activity_level: level.value })}
                   >
-                    <Text className="text-text font-bold">{level.label}</Text>
+                    <Text className={`font-bold ${formData.activity_level === level.value ? 'text-on-brand' : 'text-text-light'}`}>{level.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
 
             {computedBMR !== null && (
-              <View className="mb-4 bg-surface rounded-lg p-4">
+              <View className="mb-4 bg-surface rounded-2xl border border-border p-4">
                 <Text className="text-text font-bold text-lg">
                   Estimated BMR: {computedBMR} kcal
                 </Text>
@@ -280,12 +300,12 @@ export default function ProfileScreen() {
                   <TouchableOpacity
                     key={goal.value}
                     className={`py-3 px-4 rounded-lg flex-row items-center ${
-                      formData.goal === goal.value ? 'bg-brand' : 'bg-surface'
+                      formData.goal === goal.value ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                     onPress={() => setFormData({ ...formData, goal: goal.value })}
                   >
                     <Text className="text-2xl mr-3">{goal.icon}</Text>
-                    <Text className="text-text font-bold">{goal.label}</Text>
+                    <Text className={`font-bold ${formData.goal === goal.value ? 'text-on-brand' : 'text-text-light'}`}>{goal.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -293,21 +313,21 @@ export default function ProfileScreen() {
 
             <View className="flex-row gap-3 mb-4">
               <TouchableOpacity
-                className="flex-1 bg-surface py-4 rounded-lg"
+                className="flex-1 bg-surface-2 border border-border py-4 rounded-lg"
                 onPress={handleCancel}
                 disabled={loading}
               >
                 <Text className="text-text text-center font-bold">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 bg-brand py-4 rounded-lg"
+                className="flex-1 bg-primary py-4 rounded-lg"
                 onPress={handleSave}
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.onBrand} />
                 ) : (
-                  <Text className="text-white text-center font-bold">Save Changes</Text>
+                  <Text className="text-on-brand text-center font-bold">Save Changes</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -315,33 +335,61 @@ export default function ProfileScreen() {
         ) : (
           // View Mode
           <View className="px-6 pb-6">
-            <Text className="text-text text-xl font-bold mb-4">Personal Information</Text>
+            <Text className="text-text text-lg font-bold mb-3">Personal Information</Text>
 
-            <InfoCard icon="📏" label="Height" value={profile?.height ? `${profile.height} cm` : ''} />
-            <InfoCard icon="⚖️" label="Weight" value={profile?.weight ? `${profile.weight} kg` : ''} />
-            <InfoCard icon="🎂" label="Age" value={profile?.age ? `${profile.age} years` : ''} />
+            <InfoCard Icon={Ruler} label="Height" value={profile?.height ? `${profile.height} cm` : ''} />
+            <InfoCard Icon={Weight} label="Weight" value={profile?.weight ? `${profile.weight} kg` : ''} />
+            <InfoCard Icon={Cake} label="Age" value={profile?.age ? `${profile.age} years` : ''} />
             <InfoCard
-              icon="👤"
+              Icon={User}
               label="Gender"
               value={profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : ''}
             />
             <InfoCard
-              icon="🏃"
+              Icon={Activity}
               label="Activity Level"
               value={ACTIVITY_LEVELS.find(l => l.value === profile?.activity_level)?.label || ''}
             />
-            <InfoCard icon="🔥" label="BMR" value={profile?.bmr ? `${profile.bmr} kcal/day` : ''} />
+            <InfoCard Icon={Flame} label="BMR" value={profile?.bmr ? `${profile.bmr} kcal/day` : ''} />
             <InfoCard
-              icon={goals.find(g => g.value === profile?.goal)?.icon || '🎯'}
+              Icon={Target}
               label="Fitness Goal"
               value={goals.find(g => g.value === profile?.goal)?.label || ''}
             />
 
+            {/* Appearance */}
+            <Text className="text-text text-lg font-bold mb-3 mt-6">Appearance</Text>
+            <View className="bg-surface rounded-2xl border border-border p-4">
+              <View className="flex-row gap-3">
+                {THEME_OPTIONS.map(({ value, label, Icon }) => {
+                  const selected = preference === value;
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      className={`flex-1 py-3 rounded-xl items-center ${
+                        selected ? 'bg-primary' : 'bg-surface-2 border border-border'
+                      }`}
+                      onPress={() => setPreference(value)}
+                    >
+                      <Icon size={20} color={selected ? colors.onBrand : colors.textLight} />
+                      <Text
+                        className={`mt-1 text-sm font-bold ${
+                          selected ? 'text-on-brand' : 'text-text-light'
+                        }`}
+                      >
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
             <TouchableOpacity
-              className="bg-red-600 py-4 rounded-lg mt-6"
+              className="bg-danger py-4 rounded-lg mt-6"
               onPress={signOut}
             >
-              <Text className="text-white text-center font-bold text-base">Sign Out</Text>
+              <Text className="text-on-brand text-center font-bold text-base">Sign Out</Text>
             </TouchableOpacity>
           </View>
         )}

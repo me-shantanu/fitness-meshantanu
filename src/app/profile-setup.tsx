@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import { nutritionService } from '../services/nutritionService';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 interface FormData {
   height: string;
@@ -32,6 +33,7 @@ const ACTIVITY_LEVELS = [
 
 export default function ProfileSetupScreen() {
   const updateProfile = useAuthStore((state) => state.updateProfile);
+  const { colors } = useThemeStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -132,9 +134,9 @@ export default function ProfileSetupScreen() {
         <View className="mb-4">
           <Text className="text-text mb-2 font-medium">Height (cm)</Text>
           <TextInput
-            className="bg-surface text-text px-4 py-3 rounded-lg"
+            className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
             placeholder="175"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textLight}
             value={formData.height}
             onChangeText={(text) => setFormData({ ...formData, height: text })}
             keyboardType="numeric"
@@ -144,9 +146,9 @@ export default function ProfileSetupScreen() {
         <View className="mb-4">
           <Text className="text-text mb-2 font-medium">Weight (kg)</Text>
           <TextInput
-            className="bg-surface text-text px-4 py-3 rounded-lg"
+            className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
             placeholder="70"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textLight}
             value={formData.weight}
             onChangeText={(text) => setFormData({ ...formData, weight: text })}
             keyboardType="numeric"
@@ -156,9 +158,9 @@ export default function ProfileSetupScreen() {
         <View className="mb-4">
           <Text className="text-text mb-2 font-medium">Age</Text>
           <TextInput
-            className="bg-surface text-text px-4 py-3 rounded-lg"
+            className="bg-surface-2 border border-border text-text px-4 py-3 rounded-xl"
             placeholder="25"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textLight}
             value={formData.age}
             onChangeText={(text) => setFormData({ ...formData, age: text })}
             keyboardType="numeric"
@@ -171,10 +173,10 @@ export default function ProfileSetupScreen() {
             {GENDERS.map((gender) => (
               <TouchableOpacity
                 key={gender.value}
-                className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-brand' : 'bg-surface'}`}
+                className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                 onPress={() => setFormData({ ...formData, gender: gender.value })}
               >
-                <Text className="text-text text-center font-bold">{gender.label}</Text>
+                <Text className={`text-center font-bold ${formData.gender === gender.value ? 'text-on-brand' : 'text-text-light'}`}>{gender.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -186,17 +188,17 @@ export default function ProfileSetupScreen() {
             {ACTIVITY_LEVELS.map((level) => (
               <TouchableOpacity
                 key={level.value}
-                className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-brand' : 'bg-surface'}`}
+                className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                 onPress={() => setFormData({ ...formData, activity_level: level.value })}
               >
-                <Text className="text-text font-bold">{level.label}</Text>
+                <Text className={`font-bold ${formData.activity_level === level.value ? 'text-on-brand' : 'text-text-light'}`}>{level.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {computedBMR !== null && (
-          <View className="mb-4 bg-surface rounded-lg p-4">
+          <View className="mb-4 bg-surface rounded-2xl border border-border p-4">
             <Text className="text-text font-bold text-lg">
               Estimated BMR: {computedBMR} kcal
             </Text>
@@ -211,26 +213,26 @@ export default function ProfileSetupScreen() {
               <TouchableOpacity
                 key={goal.value}
                 className={`py-3 px-4 rounded-lg flex-row items-center ${
-                  formData.goal === goal.value ? 'bg-brand' : 'bg-surface'
+                  formData.goal === goal.value ? 'bg-primary' : 'bg-surface-2 border border-border'
                 }`}
                 onPress={() => setFormData({ ...formData, goal: goal.value })}
               >
                 <Text className="text-2xl mr-3">{goal.icon}</Text>
-                <Text className="text-text font-bold">{goal.label}</Text>
+                <Text className={`font-bold ${formData.goal === goal.value ? 'text-on-brand' : 'text-text-light'}`}>{goal.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         <TouchableOpacity
-          className="bg-brand py-4 rounded-lg"
+          className="bg-primary py-4 rounded-lg"
           onPress={handleSave}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={colors.onBrand} />
           ) : (
-            <Text className="text-white text-center font-bold text-lg">Complete Setup</Text>
+            <Text className="text-on-brand text-center font-bold text-lg">Complete Setup</Text>
           )}
         </TouchableOpacity>
       </View>

@@ -14,9 +14,11 @@ import { useAuthStore } from '../store/authStore';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { WorkoutSession } from '@/types/workout';
+import { useThemeStore } from '@/store/useThemeStore';
 
 export default function WorkoutCompleteScreen() {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { sessionId, calories, duration } = useLocalSearchParams<{
     sessionId: string;
     calories: string;
@@ -65,7 +67,7 @@ export default function WorkoutCompleteScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
@@ -76,8 +78,8 @@ export default function WorkoutCompleteScreen() {
       <ScrollView className="flex-1" contentContainerClassName="flex-grow">
         <View className="flex-1 justify-center items-center px-4 py-8">
           {/* Success Icon */}
-          <View className="bg-green-500/20 rounded-full p-8 mb-6">
-            <Feather name="check" size={64} color="#10B981" />
+          <View className="bg-primary/15 rounded-full p-8 mb-6">
+            <Feather name="check" size={64} color={colors.brand} />
           </View>
 
           {/* Title */}
@@ -92,16 +94,16 @@ export default function WorkoutCompleteScreen() {
           <View className="w-full mb-8">
             {/* Duration & Calories */}
             <View className="flex-row justify-between mb-4">
-              <View className="bg-surface rounded-xl p-6 flex-1 mr-2">
-                <Feather name="clock" size={32} color="#3B82F6" />
+              <View className="bg-surface rounded-2xl border border-border p-6 flex-1 mr-2">
+                <Feather name="clock" size={32} color={colors.brand} />
                 <Text className="text-text text-2xl font-bold mt-3">
                   {formatTime(parseInt(duration || '0'))}
                 </Text>
                 <Text className="text-text-light">Duration</Text>
               </View>
 
-              <View className="bg-surface rounded-xl p-6 flex-1 ml-2">
-                <Feather name="zap" size={32} color="#F59E0B" />
+              <View className="bg-surface rounded-2xl border border-border p-6 flex-1 ml-2">
+                <Feather name="zap" size={32} color={colors.accent} />
                 <Text className="text-text text-2xl font-bold mt-3">
                   {calories || 0}
                 </Text>
@@ -111,16 +113,16 @@ export default function WorkoutCompleteScreen() {
 
             {/* Sets & Exercises */}
             <View className="flex-row justify-between mb-4">
-              <View className="bg-surface rounded-xl p-6 flex-1 mr-2">
-                <Feather name="repeat" size={32} color="#8B5CF6" />
+              <View className="bg-surface rounded-2xl border border-border p-6 flex-1 mr-2">
+                <Feather name="repeat" size={32} color={colors.brand} />
                 <Text className="text-text text-2xl font-bold mt-3">
                   {totalSets}
                 </Text>
                 <Text className="text-text-light">Total Sets</Text>
               </View>
 
-              <View className="bg-surface rounded-xl p-6 flex-1 ml-2">
-                <MaterialIcons name="fitness-center" size={32} color="#10B981" />
+              <View className="bg-surface rounded-2xl border border-border p-6 flex-1 ml-2">
+                <MaterialIcons name="fitness-center" size={32} color={colors.brand} />
                 <Text className="text-text text-2xl font-bold mt-3">
                   {uniqueExercises}
                 </Text>
@@ -130,14 +132,14 @@ export default function WorkoutCompleteScreen() {
 
             {/* Personal Records */}
             {prCount > 0 && (
-              <View className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-500/30">
+              <View className="bg-accent/15 rounded-2xl p-6 border border-accent/30">
                 <View className="flex-row items-center justify-center">
                   <Text className="text-4xl mr-3">🏆</Text>
                   <View>
                     <Text className="text-text text-2xl font-bold">
                       {prCount} New PR{prCount > 1 ? 's' : ''}!
                     </Text>
-                    <Text className="text-yellow-400 font-bold">
+                    <Text className="text-accent font-bold">
                       Personal Record{prCount > 1 ? 's' : ''} Achieved
                     </Text>
                   </View>
@@ -149,8 +151,8 @@ export default function WorkoutCompleteScreen() {
           {/* Workout Summary */}
           {session && session.exercise_sets && session.exercise_sets.length > 0 && (
             <View className="w-full mb-8">
-              <Text className="text-text text-xl font-bold mb-4">Workout Summary</Text>
-              <View className="bg-surface rounded-xl p-4">
+              <Text className="text-text text-lg font-bold mb-3">Workout Summary</Text>
+              <View className="bg-surface rounded-2xl border border-border p-4">
                 {Array.from(new Set(session.exercise_sets.map(s => s.exercise_name))).map((exerciseName) => {
                   const exerciseSets = session.exercise_sets?.filter(s => s.exercise_name === exerciseName) || [];
                   const totalReps = exerciseSets.reduce((sum, set) => sum + set.reps, 0);
@@ -158,7 +160,7 @@ export default function WorkoutCompleteScreen() {
                   const hasPR = exerciseSets.some(s => s.is_pr);
 
                   return (
-                    <View key={exerciseName} className="mb-4 pb-4 border-b border-gray-700 last:border-0 last:mb-0 last:pb-0">
+                    <View key={exerciseName} className="mb-4 pb-4 border-b border-border">
                       <View className="flex-row justify-between items-start mb-2">
                         <Text className="text-text font-bold text-lg flex-1">
                           {exerciseName}
@@ -170,7 +172,7 @@ export default function WorkoutCompleteScreen() {
                           {exerciseSets.length} sets • {totalReps} total reps
                         </Text>
                         {maxWeight > 0 && (
-                          <Text className="text-blue-400 text-sm font-bold">
+                          <Text className="text-primary text-sm font-bold">
                             Max: {maxWeight}kg
                           </Text>
                         )}
@@ -185,16 +187,16 @@ export default function WorkoutCompleteScreen() {
           {/* Action Buttons */}
           <View className="w-full space-y-3">
             <TouchableOpacity
-              className="bg-blue-600 py-4 rounded-xl"
+              className="bg-primary py-4 rounded-xl"
               onPress={() => router.replace('/(tabs)/workout' as any)}
             >
-              <Text className="text-text text-center font-bold text-lg">
+              <Text className="text-on-brand text-center font-bold text-lg">
                 Back to Workouts
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-surface py-4 rounded-xl border border-gray-700"
+              className="bg-surface py-4 rounded-xl border border-border mt-3"
               onPress={() => router.replace('/(tabs)' as any)}
             >
               <Text className="text-text-light text-center font-bold">
@@ -204,8 +206,8 @@ export default function WorkoutCompleteScreen() {
           </View>
 
           {/* Motivational Message */}
-          <View className="mt-8 bg-blue-500/10 rounded-xl p-4 border border-blue-500/30">
-            <Text className="text-blue-400 text-center text-sm">
+          <View className="mt-8 bg-primary/10 rounded-2xl p-4 border border-primary/30">
+            <Text className="text-primary text-center text-sm">
               💪 Keep up the great work! Consistency is key to reaching your fitness goals.
             </Text>
           </View>

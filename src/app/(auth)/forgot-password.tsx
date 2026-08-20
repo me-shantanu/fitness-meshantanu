@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import LottieView from 'lottie-react-native';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,6 +14,7 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const resetPassword = useAuthStore((state) => state.resetPassword);
+  const { colors } = useThemeStore();
   const { width } = useWindowDimensions();
 
   const isMobile = width < 768;
@@ -84,7 +86,7 @@ export default function ForgotPasswordScreen() {
               </Text>
 
               {sent ? (
-                <View className="bg-surface rounded-lg p-4 mb-6">
+                <View className="bg-surface rounded-2xl border border-border p-4 mb-6">
                   <Text className={`text-text text-center ${isMobile ? 'text-sm' : 'text-base'}`}>
                     If an account exists for this email, a reset link has been sent.
                   </Text>
@@ -96,9 +98,9 @@ export default function ForgotPasswordScreen() {
                       Email
                     </Text>
                     <TextInput
-                      className={`bg-surface outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
+                      className={`bg-surface-2 border border-border outline-none text-text px-4 ${isMobile ? 'py-1.5' : 'py-2.5'} rounded-md ${isMobile ? 'text-sm' : 'text-base'}`}
                       placeholder="your@email.com"
-                      placeholderTextColor="#6B7280"
+                      placeholderTextColor={colors.textLight}
                       value={email}
                       onChangeText={setEmail}
                       autoCapitalize="none"
@@ -109,12 +111,12 @@ export default function ForgotPasswordScreen() {
 
                   <View className='flex-row justify-center items-center'>
                     <TouchableOpacity
-                      className={`bg-brand py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
+                      className={`bg-primary py-1.5 px-3 mb-4 w-full rounded-full ${loading ? 'opacity-70' : ''}`}
                       onPress={handleResetPassword}
                       disabled={loading}
                       activeOpacity={0.8}
                     >
-                      <Text className={`text-white text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
+                      <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                         Send Reset Link
                       </Text>
                     </TouchableOpacity>
@@ -128,7 +130,7 @@ export default function ForgotPasswordScreen() {
                 </Text>
                 <Link href="/(auth)/login" asChild>
                   <TouchableOpacity disabled={loading}>
-                    <Text className={`text-text font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Back to Login
                     </Text>
                   </TouchableOpacity>

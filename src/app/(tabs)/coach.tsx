@@ -19,6 +19,7 @@ import { WorkoutDayForm } from '../../types/workout';
 import { localDateString } from '../../utils/date';
 import Icon from '@/components/Icon';
 import { showAlert } from '@/utils/alert';
+import { useThemeStore } from '@/store/useThemeStore';
 
 interface ChatMessage {
   id: string;
@@ -55,7 +56,7 @@ function TypingIndicator() {
 
   return (
     <View className="flex-row justify-start px-4 mb-3">
-      <View className="bg-surface rounded-2xl rounded-bl-sm px-4 py-3 max-w-[85%]">
+      <View className="bg-surface border border-border rounded-2xl rounded-bl-sm px-4 py-3 max-w-[85%]">
         <Animated.Text style={{ opacity }} className="text-text-light">
           ● ● ●
         </Animated.Text>
@@ -66,6 +67,7 @@ function TypingIndicator() {
 
 function PlanCard({ plan }: { plan: AiPlan }) {
   const router = useRouter();
+  const { colors } = useThemeStore();
   const { user } = useAuthStore();
   const [adding, setAdding] = useState(false);
   const addingRef = useRef(false);
@@ -141,9 +143,9 @@ function PlanCard({ plan }: { plan: AiPlan }) {
   };
 
   return (
-    <View className="bg-surface rounded-2xl p-4 mt-2 border border-blue-600">
+    <View className="bg-surface rounded-2xl p-4 mt-2 border border-primary/40">
       <View className="flex-row items-center mb-1">
-        <Icon name="Dumbbell" size={18} color="#3B82F6" />
+        <Icon name="Dumbbell" size={18} color={colors.brand} />
         <Text className="text-text font-bold text-lg ml-2 flex-1">{plan.name}</Text>
       </View>
       {!!plan.description && (
@@ -160,14 +162,14 @@ function PlanCard({ plan }: { plan: AiPlan }) {
         ))}
       </View>
       <TouchableOpacity
-        className={`bg-blue-600 py-3 rounded-lg ${adding ? 'opacity-50' : ''}`}
+        className={`bg-primary py-3 rounded-lg ${adding ? 'opacity-50' : ''}`}
         disabled={adding}
         onPress={confirmAdd}
       >
         {adding ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={colors.onBrand} />
         ) : (
-          <Text className="text-white text-center font-bold">Add to My Plans</Text>
+          <Text className="text-on-brand text-center font-bold">Add to My Plans</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -183,14 +185,14 @@ function AssistantMessage({ content }: { content: string }) {
         {parsed ? (
           <>
             {!!parsed.textWithoutBlock && (
-              <View className="bg-surface rounded-2xl rounded-bl-sm px-4 py-3">
+              <View className="bg-surface border border-border rounded-2xl rounded-bl-sm px-4 py-3">
                 <Text className="text-text">{parsed.textWithoutBlock}</Text>
               </View>
             )}
             <PlanCard plan={parsed.plan} />
           </>
         ) : (
-          <View className="bg-surface rounded-2xl rounded-bl-sm px-4 py-3">
+          <View className="bg-surface border border-border rounded-2xl rounded-bl-sm px-4 py-3">
             <Text className="text-text">{content}</Text>
           </View>
         )}
@@ -200,6 +202,7 @@ function AssistantMessage({ content }: { content: string }) {
 }
 
 export default function CoachScreen() {
+  const { colors } = useThemeStore();
   const { user } = useAuthStore();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -314,17 +317,17 @@ export default function CoachScreen() {
         <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
           <Text className="text-text text-2xl font-bold">Coach</Text>
           <TouchableOpacity
-            className="bg-surface rounded-full p-2"
+            className="bg-surface-2 border border-border rounded-full p-2"
             onPress={startNewChat}
             accessibilityLabel="New chat"
           >
-            <Icon name="SquarePen" size={20} color="#B3B3B3" />
+            <Icon name="SquarePen" size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="#3B82F6" />
+            <ActivityIndicator size="large" color={colors.brand} />
           </View>
         ) : messages.length === 0 && !sending ? (
           /* Welcome state */
@@ -335,8 +338,8 @@ export default function CoachScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View className="items-center px-6">
-              <View className="bg-surface rounded-full p-5 mb-4">
-                <Icon name="Bot" size={40} color="#3B82F6" />
+              <View className="bg-primary/15 rounded-full p-5 mb-4">
+                <Icon name="Bot" size={40} color={colors.brand} />
               </View>
               <Text className="text-text text-xl font-bold mb-2 text-center">
                 Hey, I'm your Coach
@@ -348,7 +351,7 @@ export default function CoachScreen() {
                 {EXAMPLE_PROMPTS.map(prompt => (
                   <TouchableOpacity
                     key={prompt}
-                    className="bg-surface rounded-full px-4 py-3 mb-2"
+                    className="bg-surface-2 border border-border rounded-full px-4 py-3 mb-2"
                     onPress={() => setInput(prompt)}
                   >
                     <Text className="text-text text-center">{prompt}</Text>
@@ -373,10 +376,10 @@ export default function CoachScreen() {
                   <View className="flex-row justify-end">
                     <View
                       className={`rounded-2xl rounded-br-sm px-4 py-3 max-w-[85%] ${
-                        message.failed ? 'bg-surface border border-red-500' : 'bg-blue-600'
+                        message.failed ? 'bg-surface border border-danger' : 'bg-primary'
                       }`}
                     >
-                      <Text className="text-white">{message.content}</Text>
+                      <Text className={message.failed ? 'text-text' : 'text-on-brand'}>{message.content}</Text>
                     </View>
                   </View>
                   {message.failed && (
@@ -385,8 +388,8 @@ export default function CoachScreen() {
                         className="flex-row items-center"
                         onPress={() => retryMessage(message)}
                       >
-                        <Icon name="RefreshCw" size={14} color="#EF4444" />
-                        <Text className="text-red-500 text-sm ml-1">
+                        <Icon name="RefreshCw" size={14} color={colors.danger} />
+                        <Text className="text-danger text-sm ml-1">
                           Failed to send · Retry
                         </Text>
                       </TouchableOpacity>
@@ -402,9 +405,9 @@ export default function CoachScreen() {
         {/* Input row */}
         <View className="flex-row items-end px-4 py-3 bg-bg">
           <TextInput
-            className="bg-surface text-text rounded-2xl px-4 py-3 flex-1 mr-2 max-h-32 outline-none"
+            className="bg-surface-2 border border-border text-text rounded-2xl px-4 py-3 flex-1 mr-2 max-h-32 outline-none"
             placeholder="Ask your coach..."
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textLight}
             value={input}
             onChangeText={setInput}
             multiline
@@ -412,12 +415,12 @@ export default function CoachScreen() {
             editable={!sending}
           />
           <TouchableOpacity
-            className={`bg-blue-600 rounded-full p-3 ${canSend ? '' : 'opacity-50'}`}
+            className={`bg-primary rounded-full p-3 ${canSend ? '' : 'opacity-50'}`}
             disabled={!canSend}
             onPress={() => sendMessage(input)}
             accessibilityLabel="Send message"
           >
-            <Icon name="Send" size={20} color="#FFFFFF" />
+            <Icon name="Send" size={20} color={colors.onBrand} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
