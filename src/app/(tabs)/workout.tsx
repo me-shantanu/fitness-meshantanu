@@ -107,6 +107,8 @@ export default function WorkoutsScreen() {
         className={`mb-4 mx-4 rounded-2xl p-4 bg-surface border ${day.is_rest_day ? 'border-border' : 'border-primary/30'
           }`}
         onPress={() => editWorkoutDay(day)}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${DAYS_OF_WEEK[day.day_of_week]} workout day`}
       >
         <View className="flex-row justify-between items-center mb-3">
           <View className="flex-row items-center">
@@ -136,6 +138,8 @@ export default function WorkoutsScreen() {
                 e.stopPropagation();
                 startWorkout(day);
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`Start ${day.name || DAYS_OF_WEEK[day.day_of_week]} workout`}
             >
               <Text className="text-on-brand font-bold">Start</Text>
             </TouchableOpacity>
@@ -200,6 +204,7 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-primary py-4 rounded-xl w-full items-center mb-3"
                 onPress={() => router.push('/create-plan' as any)}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand font-bold text-lg">Create Workout Plan</Text>
               </TouchableOpacity>
@@ -207,6 +212,7 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="py-4 rounded-xl w-full items-center border border-border"
                 onPress={() => router.push('/browse-templates' as any)}
+                accessibilityRole="button"
               >
                 <Text className="text-text-light">Browse Templates</Text>
               </TouchableOpacity>
@@ -261,6 +267,8 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-surface-2 border border-border p-2 rounded-lg mr-2"
                 onPress={() => router.push('/browse-templates' as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Browse templates"
               >
                 <MaterialIcons name="content-copy" size={20} color={colors.text} />
               </TouchableOpacity>
@@ -268,6 +276,8 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-surface-2 border border-border p-2 rounded-lg"
                 onPress={() => router.push('/edit-plan' as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Edit plan"
               >
                 <AntDesign name="edit" size={20} color={colors.text} />
               </TouchableOpacity>
@@ -302,6 +312,7 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-primary flex-1 mr-2 py-3 rounded-lg items-center"
                 onPress={() => router.push('/edit-plan' as any)}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand font-bold">Edit Plan</Text>
               </TouchableOpacity>
@@ -309,6 +320,7 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-danger/15 flex-1 ml-2 py-3 rounded-lg items-center border border-danger/30"
                 onPress={() => deletePlan()}
+                accessibilityRole="button"
               >
                 <Text className="text-danger font-bold">Delete Plan</Text>
               </TouchableOpacity>
@@ -335,6 +347,7 @@ export default function WorkoutsScreen() {
               <TouchableOpacity
                 className="bg-primary px-6 py-3 rounded-lg"
                 onPress={() => router.push('/edit-plan' as any)}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand font-bold">Add Workout Days</Text>
               </TouchableOpacity>
@@ -420,12 +433,12 @@ function WorkoutDayModal({ day, starting, onClose, onStartWorkout }: WorkoutDayM
 
   return (
     <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-      <View style={{ maxHeight: '75%' }} className="bg-bg rounded-t-3xl p-6">
+      <View style={{ maxHeight: '75%' }} className="bg-bg rounded-t-3xl p-6" accessibilityViewIsModal={true}>
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">
             {DAYS_OF_WEEK[day.day_of_week]}
           </Text>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
             <AntDesign name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -495,6 +508,7 @@ function WorkoutDayModal({ day, starting, onClose, onStartWorkout }: WorkoutDayM
                 className={`bg-primary py-4 rounded-xl mb-3 ${starting ? 'opacity-50' : ''}`}
                 disabled={starting}
                 onPress={onStartWorkout}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand text-center font-bold text-lg">
                   Start Workout

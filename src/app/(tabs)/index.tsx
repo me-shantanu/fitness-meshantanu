@@ -171,11 +171,21 @@ export default function HomeScreen() {
               <>
                 <Text className="text-on-brand text-xl mb-4">No workout scheduled</Text>
                 <TouchableOpacity
+                  accessibilityRole="button"
                   className="bg-surface py-3 rounded-lg"
                   onPress={() => router.push('/create-plan')}
                 >
                   <Text className="text-primary text-center font-bold text-lg">
                     CREATE WORKOUT PLAN
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  className="bg-on-brand/20 py-3 rounded-lg mt-3"
+                  onPress={() => router.push('/browse-templates' as any)}
+                >
+                  <Text className="text-on-brand text-center font-bold text-lg">
+                    Browse starter plans
                   </Text>
                 </TouchableOpacity>
               </>

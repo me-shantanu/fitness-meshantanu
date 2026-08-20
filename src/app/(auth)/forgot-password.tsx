@@ -106,6 +106,7 @@ export default function ForgotPasswordScreen() {
                       autoCapitalize="none"
                       keyboardType="email-address"
                       editable={!loading}
+                      accessibilityLabel="Email"
                     />
                   </View>
 
@@ -115,6 +116,7 @@ export default function ForgotPasswordScreen() {
                       onPress={handleResetPassword}
                       disabled={loading}
                       activeOpacity={0.8}
+                      accessibilityRole="button"
                     >
                       <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                         Send Reset Link
@@ -129,7 +131,7 @@ export default function ForgotPasswordScreen() {
                   Remember your password?{' '}
                 </Text>
                 <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity disabled={loading}>
+                  <TouchableOpacity disabled={loading} accessibilityRole="button">
                     <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Back to Login
                     </Text>

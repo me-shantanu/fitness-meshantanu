@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { workoutService } from '../services/workoutService';
+import { supabase } from '../lib/supabase';
 import { nutritionService } from '../services/nutritionService';
 import { useAuthStore } from '../store/authStore';
 import { useWorkoutStore } from '../store/workoutStore';
@@ -44,6 +45,30 @@ export default function WorkoutSessionScreen() {
   // In-flight guards
   const [logging, setLogging] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+
+  // Rest timer: end timestamp; remaining seconds derived from it each tick
+  const REST_SECONDS = 90;
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [restRemaining, setRestRemaining] = useState(0);
+
+  useEffect(() => {
+    if (restEndsAt === null) return;
+
+    const tick = () => {
+      const remaining = Math.ceil((restEndsAt - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setRestEndsAt(null);
+        setRestRemaining(0);
+      } else {
+        setRestRemaining(remaining);
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [restEndsAt]);
 
   useEffect(() => {
     if (sessionId && user?.id) {
@@ -75,6 +100,21 @@ export default function WorkoutSessionScreen() {
     return () => clearInterval(interval);
   }, [session?.started_at, profile?.weight]);
 
+  // Prefill weight/reps from the last set logged for this exercise in this
+  // session; fall back to the plan targets when nothing is logged yet.
+  const prefillInputs = (exercise: PlannedExercise, allSets: ExerciseSet[]) => {
+    const logged = allSets.filter(s => s.planned_exercise_id === exercise.id);
+    const lastSet = logged[logged.length - 1];
+
+    if (lastSet) {
+      setRepsInput(lastSet.reps.toString());
+      setWeightInput(lastSet.weight ? lastSet.weight.toString() : '');
+    } else {
+      setRepsInput(exercise.target_reps.toString());
+      setWeightInput(exercise.target_weight ? exercise.target_weight.toString() : '');
+    }
+  };
+
   const loadSession = async () => {
     if (!sessionId || !user?.id) return;
 
@@ -93,10 +133,7 @@ export default function WorkoutSessionScreen() {
           s => s.planned_exercise_id === firstExercise.id
         ).length;
         setCurrentSet(loggedSets + 1);
-        setRepsInput(firstExercise.target_reps.toString());
-        if (firstExercise.target_weight) {
-          setWeightInput(firstExercise.target_weight.toString());
-        }
+        prefillInputs(firstExercise, loadedSets);
       }
     }
     setLoading(false);
@@ -143,6 +180,13 @@ export default function WorkoutSessionScreen() {
         setSets([...sets, savedSet]);
         setCurrentSet(currentSet + 1);
 
+        // Prefill the next set from what was just lifted
+        setRepsInput(savedSet.reps.toString());
+        setWeightInput(savedSet.weight ? savedSet.weight.toString() : '');
+
+        // Start (or restart) the rest countdown
+        setRestEndsAt(Date.now() + REST_SECONDS * 1000);
+
         if (savedSet.is_pr) {
           showAlert('🏆 Personal Record!', `New PR for ${currentExercise.exercise_name}!`);
         }
@@ -170,14 +214,8 @@ export default function WorkoutSessionScreen() {
     const nextEx = session.workout_days.planned_exercises[nextIndex];
     setCurrentExerciseIndex(nextIndex);
     setCurrentSet(sets.filter(s => s.planned_exercise_id === nextEx.id).length + 1);
-    setRepsInput('');
-    setWeightInput('');
-
-    // Set default values for next exercise
-    setRepsInput(nextEx.target_reps.toString());
-    if (nextEx.target_weight) {
-      setWeightInput(nextEx.target_weight.toString());
-    }
+    setRestEndsAt(null);
+    prefillInputs(nextEx, sets);
   };
 
   const previousExercise = () => {
@@ -185,23 +223,62 @@ export default function WorkoutSessionScreen() {
 
     const prevIndex = currentExerciseIndex - 1;
     setCurrentExerciseIndex(prevIndex);
-    setRepsInput('');
-    setWeightInput('');
+    setRestEndsAt(null);
 
     if (session?.workout_days?.planned_exercises) {
       const prevEx = session.workout_days.planned_exercises[prevIndex];
       setCurrentSet(sets.filter(s => s.planned_exercise_id === prevEx.id).length + 1);
-      setRepsInput(prevEx.target_reps.toString());
-      if (prevEx.target_weight) {
-        setWeightInput(prevEx.target_weight.toString());
-      }
+      prefillInputs(prevEx, sets);
     } else {
+      setRepsInput('');
+      setWeightInput('');
       setCurrentSet(1);
     }
   };
 
+  const discardSession = async () => {
+    if (!user?.id || !sessionId || discarding) return;
+
+    setDiscarding(true);
+    try {
+      const { error } = await supabase
+        .from('workout_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        showAlert('Error', 'Could not discard the workout. Please try again.');
+        return;
+      }
+      router.back();
+    } finally {
+      setDiscarding(false);
+    }
+  };
+
+  const handleClose = () => {
+    // Completed sessions have nothing to abandon — just leave
+    if (session?.completed_at) {
+      router.back();
+      return;
+    }
+
+    showAlert(
+      'Leave workout?',
+      'You can keep this workout in progress and resume it later from History, or discard it entirely.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Keep in progress', onPress: () => router.back() },
+        { text: 'Discard', style: 'destructive', onPress: discardSession },
+      ]
+    );
+  };
+
   const handleCompleteWorkout = () => {
     if (completing) return;
+
+    setRestEndsAt(null);
 
     // Compute elapsed time and calories from started_at (not the 60s display boundary)
     const startedAt = session?.started_at
@@ -265,6 +342,7 @@ export default function WorkoutSessionScreen() {
           <TouchableOpacity
             className="bg-primary px-6 py-3 rounded-lg mt-4"
             onPress={() => router.back()}
+            accessibilityRole="button"
           >
             <Text className="text-on-brand font-bold">Go Back</Text>
           </TouchableOpacity>
@@ -284,10 +362,11 @@ export default function WorkoutSessionScreen() {
           <TouchableOpacity
             className="bg-primary px-6 py-3 rounded-lg mt-4"
             onPress={() => router.push('/edit-plan' as any)}
+            accessibilityRole="button"
           >
             <Text className="text-on-brand font-bold">Edit Plan</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="mt-3" onPress={() => router.back()}>
+          <TouchableOpacity className="mt-3" onPress={() => router.back()} accessibilityRole="button">
             <Text className="text-text-light">Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -299,7 +378,12 @@ export default function WorkoutSessionScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       {/* Header */}
       <View className="px-4 py-4 flex-row justify-between items-center border-b border-border">
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Leave workout"
+          onPress={handleClose}
+          disabled={discarding}
+        >
           <AntDesign name="close" size={24} color={colors.text} />
         </TouchableOpacity>
 
@@ -308,7 +392,7 @@ export default function WorkoutSessionScreen() {
           <Text className="text-text-light text-sm">{caloriesBurned} cal</Text>
         </View>
 
-        <TouchableOpacity onPress={handleCompleteWorkout} disabled={completing}>
+        <TouchableOpacity onPress={handleCompleteWorkout} disabled={completing} accessibilityRole="button">
           <Text className={`text-primary font-bold ${completing ? 'opacity-50' : ''}`}>Finish</Text>
         </TouchableOpacity>
       </View>
@@ -357,6 +441,38 @@ export default function WorkoutSessionScreen() {
           </View>
         </View>
 
+        {/* Rest Timer */}
+        {restEndsAt !== null && (
+          <View className="px-4 mb-6">
+            <View className="bg-primary/15 border border-primary/40 rounded-2xl p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-primary font-bold mb-1">Rest</Text>
+                <Text className="text-text text-3xl font-bold">
+                  {formatTime(restRemaining)}
+                </Text>
+              </View>
+              <View className="flex-row">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Add 30 seconds to rest timer"
+                  className="bg-surface-2 border border-border px-4 py-2 rounded-lg mr-2"
+                  onPress={() => setRestEndsAt((prev) => (prev ?? Date.now()) + 30000)}
+                >
+                  <Text className="text-text font-bold">+30s</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip rest"
+                  className="bg-surface-2 border border-border px-4 py-2 rounded-lg"
+                  onPress={() => setRestEndsAt(null)}
+                >
+                  <Text className="text-text-light font-bold">Skip</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Log Set */}
         <View className="px-4 mb-6">
           <Text className="text-text text-lg font-bold mb-3">Log Set #{currentSet}</Text>
@@ -371,6 +487,7 @@ export default function WorkoutSessionScreen() {
                   value={weightInput}
                   onChangeText={setWeightInput}
                   keyboardType="numeric"
+                  accessibilityLabel="Weight (kg)"
                 />
               </View>
               <View className="flex-1 ml-2">
@@ -382,6 +499,7 @@ export default function WorkoutSessionScreen() {
                   value={repsInput}
                   onChangeText={setRepsInput}
                   keyboardType="numeric"
+                  accessibilityLabel="Reps"
                 />
               </View>
             </View>
@@ -390,6 +508,7 @@ export default function WorkoutSessionScreen() {
               className={`bg-primary py-4 rounded-lg mb-3 ${logging ? 'opacity-50' : ''}`}
               disabled={logging}
               onPress={logSet}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand text-center font-bold text-lg">Log Set</Text>
             </TouchableOpacity>
@@ -397,6 +516,7 @@ export default function WorkoutSessionScreen() {
             <TouchableOpacity
               className="bg-surface-2 border border-border py-4 rounded-lg"
               onPress={skipSet}
+              accessibilityRole="button"
             >
               <Text className="text-text-light text-center font-bold text-lg">Skip Set</Text>
             </TouchableOpacity>
@@ -436,6 +556,7 @@ export default function WorkoutSessionScreen() {
                 }`}
               onPress={previousExercise}
               disabled={currentExerciseIndex === 0}
+              accessibilityRole="button"
             >
               <Text className={`${currentExerciseIndex === 0 ? 'text-text-light' : 'text-text'
                 } font-bold`}>
@@ -446,6 +567,7 @@ export default function WorkoutSessionScreen() {
             <TouchableOpacity
               className="bg-primary py-3 px-6 rounded-lg"
               onPress={nextExercise}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand font-bold">
                 {currentExerciseIndex === (session.workout_days?.planned_exercises?.length || 0) - 1
@@ -477,6 +599,9 @@ export default function WorkoutSessionScreen() {
                     setWeightInput(exercise.target_weight.toString());
                   }
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Go to exercise ${exercise.exercise_name}`}
+                accessibilityState={{ selected: isCurrent }}
               >
                 <View className="flex-row justify-between items-center">
                   <View className="flex-1">

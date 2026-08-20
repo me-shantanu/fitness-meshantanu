@@ -356,9 +356,10 @@ export default function NutritionScreen() {
   }, []);
 
   const renderMacroCard = useCallback((title, consumed, target, unit, color) => {
-    const remaining = calculateRemaining(consumed, target);
-    const percentage = calculatePercentage(consumed, target);
-    const isOverTarget = consumed > target;
+    const safeTarget = typeof target === 'number' && target > 0 ? target : 0;
+    const remaining = calculateRemaining(consumed, safeTarget);
+    const percentage = calculatePercentage(consumed, safeTarget);
+    const isOverTarget = safeTarget > 0 && consumed > safeTarget;
 
     return (
       <View className="bg-surface rounded-2xl border border-border p-4 mb-3">
@@ -366,10 +367,10 @@ export default function NutritionScreen() {
           <Text className="text-text font-bold text-base">{title}</Text>
           <View className="flex-row items-center">
             <Text className="text-text-light mr-2 text-sm">
-              {consumed.toFixed(0)}/{target} {unit}
+              {consumed.toFixed(0)}/{safeTarget} {unit}
             </Text>
             <Text className={`font-bold text-sm ${isOverTarget ? 'text-accent' : 'text-primary'}`}>
-              {isOverTarget ? `+${(consumed - target).toFixed(0)} over` : `${remaining} left`}
+              {isOverTarget ? `+${(consumed - safeTarget).toFixed(0)} over` : `${remaining} left`}
             </Text>
           </View>
         </View>
@@ -444,6 +445,7 @@ export default function NutritionScreen() {
           <TouchableOpacity
             className="bg-primary px-8 py-4 rounded-xl"
             onPress={() => router.push('/profile')}
+            accessibilityRole="button"
           >
             <Text className="text-on-brand font-bold text-lg">Go to Profile</Text>
           </TouchableOpacity>
@@ -487,6 +489,8 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 className="bg-surface-2 border border-border p-2 rounded-lg"
                 onPress={() => changeDay(-1)}
+                accessibilityRole="button"
+                accessibilityLabel="Previous day"
               >
                 <Feather name="chevron-left" size={20} color={colors.text} />
               </TouchableOpacity>
@@ -497,6 +501,8 @@ export default function NutritionScreen() {
                 className={`bg-surface-2 border border-border p-2 rounded-lg ${isToday ? 'opacity-40' : ''}`}
                 onPress={() => changeDay(1)}
                 disabled={isToday}
+                accessibilityRole="button"
+                accessibilityLabel="Next day"
               >
                 <Feather name="chevron-right" size={20} color={colors.text} />
               </TouchableOpacity>
@@ -587,6 +593,7 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 className="bg-surface py-3 rounded-lg mt-4"
                 onPress={openAddFood}
+                accessibilityRole="button"
               >
                 <Text className="text-primary text-center font-bold text-lg">
                   + Add Food
@@ -657,6 +664,8 @@ export default function NutritionScreen() {
                     key={amount}
                     className="bg-primary/15 px-4 py-3 rounded-lg border border-primary/30 flex-1 mx-1"
                     onPress={() => addWater(amount)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${amount}ml water`}
                   >
                     <Text className="text-primary font-bold text-center">
                       +{amount}ml
@@ -695,6 +704,8 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 className="bg-surface flex-1 mr-2 rounded-2xl border border-border p-4 items-center"
                 onPress={() => quickAddFood('Chicken Breast', 165, 31, 0, 3.6, '100g')}
+                accessibilityRole="button"
+                accessibilityLabel="Quick add Chicken Breast"
               >
                 <MaterialIcons name="fastfood" size={24} color={colors.brand} />
                 <Text className="text-text mt-2 text-center text-sm">Chicken Breast</Text>
@@ -703,6 +714,8 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 className="bg-surface flex-1 mx-2 rounded-2xl border border-border p-4 items-center"
                 onPress={() => quickAddFood('Brown Rice', 111, 2.6, 23, 0.9, '100g')}
+                accessibilityRole="button"
+                accessibilityLabel="Quick add Brown Rice"
               >
                 <FontAwesome name="spoon" size={24} color={colors.accent} />
                 <Text className="text-text mt-2 text-center text-sm">Brown Rice</Text>
@@ -711,6 +724,8 @@ export default function NutritionScreen() {
               <TouchableOpacity
                 className="bg-surface flex-1 ml-2 rounded-2xl border border-border p-4 items-center"
                 onPress={() => quickAddFood('Protein Shake', 120, 25, 3, 1, '1 scoop')}
+                accessibilityRole="button"
+                accessibilityLabel="Quick add Protein Shake"
               >
                 <MaterialIcons name="local-cafe" size={24} color={colors.brand} />
                 <Text className="text-text mt-2 text-center text-sm">Protein Shake</Text>
@@ -764,6 +779,8 @@ export default function NutritionScreen() {
                           className="p-2 ml-2"
                           onPress={() => confirmRemoveFood(entry)}
                           disabled={isDeleting}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Remove ${entry.food_name} from log`}
                         >
                           {isDeleting ? (
                             <ActivityIndicator size="small" color={colors.danger} />
@@ -789,10 +806,14 @@ export default function NutritionScreen() {
         onRequestClose={() => setShowAddFood(false)}
       >
         <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-          <View style={{ maxHeight: '75%' }} className="bg-bg rounded-t-3xl p-6">
+          <View style={{ maxHeight: '75%' }} className="bg-bg rounded-t-3xl p-6" accessibilityViewIsModal={true}>
             <View className="flex-row justify-between items-center mb-6">
               <Text className="text-text text-2xl font-bold">Add Food</Text>
-              <TouchableOpacity onPress={() => setShowAddFood(false)}>
+              <TouchableOpacity
+                onPress={() => setShowAddFood(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close add food form"
+              >
                 <AntDesign name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -814,6 +835,8 @@ export default function NutritionScreen() {
                           }`}
                           onPress={() => setMealType(meal)}
                           disabled={submitting}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
                         >
                           <Text
                             className={`text-center text-sm ${
@@ -837,6 +860,7 @@ export default function NutritionScreen() {
                     value={foodForm.name}
                     onChangeText={(text) => setFoodForm({ ...foodForm, name: text })}
                     editable={!submitting}
+                    accessibilityLabel="Food Name"
                   />
                 </View>
 
@@ -850,6 +874,7 @@ export default function NutritionScreen() {
                     onChangeText={(text) => setFoodForm({ ...foodForm, calories: text.replace(/[^0-9]/g, '') })}
                     keyboardType="numeric"
                     editable={!submitting}
+                    accessibilityLabel="Calories"
                   />
                 </View>
 
@@ -864,6 +889,7 @@ export default function NutritionScreen() {
                       onChangeText={(text) => setFoodForm({ ...foodForm, protein: text.replace(/[^0-9.]/g, '') })}
                       keyboardType="decimal-pad"
                       editable={!submitting}
+                      accessibilityLabel="Protein (g)"
                     />
                   </View>
 
@@ -877,6 +903,7 @@ export default function NutritionScreen() {
                       onChangeText={(text) => setFoodForm({ ...foodForm, carbs: text.replace(/[^0-9.]/g, '') })}
                       keyboardType="decimal-pad"
                       editable={!submitting}
+                      accessibilityLabel="Carbs (g)"
                     />
                   </View>
 
@@ -890,6 +917,7 @@ export default function NutritionScreen() {
                       onChangeText={(text) => setFoodForm({ ...foodForm, fats: text.replace(/[^0-9.]/g, '') })}
                       keyboardType="decimal-pad"
                       editable={!submitting}
+                      accessibilityLabel="Fats (g)"
                     />
                   </View>
                 </View>
@@ -903,6 +931,7 @@ export default function NutritionScreen() {
                     value={foodForm.servingSize}
                     onChangeText={(text) => setFoodForm({ ...foodForm, servingSize: text })}
                     editable={!submitting}
+                    accessibilityLabel="Serving Size"
                   />
                 </View>
               </View>
@@ -912,6 +941,7 @@ export default function NutritionScreen() {
               className={`py-4 rounded-xl mt-6 ${submitting ? 'bg-primary/50' : 'bg-primary'}`}
               onPress={addFood}
               disabled={submitting}
+              accessibilityRole="button"
             >
               {submitting ? (
                 <ActivityIndicator color={colors.onBrand} />

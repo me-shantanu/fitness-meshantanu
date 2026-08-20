@@ -165,6 +165,7 @@ function PlanCard({ plan }: { plan: AiPlan }) {
         className={`bg-primary py-3 rounded-lg ${adding ? 'opacity-50' : ''}`}
         disabled={adding}
         onPress={confirmAdd}
+        accessibilityRole="button"
       >
         {adding ? (
           <ActivityIndicator size="small" color={colors.onBrand} />
@@ -319,7 +320,8 @@ export default function CoachScreen() {
           <TouchableOpacity
             className="bg-surface-2 border border-border rounded-full p-2"
             onPress={startNewChat}
-            accessibilityLabel="New chat"
+            accessibilityRole="button"
+            accessibilityLabel="Start new conversation"
           >
             <Icon name="SquarePen" size={20} color={colors.textLight} />
           </TouchableOpacity>
@@ -353,6 +355,8 @@ export default function CoachScreen() {
                     key={prompt}
                     className="bg-surface-2 border border-border rounded-full px-4 py-3 mb-2"
                     onPress={() => setInput(prompt)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ask: ${prompt}`}
                   >
                     <Text className="text-text text-center">{prompt}</Text>
                   </TouchableOpacity>
@@ -387,6 +391,7 @@ export default function CoachScreen() {
                       <TouchableOpacity
                         className="flex-row items-center"
                         onPress={() => retryMessage(message)}
+                        accessibilityRole="button"
                       >
                         <Icon name="RefreshCw" size={14} color={colors.danger} />
                         <Text className="text-danger text-sm ml-1">
@@ -413,11 +418,13 @@ export default function CoachScreen() {
             multiline
             maxLength={4000}
             editable={!sending}
+            accessibilityLabel="Ask your coach..."
           />
           <TouchableOpacity
             className={`bg-primary rounded-full p-3 ${canSend ? '' : 'opacity-50'}`}
             disabled={!canSend}
             onPress={() => sendMessage(input)}
+            accessibilityRole="button"
             accessibilityLabel="Send message"
           >
             <Icon name="Send" size={20} color={colors.onBrand} />

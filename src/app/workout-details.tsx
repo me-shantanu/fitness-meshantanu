@@ -67,7 +67,11 @@ export default function WorkoutDetailsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-bg">
         <View className="px-4 pt-4 pb-2 flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Workout Details</Text>
@@ -85,6 +89,7 @@ export default function WorkoutDetailsScreen() {
             <TouchableOpacity
               className="bg-primary px-6 py-3 rounded-lg"
               onPress={() => router.back()}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand font-bold">Go Back</Text>
             </TouchableOpacity>
@@ -108,7 +113,11 @@ export default function WorkoutDetailsScreen() {
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4 pb-2 flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Workout Details</Text>
@@ -132,6 +141,20 @@ export default function WorkoutDetailsScreen() {
               </Text>
             </View>
           </View>
+
+          {!session.completed_at && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Resume this workout"
+              className="bg-primary py-3 rounded-lg mt-3"
+              onPress={() => router.push({
+                pathname: '/workout-session',
+                params: { sessionId: session.id }
+              })}
+            >
+              <Text className="text-on-brand text-center font-bold text-base">Resume workout</Text>
+            </TouchableOpacity>
+          )}
 
           <View className="flex-row justify-between mt-3 pt-3 border-t border-border">
             <View className="items-center flex-1">

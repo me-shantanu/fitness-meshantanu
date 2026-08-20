@@ -95,7 +95,7 @@ export default function ExerciseDetailScreen() {
       await addFavorite(
         exercise.id,
         exercise.name,
-        Array.isArray(type) ? type[0] : (type || 'workout')
+        typeParam || 'workout'
       );
     }
   };
@@ -123,6 +123,8 @@ export default function ExerciseDetailScreen() {
                 <TouchableOpacity
                   className="absolute left-4 top-1/2 -mt-6 bg-black/50 w-12 h-12 rounded-full items-center justify-center"
                   onPress={() => setSelectedImageIndex(prev => prev - 1)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous image"
                 >
                   <Ionicons name="chevron-back" size={24} color="white" />
                 </TouchableOpacity>
@@ -133,6 +135,8 @@ export default function ExerciseDetailScreen() {
                 <TouchableOpacity
                   className="absolute right-4 top-1/2 -mt-6 bg-black/50 w-12 h-12 rounded-full items-center justify-center"
                   onPress={() => setSelectedImageIndex(prev => prev + 1)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next image"
                 >
                   <Ionicons name="chevron-forward" size={24} color="white" />
                 </TouchableOpacity>
@@ -160,6 +164,9 @@ export default function ExerciseDetailScreen() {
                 key={img.id}
                 onPress={() => setSelectedImageIndex(index)}
                 className={`mr-2 ${selectedImageIndex === index ? 'border-2 border-primary' : 'border border-border'} rounded-lg overflow-hidden`}
+                accessibilityRole="button"
+                accessibilityLabel={`View image ${index + 1}`}
+                accessibilityState={{ selected: selectedImageIndex === index }}
               >
                 <Image
                   source={{ uri: img.image }}
@@ -205,6 +212,7 @@ export default function ExerciseDetailScreen() {
       className="mb-6 rounded-xl p-4 flex-row items-center bg-danger/15"
       onPress={openYoutubeTutorial}
       activeOpacity={0.7}
+      accessibilityRole="button"
     >
       <View className="bg-danger w-10 h-10 rounded-full items-center justify-center mr-3">
         <Ionicons name="logo-youtube" size={20} color={colors.onBrand} />
@@ -435,6 +443,7 @@ export default function ExerciseDetailScreen() {
           <TouchableOpacity
             className="bg-primary px-8 py-4 rounded-lg mt-6"
             onPress={() => router.back()}
+            accessibilityRole="button"
           >
             <Text className="text-on-brand font-bold text-base">Go Back</Text>
           </TouchableOpacity>
@@ -447,7 +456,12 @@ export default function ExerciseDetailScreen() {
     <SafeAreaView className="flex-1 !bg-bg">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-4 bg-bg border-b border-border">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="p-2"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <AntDesign name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
 
@@ -455,7 +469,16 @@ export default function ExerciseDetailScreen() {
           <Text className="text-text font-bold text-lg">Exercise Details</Text>
         </View>
 
-        <TouchableOpacity onPress={toggleFavorite} className="p-2">
+        <TouchableOpacity
+          onPress={toggleFavorite}
+          className="p-2"
+          accessibilityRole="button"
+          accessibilityLabel={
+            isFavorite(exercise.id)
+              ? `Remove ${exercise.name} from favorites`
+              : `Add ${exercise.name} to favorites`
+          }
+        >
           {isFavorite(exercise.id) ?
             <AntDesign
               name={'heart'}
@@ -481,6 +504,8 @@ export default function ExerciseDetailScreen() {
               className={`flex-1 py-3 rounded-xl mx-0.5 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                 }`}
               onPress={() => setActiveTab(tab.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
             >
               <Text className={`text-center font-bold ${selected ? 'text-on-brand' : 'text-text-light'
                 }`}>
@@ -618,6 +643,7 @@ export default function ExerciseDetailScreen() {
         <TouchableOpacity
           className="bg-primary py-4 rounded-xl flex-row items-center justify-center"
           onPress={() => setShowAddToPlanModal(true)}
+          accessibilityRole="button"
         >
           <MaterialIcons name="add-circle-outline" size={24} color={colors.onBrand} />
           <Text className="text-on-brand text-center font-bold text-lg ml-2">

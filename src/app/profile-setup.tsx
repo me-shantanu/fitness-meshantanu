@@ -140,6 +140,7 @@ export default function ProfileSetupScreen() {
             value={formData.height}
             onChangeText={(text) => setFormData({ ...formData, height: text })}
             keyboardType="numeric"
+            accessibilityLabel="Height (cm)"
           />
         </View>
 
@@ -152,6 +153,7 @@ export default function ProfileSetupScreen() {
             value={formData.weight}
             onChangeText={(text) => setFormData({ ...formData, weight: text })}
             keyboardType="numeric"
+            accessibilityLabel="Weight (kg)"
           />
         </View>
 
@@ -164,6 +166,7 @@ export default function ProfileSetupScreen() {
             value={formData.age}
             onChangeText={(text) => setFormData({ ...formData, age: text })}
             keyboardType="numeric"
+            accessibilityLabel="Age"
           />
         </View>
 
@@ -175,6 +178,8 @@ export default function ProfileSetupScreen() {
                 key={gender.value}
                 className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                 onPress={() => setFormData({ ...formData, gender: gender.value })}
+                accessibilityRole="button"
+                accessibilityState={{ selected: formData.gender === gender.value }}
               >
                 <Text className={`text-center font-bold ${formData.gender === gender.value ? 'text-on-brand' : 'text-text-light'}`}>{gender.label}</Text>
               </TouchableOpacity>
@@ -190,6 +195,8 @@ export default function ProfileSetupScreen() {
                 key={level.value}
                 className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                 onPress={() => setFormData({ ...formData, activity_level: level.value })}
+                accessibilityRole="button"
+                accessibilityState={{ selected: formData.activity_level === level.value }}
               >
                 <Text className={`font-bold ${formData.activity_level === level.value ? 'text-on-brand' : 'text-text-light'}`}>{level.label}</Text>
               </TouchableOpacity>
@@ -216,6 +223,8 @@ export default function ProfileSetupScreen() {
                   formData.goal === goal.value ? 'bg-primary' : 'bg-surface-2 border border-border'
                 }`}
                 onPress={() => setFormData({ ...formData, goal: goal.value })}
+                accessibilityRole="button"
+                accessibilityState={{ selected: formData.goal === goal.value }}
               >
                 <Text className="text-2xl mr-3">{goal.icon}</Text>
                 <Text className={`font-bold ${formData.goal === goal.value ? 'text-on-brand' : 'text-text-light'}`}>{goal.label}</Text>
@@ -228,6 +237,7 @@ export default function ProfileSetupScreen() {
           className="bg-primary py-4 rounded-lg"
           onPress={handleSave}
           disabled={loading}
+          accessibilityRole="button"
         >
           {loading ? (
             <ActivityIndicator color={colors.onBrand} />

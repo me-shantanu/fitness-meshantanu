@@ -120,6 +120,7 @@ export default function SignUpScreen() {
                   value={fullName}
                   onChangeText={setFullName}
                   editable={!loading}
+                  accessibilityLabel="Full Name"
                 />
               </View>
 
@@ -136,6 +137,7 @@ export default function SignUpScreen() {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   editable={!loading}
+                  accessibilityLabel="Email"
                 />
               </View>
 
@@ -151,6 +153,7 @@ export default function SignUpScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   editable={!loading}
+                  accessibilityLabel="Password"
                 />
               </View>
 
@@ -166,6 +169,7 @@ export default function SignUpScreen() {
                   onChangeText={setConfirmPassword}
                   secureTextEntry
                   editable={!loading}
+                  accessibilityLabel="Confirm Password"
                 />
               </View>
 
@@ -175,6 +179,7 @@ export default function SignUpScreen() {
                   onPress={handleSignUp}
                   disabled={loading}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
                 >
                   <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                     Create Account
@@ -187,7 +192,7 @@ export default function SignUpScreen() {
                   Already have an account?{' '}
                 </Text>
                 <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity disabled={loading}>
+                  <TouchableOpacity disabled={loading} accessibilityRole="button">
                     <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Sign In
                     </Text>

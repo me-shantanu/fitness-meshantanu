@@ -184,6 +184,8 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 onPress={() => setIsEditing(true)}
                 className="bg-brand rounded-full p-2"
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile"
               >
                 <Feather name="edit-2" size={20} color={colors.onBrand} />
               </TouchableOpacity>
@@ -215,6 +217,7 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.textLight}
                 value={formData.full_name}
                 onChangeText={(text) => setFormData({ ...formData, full_name: text })}
+                accessibilityLabel="Full Name"
               />
             </View>
 
@@ -227,6 +230,7 @@ export default function ProfileScreen() {
                 value={formData.height}
                 onChangeText={(text) => setFormData({ ...formData, height: text })}
                 keyboardType="numeric"
+                accessibilityLabel="Height (cm)"
               />
             </View>
 
@@ -239,6 +243,7 @@ export default function ProfileScreen() {
                 value={formData.weight}
                 onChangeText={(text) => setFormData({ ...formData, weight: text })}
                 keyboardType="numeric"
+                accessibilityLabel="Weight (kg)"
               />
             </View>
 
@@ -251,6 +256,7 @@ export default function ProfileScreen() {
                 value={formData.age}
                 onChangeText={(text) => setFormData({ ...formData, age: text })}
                 keyboardType="numeric"
+                accessibilityLabel="Age"
               />
             </View>
 
@@ -262,6 +268,8 @@ export default function ProfileScreen() {
                     key={gender.value}
                     className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                     onPress={() => setFormData({ ...formData, gender: gender.value })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: formData.gender === gender.value }}
                   >
                     <Text className={`text-center font-bold ${formData.gender === gender.value ? 'text-on-brand' : 'text-text-light'}`}>{gender.label}</Text>
                   </TouchableOpacity>
@@ -277,6 +285,8 @@ export default function ProfileScreen() {
                     key={level.value}
                     className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-primary' : 'bg-surface-2 border border-border'}`}
                     onPress={() => setFormData({ ...formData, activity_level: level.value })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: formData.activity_level === level.value }}
                   >
                     <Text className={`font-bold ${formData.activity_level === level.value ? 'text-on-brand' : 'text-text-light'}`}>{level.label}</Text>
                   </TouchableOpacity>
@@ -303,6 +313,8 @@ export default function ProfileScreen() {
                       formData.goal === goal.value ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                     onPress={() => setFormData({ ...formData, goal: goal.value })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: formData.goal === goal.value }}
                   >
                     <Text className="text-2xl mr-3">{goal.icon}</Text>
                     <Text className={`font-bold ${formData.goal === goal.value ? 'text-on-brand' : 'text-text-light'}`}>{goal.label}</Text>
@@ -316,6 +328,7 @@ export default function ProfileScreen() {
                 className="flex-1 bg-surface-2 border border-border py-4 rounded-lg"
                 onPress={handleCancel}
                 disabled={loading}
+                accessibilityRole="button"
               >
                 <Text className="text-text text-center font-bold">Cancel</Text>
               </TouchableOpacity>
@@ -323,6 +336,7 @@ export default function ProfileScreen() {
                 className="flex-1 bg-primary py-4 rounded-lg"
                 onPress={handleSave}
                 disabled={loading}
+                accessibilityRole="button"
               >
                 {loading ? (
                   <ActivityIndicator color={colors.onBrand} />
@@ -370,6 +384,9 @@ export default function ProfileScreen() {
                         selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                       onPress={() => setPreference(value)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${label} theme`}
+                      accessibilityState={{ selected }}
                     >
                       <Icon size={20} color={selected ? colors.onBrand : colors.textLight} />
                       <Text
@@ -388,6 +405,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               className="bg-danger py-4 rounded-lg mt-6"
               onPress={signOut}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand text-center font-bold text-base">Sign Out</Text>
             </TouchableOpacity>

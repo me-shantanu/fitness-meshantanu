@@ -98,6 +98,7 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
               className="bg-primary py-3 px-8 rounded-full w-full mb-4"
               onPress={() => router.replace('/(auth)/login')}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
               <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Go to Login
@@ -112,6 +113,7 @@ export const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = (
                 onPress={handleResend}
                 disabled={resending || cooldown > 0}
                 activeOpacity={0.8}
+                accessibilityRole="button"
               >
                 <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'} ${resending || cooldown > 0 ? 'opacity-50' : ''}`}>
                   {resending

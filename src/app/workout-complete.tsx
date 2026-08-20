@@ -189,6 +189,7 @@ export default function WorkoutCompleteScreen() {
             <TouchableOpacity
               className="bg-primary py-4 rounded-xl"
               onPress={() => router.replace('/(tabs)/workout' as any)}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand text-center font-bold text-lg">
                 Back to Workouts
@@ -198,6 +199,7 @@ export default function WorkoutCompleteScreen() {
             <TouchableOpacity
               className="bg-surface py-4 rounded-xl border border-border mt-3"
               onPress={() => router.replace('/(tabs)' as any)}
+              accessibilityRole="button"
             >
               <Text className="text-text-light text-center font-bold">
                 Go to Dashboard

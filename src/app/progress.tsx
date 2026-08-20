@@ -22,6 +22,50 @@ import { useThemeStore } from '@/store/useThemeStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Compute workout streaks from a list of YYYY-MM-DD date strings.
+ * - best: longest run of consecutive calendar days anywhere in the set
+ *   (a single date counts as a streak of 1).
+ * - current: length of the consecutive run ending at today or yesterday
+ *   (yesterday keeps the streak alive); 0 if the last workout is older.
+ * Dates are compared at UTC midnight so day arithmetic is DST-safe.
+ */
+export function computeStreaks(dates: string[]): { current: number; best: number } {
+  const toDayNumber = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / MS_PER_DAY);
+
+  const days = Array.from(
+    new Set(dates.map(d => String(d).slice(0, 10)))
+  )
+    .map(toDayNumber)
+    .filter(n => Number.isFinite(n))
+    .sort((a, b) => a - b);
+
+  if (days.length === 0) return { current: 0, best: 0 };
+
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < days.length; i++) {
+    run = days[i] - days[i - 1] === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+
+  // Current streak: consecutive run ending at today or yesterday (local date).
+  const todayDay = toDayNumber(localDateString());
+  const lastDay = days[days.length - 1];
+  let current = 0;
+  if (todayDay - lastDay <= 1) {
+    current = 1;
+    for (let i = days.length - 1; i > 0; i--) {
+      if (days[i] - days[i - 1] === 1) current++;
+      else break;
+    }
+  }
+
+  return { current, best };
+}
+
 interface WeightEntry {
   date: string;
   weight: number;
@@ -179,19 +223,9 @@ export default function ProgressScreen() {
     let totalWorkouts = sessions.length;
     let totalVolume = 0;
     let totalCalories = 0;
-    let currentStreak = 0;
-    let bestStreak = 0;
-    let currentStreakCount = 0;
     const workoutDays = new Set();
 
-    // Sort sessions by date
-    const sortedSessions = [...sessions].sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    // Calculate streaks and totals
-    let prevDate = null;
-    sortedSessions.forEach(session => {
+    sessions.forEach(session => {
       // Calculate volume and calories
       const sessionVolume = session.exercise_sets?.reduce((sum, set) =>
         sum + (set.weight * set.reps), 0) || 0;
@@ -200,24 +234,12 @@ export default function ProgressScreen() {
 
       // Track unique workout days
       workoutDays.add(session.date);
-
-      // Calculate streak
-      const currentDate = new Date(session.date);
-      if (prevDate) {
-        const diffDays = Math.floor((currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) {
-          currentStreakCount++;
-          bestStreak = Math.max(bestStreak, currentStreakCount);
-        } else if (diffDays > 1) {
-          currentStreakCount = 1;
-        }
-      } else {
-        currentStreakCount = 1;
-      }
-      prevDate = currentDate;
     });
 
-    currentStreak = currentStreakCount;
+    // Streaks from unique workout dates (YYYY-MM-DD)
+    const { current: currentStreak, best: bestStreak } = computeStreaks(
+      sessions.map(session => session.date)
+    );
 
     // Calculate workout days this month
     const thisMonth = new Date().getMonth();
@@ -252,8 +274,9 @@ export default function ProgressScreen() {
       );
     }
 
-    // Get max value for scaling
-    const maxValue = Math.max(...progressData.map(item => item[selectedMetric]));
+    // Only the last 8 weeks render; scale bars to the rendered slice.
+    const renderedWeeks = progressData.slice(-8);
+    const maxValue = Math.max(...renderedWeeks.map(item => item[selectedMetric]));
 
     return (
       <View className="bg-surface rounded-2xl border border-border p-4">
@@ -270,7 +293,7 @@ export default function ProgressScreen() {
         </View>
 
         <View className="h-40 flex-row items-end justify-between">
-          {progressData.slice(-8).map((week, index) => {
+          {renderedWeeks.map((week, index) => {
             const value = week[selectedMetric];
             const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
 
@@ -523,6 +546,9 @@ export default function ProgressScreen() {
                   className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedMetric(metric.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show ${metric.label.toLowerCase()} progress`}
+                  accessibilityState={{ selected }}
                 >
                   {metric.icon === 'fire' ?
                     <AntDesign name={metric.icon} size={16} color={iconColor} /> :
@@ -549,6 +575,9 @@ export default function ProgressScreen() {
                   className={`px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedPeriod(period.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show last ${period.label.toLowerCase()}`}
+                  accessibilityState={{ selected }}
                 >
                   <Text className={`font-medium ${selected ? 'text-on-brand' : 'text-text-light'}`}>{period.label}</Text>
                 </TouchableOpacity>
@@ -688,10 +717,14 @@ function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps
 
   return (
     <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-      <View className="bg-bg rounded-t-3xl p-6">
+      <View className="bg-bg rounded-t-3xl p-6" accessibilityViewIsModal>
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">Log Weight</Text>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close log weight dialog"
+          >
             <AntDesign name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -706,6 +739,7 @@ function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps
             onChangeText={setWeightInput}
             keyboardType="numeric"
             autoFocus
+            accessibilityLabel="Weight (kg)"
           />
         </View>
 

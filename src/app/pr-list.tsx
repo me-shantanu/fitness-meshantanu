@@ -82,7 +82,7 @@ export default function PRListScreen() {
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4 pb-2 flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
             <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">Personal Records</Text>
@@ -104,6 +104,8 @@ export default function PRListScreen() {
                       params: { sessionId: pr.session_id }
                     });
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View workout for ${pr.exercise_name} personal record`}
                 >
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className="text-text font-bold text-lg flex-1">

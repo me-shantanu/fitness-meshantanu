@@ -432,7 +432,11 @@ export default function EditPlanScreen() {
             <View className="bg-bg rounded-t-3xl p-6 h-3/4">
                 <View className="flex-row justify-between items-center mb-6">
                     <Text className="text-text text-2xl font-bold">Add Exercise</Text>
-                    <TouchableOpacity onPress={() => setShowAddExercise(false)}>
+                    <TouchableOpacity
+                        onPress={() => setShowAddExercise(false)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Close add exercise"
+                    >
                         <AntDesign name="close" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
@@ -444,6 +448,7 @@ export default function EditPlanScreen() {
                     value={searchQuery}
                     onChangeText={handleSearch}
                     autoFocus
+                    accessibilityLabel="Search exercises..."
                 />
 
                 {searching ? (
@@ -455,6 +460,8 @@ export default function EditPlanScreen() {
                                 key={exercise.id}
                                 className="bg-surface rounded-2xl border border-border p-4 mb-3"
                                 onPress={() => addExerciseToDay(exercise)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Add ${exercise.name} to workout day`}
                             >
                                 <Text className="text-text font-bold text-lg mb-1">
                                     {exercise.name}
@@ -487,6 +494,7 @@ export default function EditPlanScreen() {
                     <TouchableOpacity
                         className="bg-primary px-6 py-3 rounded-lg mt-4"
                         onPress={() => router.back()}
+                        accessibilityRole="button"
                     >
                         <Text className="text-on-brand font-bold">Go Back</Text>
                     </TouchableOpacity>
@@ -500,7 +508,11 @@ export default function EditPlanScreen() {
             <ScrollView className="flex-1">
                 <View className="px-4 pt-4">
                     <View className="flex-row items-center mb-6">
-                        <TouchableOpacity onPress={() => router.back()}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back"
+                        >
                             <AntDesign name="arrow-left" size={24} color={colors.text} />
                         </TouchableOpacity>
                         <Text className="text-text text-2xl font-bold ml-4">Edit Plan</Text>
@@ -519,6 +531,7 @@ export default function EditPlanScreen() {
                                     placeholderTextColor={colors.textLight}
                                     value={planName}
                                     onChangeText={setPlanName}
+                                    accessibilityLabel="Plan Name"
                                 />
                             </View>
 
@@ -532,6 +545,7 @@ export default function EditPlanScreen() {
                                     onChangeText={setPlanDescription}
                                     multiline
                                     numberOfLines={3}
+                                    accessibilityLabel="Description (Optional)"
                                 />
                             </View>
 
@@ -543,6 +557,7 @@ export default function EditPlanScreen() {
                                         value={startDate}
                                         onChangeText={setStartDate}
                                         placeholder="YYYY-MM-DD"
+                                        accessibilityLabel="Start Date"
                                     />
                                 </View>
 
@@ -553,6 +568,7 @@ export default function EditPlanScreen() {
                                         value={endDate}
                                         onChangeText={setEndDate}
                                         placeholder="YYYY-MM-DD"
+                                        accessibilityLabel="End Date"
                                     />
                                 </View>
                             </View>
@@ -561,6 +577,7 @@ export default function EditPlanScreen() {
                                 className="bg-primary py-4 rounded-xl"
                                 onPress={savePlanDetails}
                                 disabled={saving}
+                                accessibilityRole="button"
                             >
                                 {saving ? (
                                     <ActivityIndicator color={colors.onBrand} />
@@ -580,6 +597,7 @@ export default function EditPlanScreen() {
                             <TouchableOpacity
                                 className="bg-primary px-4 py-2 rounded-lg flex-row items-center"
                                 onPress={addNewWorkoutDay}
+                                accessibilityRole="button"
                             >
                                 <AntDesign name="plus" size={18} color={colors.onBrand} />
                                 <Text className="text-on-brand font-bold ml-2">Add Day</Text>
@@ -600,6 +618,8 @@ export default function EditPlanScreen() {
                                                 className={`px-4 py-2 rounded mr-2 ${day.is_rest_day ? 'bg-surface-2 border border-border' : 'bg-primary'
                                                     }`}
                                                 onPress={() => day.id && toggleRestDay(day.id)}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Mark ${DAYS_OF_WEEK[day.day_of_week]} as ${day.is_rest_day ? 'workout day' : 'rest day'}`}
                                             >
                                                 <Text className={`font-bold text-sm ${day.is_rest_day ? 'text-text-light' : 'text-on-brand'}`}>
                                                     {day.is_rest_day ? 'Rest Day' : 'Workout'}
@@ -608,6 +628,8 @@ export default function EditPlanScreen() {
 
                                             <TouchableOpacity
                                                 onPress={() => day.id && removeWorkoutDay(day.id)}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Remove ${DAYS_OF_WEEK[day.day_of_week]}`}
                                             >
                                                 <MaterialIcons name="delete" size={24} color={colors.danger} />
                                             </TouchableOpacity>
@@ -624,6 +646,7 @@ export default function EditPlanScreen() {
                                                 onChangeText={(text) => day.id && updateDayNameLocal(day.id, text)}
                                                 onEndEditing={() => day.id && persistDayName(day.id, day.name)}
                                                 onBlur={() => day.id && persistDayName(day.id, day.name)}
+                                                accessibilityLabel={`Workout name for ${DAYS_OF_WEEK[day.day_of_week]}`}
                                             />
 
                                             <TouchableOpacity
@@ -632,6 +655,8 @@ export default function EditPlanScreen() {
                                                     setSelectedDayId(day.id || null);
                                                     setShowAddExercise(true);
                                                 }}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Add exercise to ${DAYS_OF_WEEK[day.day_of_week]}`}
                                             >
                                                 <AntDesign name="plus" size={20} color={colors.brand} />
                                                 <Text className="text-primary font-bold ml-2">Add Exercise</Text>
@@ -648,6 +673,8 @@ export default function EditPlanScreen() {
                                                                 </Text>
                                                                 <TouchableOpacity
                                                                     onPress={() => exercise.id && day.id && removeExercise(exercise.id, day.id)}
+                                                                    accessibilityRole="button"
+                                                                    accessibilityLabel={`Remove ${exercise.exercise_name} from ${DAYS_OF_WEEK[day.day_of_week]}`}
                                                                 >
                                                                     <AntDesign name="close" size={20} color={colors.danger} />
                                                                 </TouchableOpacity>
@@ -669,6 +696,7 @@ export default function EditPlanScreen() {
                                                                             exercise.id && persistExercise(exercise.id, 'target_sets', exercise.target_sets)
                                                                         }
                                                                         keyboardType="numeric"
+                                                                        accessibilityLabel={`Sets for ${exercise.exercise_name}`}
                                                                     />
                                                                 </View>
 
@@ -687,6 +715,7 @@ export default function EditPlanScreen() {
                                                                             exercise.id && persistExercise(exercise.id, 'target_reps', exercise.target_reps)
                                                                         }
                                                                         keyboardType="numeric"
+                                                                        accessibilityLabel={`Reps for ${exercise.exercise_name}`}
                                                                     />
                                                                 </View>
 
@@ -707,6 +736,7 @@ export default function EditPlanScreen() {
                                                                             exercise.id && persistExercise(exercise.id, 'target_weight', exercise.target_weight ?? null)
                                                                         }
                                                                         keyboardType="numeric"
+                                                                        accessibilityLabel={`Weight (kg) for ${exercise.exercise_name}`}
                                                                     />
                                                                 </View>
                                                             </View>

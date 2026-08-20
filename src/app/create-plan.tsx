@@ -233,6 +233,7 @@ export default function CreatePlanScreen() {
             placeholderTextColor={colors.textLight}
             value={planName}
             onChangeText={setPlanName}
+            accessibilityLabel="Plan Name"
           />
         </View>
 
@@ -246,6 +247,7 @@ export default function CreatePlanScreen() {
             onChangeText={setPlanDescription}
             multiline
             numberOfLines={3}
+            accessibilityLabel="Description (Optional)"
           />
         </View>
 
@@ -253,6 +255,7 @@ export default function CreatePlanScreen() {
           <TouchableOpacity
             className="flex-row items-center mb-4"
             onPress={() => setIsTemplate(!isTemplate)}
+            accessibilityRole="button"
           >
             <View className={`w-5 h-5 rounded border-2 ${isTemplate ? 'bg-primary border-primary' : 'border-border'
               } mr-3 items-center justify-center`}>
@@ -271,6 +274,7 @@ export default function CreatePlanScreen() {
                 value={startDate}
                 onChangeText={setStartDate}
                 placeholder="YYYY-MM-DD"
+                accessibilityLabel="Start Date"
               />
             </View>
 
@@ -281,6 +285,7 @@ export default function CreatePlanScreen() {
                 value={endDate}
                 onChangeText={setEndDate}
                 placeholder="YYYY-MM-DD"
+                accessibilityLabel="End Date"
               />
             </View>
           </View>
@@ -292,6 +297,7 @@ export default function CreatePlanScreen() {
           }`}
         onPress={() => setStep(2)}
         disabled={!planName.trim()}
+        accessibilityRole="button"
       >
         <Text className="text-on-brand text-center font-bold text-lg">
           Next: Add Workout Days
@@ -316,6 +322,8 @@ export default function CreatePlanScreen() {
                 className={`px-4 py-2 rounded ${day.isRestDay ? 'bg-surface-2 border border-border' : 'bg-primary'
                   }`}
                 onPress={() => toggleRestDay(index)}
+                accessibilityRole="button"
+                accessibilityLabel={`Mark ${DAYS_OF_WEEK[day.dayOfWeek]} as ${day.isRestDay ? 'workout day' : 'rest day'}`}
               >
                 <Text className={`font-bold ${day.isRestDay ? 'text-text-light' : 'text-on-brand'}`}>
                   {day.isRestDay ? 'Rest Day' : 'Workout Day'}
@@ -335,6 +343,7 @@ export default function CreatePlanScreen() {
                     updatedDays[index].name = text;
                     setWorkoutDays(updatedDays);
                   }}
+                  accessibilityLabel={`Workout name for ${DAYS_OF_WEEK[day.dayOfWeek]}`}
                 />
 
                 <TouchableOpacity
@@ -343,6 +352,8 @@ export default function CreatePlanScreen() {
                     setSelectedDayIndex(index);
                     setShowAddExercise(true);
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add exercise to ${DAYS_OF_WEEK[day.dayOfWeek]}`}
                 >
                   <AntDesign name="plus" size={20} color={colors.brand} />
                   <Text className="text-primary font-bold ml-2">Add Exercise</Text>
@@ -359,6 +370,8 @@ export default function CreatePlanScreen() {
                           </Text>
                           <TouchableOpacity
                             onPress={() => removeExercise(index, exIndex)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove ${exercise.name} from ${DAYS_OF_WEEK[day.dayOfWeek]}`}
                           >
                             <AntDesign name="close" size={20} color={colors.danger} />
                           </TouchableOpacity>
@@ -372,6 +385,7 @@ export default function CreatePlanScreen() {
                               value={exercise.sets.toString()}
                               onChangeText={(text) => updateExercise(index, exIndex, 'sets', parseInt(text) || 0)}
                               keyboardType="numeric"
+                              accessibilityLabel={`Sets for ${exercise.name}`}
                             />
                           </View>
 
@@ -382,6 +396,7 @@ export default function CreatePlanScreen() {
                               value={exercise.reps.toString()}
                               onChangeText={(text) => updateExercise(index, exIndex, 'reps', parseInt(text) || 0)}
                               keyboardType="numeric"
+                              accessibilityLabel={`Reps for ${exercise.name}`}
                             />
                           </View>
 
@@ -394,6 +409,7 @@ export default function CreatePlanScreen() {
                               value={exercise.weight ? exercise.weight.toString() : ''}
                               onChangeText={(text) => updateExercise(index, exIndex, 'weight', text ? parseFloat(text) : null)}
                               keyboardType="numeric"
+                              accessibilityLabel={`Weight (kg) for ${exercise.name}`}
                             />
                           </View>
                         </View>
@@ -411,6 +427,7 @@ export default function CreatePlanScreen() {
         <TouchableOpacity
           className="bg-surface-2 border border-border flex-1 mr-2 py-4 rounded-xl"
           onPress={() => setStep(1)}
+          accessibilityRole="button"
         >
           <Text className="text-text text-center font-bold">Back</Text>
         </TouchableOpacity>
@@ -419,6 +436,7 @@ export default function CreatePlanScreen() {
           className="bg-primary flex-1 ml-2 py-4 rounded-xl"
           onPress={createPlan}
           disabled={loading}
+          accessibilityRole="button"
         >
           {loading ? (
             <ActivityIndicator color={colors.onBrand} />
@@ -437,7 +455,11 @@ export default function CreatePlanScreen() {
       <View className="bg-bg rounded-t-3xl p-6 h-3/4">
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-text text-2xl font-bold">Add Exercise</Text>
-          <TouchableOpacity onPress={() => setShowAddExercise(false)}>
+          <TouchableOpacity
+            onPress={() => setShowAddExercise(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close add exercise"
+          >
             <AntDesign name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -449,6 +471,7 @@ export default function CreatePlanScreen() {
           value={searchQuery}
           onChangeText={handleSearch}
           autoFocus
+          accessibilityLabel="Search exercises..."
         />
 
         {searching ? (
@@ -460,6 +483,8 @@ export default function CreatePlanScreen() {
                 key={exercise.id}
                 className="bg-surface rounded-2xl border border-border p-4 mb-3"
                 onPress={() => addExerciseToDay(exercise)}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${exercise.name} to workout day`}
               >
                 <Text className="text-text font-bold text-lg mb-1">
                   {exercise.name}
@@ -488,7 +513,11 @@ export default function CreatePlanScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       <ScrollView className="flex-1 p-4">
         <View className="flex-row items-center mb-6">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text className="text-text text-2xl font-bold ml-4">

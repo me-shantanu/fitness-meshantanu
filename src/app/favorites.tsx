@@ -102,6 +102,8 @@ export default function FavoritesScreen() {
       className="bg-surface p-4 rounded-2xl border border-border mb-3 mx-4"
       onPress={() => handleExercisePress(item.exercise_id, item.exercise_type)}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${item.exercise_name} details`}
     >
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-3">
@@ -130,6 +132,8 @@ export default function FavoritesScreen() {
           }}
           className="p-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${item.exercise_name} from favorites`}
         >
           <AntDesign name="heart" size={24} color={colors.danger} />
         </TouchableOpacity>
@@ -169,6 +173,8 @@ export default function FavoritesScreen() {
                 }`}
                 onPress={() => setFilterType(type)}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
               >
                 <Text className={`text-center font-bold capitalize ${
                   selected ? 'text-on-brand' : 'text-text-light'
@@ -210,6 +216,7 @@ export default function FavoritesScreen() {
         className="bg-primary px-8 py-4 rounded-xl"
         onPress={() => router.back()}
         activeOpacity={0.7}
+        accessibilityRole="button"
       >
         <Text className="text-on-brand font-bold">Browse Exercises</Text>
       </TouchableOpacity>
@@ -236,6 +243,8 @@ export default function FavoritesScreen() {
             onPress={() => router.back()}
             className="mr-3 p-2"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <AntDesign name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>

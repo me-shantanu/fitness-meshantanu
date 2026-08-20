@@ -157,19 +157,27 @@ export default function HistoryScreen() {
 
     return (
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={session.completed_at ? 'View workout details' : 'Resume in-progress workout'}
         className="bg-surface rounded-2xl border border-border p-4 mb-3 mx-4"
-        onPress={() => router.push({
-          pathname: '/workout-details',
-          params: { sessionId: session.id }
-        })}
+        onPress={() => session.completed_at
+          ? router.push({
+              pathname: '/workout-details',
+              params: { sessionId: session.id }
+            })
+          : router.push({
+              pathname: '/workout-session',
+              params: { sessionId: session.id }
+            })
+        }
       >
         <View className="flex-row justify-between items-start mb-3">
           <View className="flex-1">
             <Text className="text-text font-bold text-lg mb-1">
               {session.workout_days?.name || 'Quick Workout'}
             </Text>
-            <Text className="text-text-light text-sm">
-              {session.completed_at ? 'Completed' : 'In Progress'}
+            <Text className={`text-sm ${session.completed_at ? 'text-text-light' : 'text-primary font-bold'}`}>
+              {session.completed_at ? 'Completed' : 'In Progress · Resume →'}
             </Text>
           </View>
 
@@ -261,6 +269,8 @@ export default function HistoryScreen() {
                   className={`px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedPeriod(period.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
                 >
                   <Text className={`font-medium ${selected ? 'text-on-brand' : 'text-text-light'}`}>{period.label}</Text>
                 </TouchableOpacity>
@@ -282,6 +292,8 @@ export default function HistoryScreen() {
                   className={`px-4 py-2 rounded-full mr-2 ${selected ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedFilter(filter.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
                 >
                   <Text className={`font-medium ${selected ? 'text-on-brand' : 'text-text-light'}`}>{filter.label}</Text>
                 </TouchableOpacity>
@@ -341,6 +353,7 @@ export default function HistoryScreen() {
                 <TouchableOpacity
                   className="bg-primary px-6 py-3 rounded-lg"
                   onPress={() => router.push('/workout')}
+                  accessibilityRole="button"
                 >
                   <Text className="text-on-brand font-bold">Start Workout</Text>
                 </TouchableOpacity>

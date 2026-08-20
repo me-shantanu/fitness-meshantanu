@@ -181,10 +181,15 @@ export default function AddToPlanSheet({
       onRequestClose={onClose}
     >
       <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-        <View className="bg-bg rounded-t-3xl p-6" style={{ maxHeight: '75%' }}>
+        <View className="bg-bg rounded-t-3xl p-6" style={{ maxHeight: '75%' }} accessibilityViewIsModal={true}>
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-text text-2xl font-bold">Add to Plan</Text>
-            <TouchableOpacity onPress={onClose} className="p-2">
+            <TouchableOpacity
+              onPress={onClose}
+              className="p-2"
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
               <AntDesign name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -209,6 +214,7 @@ export default function AddToPlanSheet({
               <TouchableOpacity
                 className="bg-primary px-6 py-3 rounded-lg"
                 onPress={loadPlanDays}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand font-bold">Retry</Text>
               </TouchableOpacity>
@@ -230,6 +236,7 @@ export default function AddToPlanSheet({
                   onClose();
                   router.push('/create-plan');
                 }}
+                accessibilityRole="button"
               >
                 <Text className="text-on-brand font-bold">Create Plan</Text>
               </TouchableOpacity>
@@ -243,6 +250,8 @@ export default function AddToPlanSheet({
                   onPress={() => handleAddToDay(day)}
                   disabled={addingDayId !== null}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${exercise?.name ?? 'exercise'} to ${dayLabel(day)}`}
                 >
                   <View className="flex-1 mr-3">
                     <Text className="text-text font-bold">

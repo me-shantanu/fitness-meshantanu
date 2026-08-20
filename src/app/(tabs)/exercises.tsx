@@ -219,6 +219,8 @@ export default function ExercisesScreen() {
           }
         })}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${item.name} details`}
       >
         <View className="flex-row items-start">
           {/* Thumbnail */}
@@ -278,6 +280,12 @@ export default function ExercisesScreen() {
               }}
               className="p-2"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isFavorite(item.id)
+                  ? `Remove ${item.name} from favorites`
+                  : `Add ${item.name} to favorites`
+              }
             >
               {isFavorite(item.id) ?
                 <AntDesign
@@ -297,6 +305,8 @@ export default function ExercisesScreen() {
                 }}
                 className="p-2"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${item.name} to plan`}
               >
                 <MaterialIcons name="add-circle-outline" size={24} color={colors.textLight} />
               </TouchableOpacity>
@@ -315,10 +325,15 @@ export default function ExercisesScreen() {
       onRequestClose={() => setShowFilters(false)}
     >
       <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
-        <View className="bg-bg rounded-t-3xl p-6" style={{ maxHeight: '75%' }}>
+        <View className="bg-bg rounded-t-3xl p-6" style={{ maxHeight: '75%' }} accessibilityViewIsModal>
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-text text-2xl font-bold">Filters</Text>
-            <TouchableOpacity onPress={() => setShowFilters(false)} className="p-2">
+            <TouchableOpacity
+              onPress={() => setShowFilters(false)}
+              className="p-2"
+              accessibilityRole="button"
+              accessibilityLabel="Close filters"
+            >
               <AntDesign name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -332,6 +347,9 @@ export default function ExercisesScreen() {
                   className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedCategory(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="All categories"
+                  accessibilityState={{ selected: selectedCategory === null }}
                 >
                   <Text className={`font-medium ${selectedCategory === null ? 'text-on-brand' : 'text-text-light'
                     }`}>All Categories</Text>
@@ -342,6 +360,9 @@ export default function ExercisesScreen() {
                     className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedCategory === category.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedCategory(category.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by category ${category.name}`}
+                    accessibilityState={{ selected: selectedCategory === category.id }}
                   >
                     <Text className={`font-medium ${selectedCategory === category.id ? 'text-on-brand' : 'text-text-light'
                       }`}>{category.name}</Text>
@@ -358,6 +379,9 @@ export default function ExercisesScreen() {
                   className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                     }`}
                   onPress={() => setSelectedMuscle(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="All muscles"
+                  accessibilityState={{ selected: selectedMuscle === null }}
                 >
                   <Text className={`font-medium ${selectedMuscle === null ? 'text-on-brand' : 'text-text-light'
                     }`}>All Muscles</Text>
@@ -368,6 +392,9 @@ export default function ExercisesScreen() {
                     className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedMuscle === muscle.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedMuscle(muscle.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by muscle ${muscle.name_en || muscle.name}`}
+                    accessibilityState={{ selected: selectedMuscle === muscle.id }}
                   >
                     <Text className={`font-medium ${selectedMuscle === muscle.id ? 'text-on-brand' : 'text-text-light'
                       }`}>{muscle.name_en || muscle.name}</Text>
@@ -385,6 +412,9 @@ export default function ExercisesScreen() {
                     className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === null ? 'bg-primary' : 'bg-surface-2 border border-border'
                       }`}
                     onPress={() => setSelectedEquipment(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="All equipment"
+                    accessibilityState={{ selected: selectedEquipment === null }}
                   >
                     <Text className={`font-medium ${selectedEquipment === null ? 'text-on-brand' : 'text-text-light'
                       }`}>All Equipment</Text>
@@ -395,6 +425,9 @@ export default function ExercisesScreen() {
                       className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${selectedEquipment === eq.id ? 'bg-primary' : 'bg-surface-2 border border-border'
                         }`}
                       onPress={() => setSelectedEquipment(eq.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Filter by equipment ${eq.name}`}
+                      accessibilityState={{ selected: selectedEquipment === eq.id }}
                     >
                       <Text className={`font-medium ${selectedEquipment === eq.id ? 'text-on-brand' : 'text-text-light'
                         }`}>{eq.name}</Text>
@@ -410,6 +443,7 @@ export default function ExercisesScreen() {
             <TouchableOpacity
               className="bg-surface-2 border border-border flex-1 mr-2 py-4 rounded-xl"
               onPress={clearFilters}
+              accessibilityRole="button"
             >
               <Text className="text-text text-center font-bold">Clear All</Text>
             </TouchableOpacity>
@@ -417,6 +451,7 @@ export default function ExercisesScreen() {
             <TouchableOpacity
               className="bg-primary flex-1 ml-2 py-4 rounded-xl"
               onPress={() => setShowFilters(false)}
+              accessibilityRole="button"
             >
               <Text className="text-on-brand text-center font-bold">Done</Text>
             </TouchableOpacity>
@@ -439,6 +474,9 @@ export default function ExercisesScreen() {
               }`}
             onPress={() => setActiveTab(tab)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${tab} exercises`}
+            accessibilityState={{ selected }}
           >
             <Text className={`text-center font-bold capitalize ${selected ? 'text-on-brand' : 'text-text-light'}`}>
               {tab}
@@ -479,7 +517,7 @@ export default function ExercisesScreen() {
       <View className="px-4 mb-3">
         <View className="flex-row items-center justify-between mb-2">
           <Text className="text-text-light text-sm">Active filters:</Text>
-          <TouchableOpacity onPress={clearFilters}>
+          <TouchableOpacity onPress={clearFilters} accessibilityRole="button">
             <Text className="text-primary text-sm font-medium">Clear all</Text>
           </TouchableOpacity>
         </View>
@@ -490,6 +528,8 @@ export default function ExercisesScreen() {
               onPress={filter.onRemove}
               className="bg-primary px-3 py-1.5 rounded-full mr-2 mb-2 flex-row items-center"
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove filter: ${filter.label}`}
             >
               <Text className="text-on-brand text-sm font-medium mr-1">{filter.label}</Text>
               <AntDesign name="close" size={12} color={colors.onBrand} />
@@ -526,6 +566,7 @@ export default function ExercisesScreen() {
             className="bg-primary px-8 py-3 rounded-xl mt-6"
             onPress={retry}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text className="text-on-brand font-bold">Retry</Text>
           </TouchableOpacity>
@@ -594,6 +635,8 @@ export default function ExercisesScreen() {
             onPress={() => router.push('/favorites')}
             className="bg-surface-2 border border-border px-4 py-2 rounded-xl flex-row items-center"
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="View favorites"
           >
             <AntDesign name="heart" size={20} color={colors.danger} />
             {favorites.length > 0 && (
@@ -615,9 +658,15 @@ export default function ExercisesScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
+              accessibilityLabel={`Search ${activeTab} exercises...`}
             />
             {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                className="p-1"
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
                 <AntDesign name="close" size={20} color={colors.textLight} />
               </TouchableOpacity>
             ) : null}
@@ -628,6 +677,8 @@ export default function ExercisesScreen() {
               onPress={() => setShowFilters(true)}
               className="bg-surface-2 border border-border p-3 rounded-xl"
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Open filters"
             >
               <FontAwesome name="filter" size={20} color={colors.textLight} />
             </TouchableOpacity>

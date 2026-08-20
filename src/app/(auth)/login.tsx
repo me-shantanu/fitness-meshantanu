@@ -101,6 +101,7 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   editable={!loading}
+                  accessibilityLabel="Email"
                 />
               </View>
               
@@ -116,12 +117,13 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   editable={!loading}
+                  accessibilityLabel="Password"
                 />
               </View>
 
               <View className="flex-row justify-end mb-4">
                 <Link href="/(auth)/forgot-password" asChild>
-                  <TouchableOpacity disabled={loading}>
+                  <TouchableOpacity disabled={loading} accessibilityRole="button">
                     <Text className={`text-text-light ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Forgot password?
                     </Text>
@@ -135,6 +137,7 @@ export default function LoginScreen() {
                   onPress={handleLogin}
                   disabled={loading}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
                 >
                   <Text className={`text-on-brand text-center font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                     Sign In
@@ -147,7 +150,7 @@ export default function LoginScreen() {
                   Don't have an account?{' '}
                 </Text>
                 <Link href="/(auth)/signup" asChild>
-                  <TouchableOpacity disabled={loading}>
+                  <TouchableOpacity disabled={loading} accessibilityRole="button">
                     <Text className={`text-primary font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
                       Sign Up
                     </Text>
