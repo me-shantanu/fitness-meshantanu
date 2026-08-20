@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -15,18 +17,27 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { showAlert } from '@/utils/alert';
+import { localDateString } from '../utils/date';
+import { useThemeStore } from '@/store/useThemeStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+interface WeightEntry {
+  date: string;
+  weight: number;
+}
+
 export default function ProgressScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('volume'); // volume, workouts, calories, prs
   const [selectedPeriod, setSelectedPeriod] = useState('month'); // week, month, 3months, year
   const [progressData, setProgressData] = useState([]);
   const [personalRecords, setPersonalRecords] = useState([]);
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+  const [showWeightModal, setShowWeightModal] = useState(false);
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     totalVolume: 0,
@@ -95,6 +106,16 @@ export default function ProgressScreen() {
         .order('achieved_at', { ascending: false });
 
       setPersonalRecords(prs || []);
+
+      // Load body-weight history (latest 30 entries)
+      const { data: weights } = await supabase
+        .from('body_weight_log')
+        .select('date, weight')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(30);
+
+      setWeightHistory((weights as WeightEntry[]) || []);
 
       // Process data for visualization
       const processedData = processProgressData(sessions || []);
@@ -279,6 +300,90 @@ export default function ProgressScreen() {
     );
   };
 
+  const handleWeightLogged = (entry: WeightEntry) => {
+    setWeightHistory(prev => {
+      const rest = prev.filter(e => e.date !== entry.date);
+      return [entry, ...rest].sort((a, b) => (a.date < b.date ? 1 : -1));
+    });
+    setShowWeightModal(false);
+  };
+
+  const formatWeightDate = (dateString: string) =>
+    new Date(`${dateString}T00:00:00`).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+
+  const renderBodyWeightCard = () => {
+    const currentWeight = weightHistory[0]?.weight ?? profile?.weight ?? null;
+    const recentEntries = weightHistory.slice(0, 8);
+
+    return (
+      <View className="px-4 mb-6">
+        <Text className="text-text text-xl font-bold mb-4">Body Weight</Text>
+
+        <View className="bg-surface rounded-xl p-4">
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className="text-text-light text-sm">Current Weight</Text>
+              <Text className="text-text text-2xl font-bold">
+                {currentWeight !== null ? `${currentWeight} kg` : 'Not set'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              className="bg-blue-600 px-4 py-2 rounded-lg"
+              onPress={() => setShowWeightModal(true)}
+            >
+              <Text className="text-text font-bold">Log Weight</Text>
+            </TouchableOpacity>
+          </View>
+
+          {recentEntries.length > 0 && (
+            <View className="mt-4 pt-3 border-t border-gray-700">
+              {recentEntries.map((entry, index) => {
+                const previous = recentEntries[index + 1];
+                const delta = previous ? entry.weight - previous.weight : null;
+
+                return (
+                  <View
+                    key={entry.date}
+                    className="flex-row justify-between items-center py-2"
+                  >
+                    <Text className="text-text-light">{formatWeightDate(entry.date)}</Text>
+                    <View className="flex-row items-center">
+                      {delta !== null && Math.abs(delta) >= 0.05 && (
+                        <View className="flex-row items-center mr-3">
+                          <Feather
+                            name={delta > 0 ? 'arrow-up' : 'arrow-down'}
+                            size={14}
+                            color={delta > 0 ? '#EF4444' : '#10B981'}
+                          />
+                          <Text
+                            className={`text-xs ml-1 ${delta > 0 ? 'text-red-400' : 'text-green-400'}`}
+                          >
+                            {Math.abs(delta).toFixed(1)}
+                          </Text>
+                        </View>
+                      )}
+                      <Text className="text-text font-bold">{entry.weight} kg</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {recentEntries.length === 0 && (
+            <Text className="text-text-light text-sm mt-3">
+              Log your weight to start tracking your trend.
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const renderProgressCards = () => (
     <View className="px-4 mb-6">
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -376,10 +481,7 @@ export default function ProgressScreen() {
       {personalRecords.length > 5 && (
         <TouchableOpacity
           className="bg-surface rounded-xl p-4 items-center mt-3"
-          onPress={() => {
-            // You can create a PR list screen later
-            showAlert('Coming Soon', 'Full PR list view coming soon!');
-          }}
+          onPress={() => router.push('/pr-list' as any)}
         >
           <Text className="text-blue-400 font-bold">
             View All {personalRecords.length} Records →
@@ -452,6 +554,9 @@ export default function ProgressScreen() {
         {/* Progress Cards */}
         {renderProgressCards()}
 
+        {/* Body Weight */}
+        {renderBodyWeightCard()}
+
         {/* Progress Visualization */}
         <View className="px-4 mb-6">
           <Text className="text-text text-xl font-bold mb-4">
@@ -511,6 +616,112 @@ export default function ProgressScreen() {
         {/* Personal Records */}
         {renderPersonalRecords()}
       </ScrollView>
+
+      <Modal
+        visible={showWeightModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowWeightModal(false)}
+      >
+        <LogWeightModal
+          initialWeight={weightHistory[0]?.weight ?? profile?.weight ?? null}
+          onClose={() => setShowWeightModal(false)}
+          onSaved={handleWeightLogged}
+        />
+      </Modal>
     </SafeAreaView>
+  );
+}
+
+interface LogWeightModalProps {
+  initialWeight: number | null;
+  onClose: () => void;
+  onSaved: (entry: WeightEntry) => void;
+}
+
+function LogWeightModal({ initialWeight, onClose, onSaved }: LogWeightModalProps) {
+  const { vars, mode } = useThemeStore();
+  const [weightInput, setWeightInput] = useState(
+    initialWeight !== null ? String(initialWeight) : ''
+  );
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  const today = localDateString();
+
+  const handleSave = async () => {
+    const weight = parseFloat(weightInput);
+    if (isNaN(weight) || weight <= 20 || weight >= 500) {
+      showAlert('Invalid Weight', 'Please enter a weight between 20 and 500 kg.');
+      return;
+    }
+
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+
+    try {
+      const { data, error } = await supabase.rpc('log_body_weight', { p_weight: weight });
+      if (error) throw error;
+
+      await useAuthStore.getState().refreshProfile();
+
+      const row = Array.isArray(data) ? data[0] : data;
+      onSaved({
+        date: row?.date ?? today,
+        weight: row?.weight ?? weight,
+      });
+    } catch (error) {
+      console.error('Error logging body weight:', error);
+      showAlert('Error', 'Could not log your weight. Please try again.');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={vars} key={mode} className="flex-1 bg-black/50 justify-end">
+      <View className="bg-bg rounded-t-3xl p-6">
+        <View className="flex-row justify-between items-center mb-6">
+          <Text className="text-text text-2xl font-bold">Log Weight</Text>
+          <TouchableOpacity onPress={onClose}>
+            <AntDesign name="close" size={24} color="var(--text)" />
+          </TouchableOpacity>
+        </View>
+
+        <View className="mb-4">
+          <Text className="text-text mb-2 font-medium">Weight (kg)</Text>
+          <TextInput
+            className="bg-surface text-text px-4 py-3 rounded-lg"
+            placeholder="70"
+            placeholderTextColor="#6B7280"
+            value={weightInput}
+            onChangeText={setWeightInput}
+            keyboardType="numeric"
+            autoFocus
+          />
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-text mb-2 font-medium">Date</Text>
+          <View className="bg-surface px-4 py-3 rounded-lg">
+            <Text className="text-text-light">{today} (today)</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          className={`bg-blue-600 py-4 rounded-xl mb-3 ${saving ? 'opacity-50' : ''}`}
+          disabled={saving}
+          onPress={handleSave}
+        >
+          {saving ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-text text-center font-bold text-lg">Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }

@@ -10,8 +10,9 @@ interface Profile {
   height: number | null;
   weight: number | null;
   age: number | null;
-  gender: 'male' | 'female' | null;
+  gender: 'male' | 'female' | 'other' | null;
   bmr: number | null;
+  activity_level: string | null;
   goal: 'lose_weight' | 'gain_muscle' | 'maintain' | null;
   created_at: string;
   updated_at: string;

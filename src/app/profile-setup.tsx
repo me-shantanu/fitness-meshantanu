@@ -3,28 +3,44 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { supabase } from '../lib/supabase';
+import { nutritionService } from '../services/nutritionService';
 import { showAlert } from '@/utils/alert';
 
 interface FormData {
   height: string;
   weight: string;
   age: string;
-  gender: 'male' | 'female';
-  bmr: string;
+  gender: 'male' | 'female' | 'other';
+  activity_level: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
   goal: 'lose_weight' | 'gain_muscle' | 'maintain';
 }
+
+const GENDERS = [
+  { value: 'male' as const, label: 'Male' },
+  { value: 'female' as const, label: 'Female' },
+  { value: 'other' as const, label: 'Other' },
+];
+
+const ACTIVITY_LEVELS = [
+  { value: 'sedentary' as const, label: 'Sedentary' },
+  { value: 'light' as const, label: 'Light' },
+  { value: 'moderate' as const, label: 'Moderate' },
+  { value: 'active' as const, label: 'Active' },
+  { value: 'very_active' as const, label: 'Very Active' },
+];
 
 export default function ProfileSetupScreen() {
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState<FormData>({
     height: '',
     weight: '',
     age: '',
     gender: 'male',
-    bmr: '',
+    activity_level: 'moderate',
     goal: 'maintain',
   });
 
@@ -34,21 +50,70 @@ export default function ProfileSetupScreen() {
     { value: 'maintain' as const, label: 'Maintain', icon: '⚖️' },
   ];
 
+  // Live BMR: null until all inputs are valid.
+  const computeBMR = (): number | null => {
+    const height = parseFloat(formData.height);
+    const weight = parseFloat(formData.weight);
+    const age = parseInt(formData.age, 10);
+    if (isNaN(height) || isNaN(weight) || isNaN(age)) return null;
+    try {
+      return nutritionService.calculateBMR(weight, height, age, formData.gender);
+    } catch {
+      return null;
+    }
+  };
+  const computedBMR = computeBMR();
+
   const handleSave = async () => {
-    if (!formData.height || !formData.weight || !formData.age || !formData.bmr) {
+    if (!formData.height || !formData.weight || !formData.age) {
       showAlert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const height = parseFloat(formData.height);
+    const weight = parseFloat(formData.weight);
+    const age = parseInt(formData.age, 10);
+
+    if (isNaN(height) || height < 50 || height > 300) {
+      showAlert('Error', 'Please enter a valid height between 50 and 300 cm');
+      return;
+    }
+    if (isNaN(weight) || weight < 20 || weight > 500) {
+      showAlert('Error', 'Please enter a valid weight between 20 and 500 kg');
+      return;
+    }
+    if (isNaN(age) || age < 5 || age > 120) {
+      showAlert('Error', 'Please enter a valid age between 5 and 120');
+      return;
+    }
+
+    let bmr: number;
+    try {
+      bmr = nutritionService.calculateBMR(weight, height, age, formData.gender);
+    } catch {
+      showAlert('Error', 'Could not calculate BMR from the provided values');
       return;
     }
 
     setLoading(true);
     const { error } = await updateProfile({
-      height: parseFloat(formData.height),
-      weight: parseFloat(formData.weight),
-      age: parseInt(formData.age),
+      height,
+      weight,
+      age,
       gender: formData.gender,
-      bmr: parseFloat(formData.bmr),
+      bmr: Math.round(bmr),
+      activity_level: formData.activity_level,
       goal: formData.goal,
     });
+
+    if (!error) {
+      // Seed the body-weight history with the first entry; ignore failures.
+      try {
+        await supabase.rpc('log_body_weight', { p_weight: weight });
+      } catch {
+        // ignore
+      }
+    }
     setLoading(false);
 
     if (error) {
@@ -103,33 +168,41 @@ export default function ProfileSetupScreen() {
         <View className="mb-4">
           <Text className="text-text mb-2 font-medium">Gender</Text>
           <View className="flex-row gap-3">
-            <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'male' ? 'bg-brand' : 'bg-surface'}`}
-              onPress={() => setFormData({ ...formData, gender: 'male' })}
-            >
-              <Text className="text-text text-center font-bold">Male</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg ${formData.gender === 'female' ? 'bg-brand' : 'bg-surface'}`}
-              onPress={() => setFormData({ ...formData, gender: 'female' })}
-            >
-              <Text className="text-text text-center font-bold">Female</Text>
-            </TouchableOpacity>
+            {GENDERS.map((gender) => (
+              <TouchableOpacity
+                key={gender.value}
+                className={`flex-1 py-3 rounded-lg ${formData.gender === gender.value ? 'bg-brand' : 'bg-surface'}`}
+                onPress={() => setFormData({ ...formData, gender: gender.value })}
+              >
+                <Text className="text-text text-center font-bold">{gender.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
         <View className="mb-4">
-          <Text className="text-text mb-2 font-medium">BMR (Basal Metabolic Rate)</Text>
-          <TextInput
-            className="bg-surface text-text px-4 py-3 rounded-lg"
-            placeholder="1800"
-            placeholderTextColor="#6B7280"
-            value={formData.bmr}
-            onChangeText={(text) => setFormData({ ...formData, bmr: text })}
-            keyboardType="numeric"
-          />
-          <Text className="text-text-light text-sm mt-1">Enter your known BMR or calculate it online</Text>
+          <Text className="text-text mb-2 font-medium">Activity Level</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {ACTIVITY_LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level.value}
+                className={`px-4 py-2 rounded-full ${formData.activity_level === level.value ? 'bg-brand' : 'bg-surface'}`}
+                onPress={() => setFormData({ ...formData, activity_level: level.value })}
+              >
+                <Text className="text-text font-bold">{level.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+
+        {computedBMR !== null && (
+          <View className="mb-4 bg-surface rounded-lg p-4">
+            <Text className="text-text font-bold text-lg">
+              Estimated BMR: {computedBMR} kcal
+            </Text>
+            <Text className="text-text-light text-sm mt-1">Calculated automatically</Text>
+          </View>
+        )}
 
         <View className="mb-6">
           <Text className="text-text mb-2 font-medium">Fitness Goal</Text>
